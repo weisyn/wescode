@@ -1,0 +1,62 @@
+{
+  "language": {
+    "name": "C#",
+    "id": "csharp",
+    "extensions": [".cs"],
+    "test_file_patterns": ["*Tests.cs", "*Test.cs", "Test*.cs"],
+    "marker_files": ["*.csproj", "*.sln"],
+    "tree_sitter_grammar": "tree_sitter_c_sharp"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "invocation_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "invocation_expression",
+      "function_field": "function",
+      "receiver_field": "expression",
+      "method_field": "name"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement"],
+      "description": "try/catch block"
+    },
+    "iteration": {
+      "node_types": ["for_each_statement", "for_statement"],
+      "description": "foreach or for loop"
+    },
+    "async_await": {
+      "node_types": ["await_expression"],
+      "description": "await expression"
+    },
+    "using_statement": {
+      "node_types": ["using_statement"],
+      "description": "using (IDisposable) pattern"
+    }
+  },
+  "test_runner": {
+    "command": "dotnet",
+    "args": ["test", "--verbosity", "normal"],
+    "parse_pattern": {
+      "failure": "^\\s*Failed\\s+(\\S+)",
+      "pass": "^\\s*Passed\\s+(\\S+)"
+    }
+  },
+  "compile_runner": {
+    "command": "dotnet",
+    "args": ["build", "--no-restore"],
+    "parse_pattern": {
+      "error": "^(.+?)\\((\\d+),(\\d+)\\): error (CS\\d+): (.+)$",
+      "undefined_symbol": "The name '(\\w+)' does not exist"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "*.csproj", "format": "csproj_project_ref"},
+      {"file": "*.sln", "format": "sln_projects"}
+    ]
+  }
+}

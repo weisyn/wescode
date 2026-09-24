@@ -1,0 +1,57 @@
+{
+  "language": {
+    "name": "Dart",
+    "id": "dart",
+    "extensions": [".dart"],
+    "test_file_patterns": ["*_test.dart"],
+    "marker_files": ["pubspec.yaml"],
+    "tree_sitter_grammar": "tree_sitter_dart"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "function_expression_invocation",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "method_invocation",
+      "function_field": "name",
+      "receiver_field": "target",
+      "method_field": "name"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement"],
+      "description": "try/catch block"
+    },
+    "iteration": {
+      "node_types": ["for_statement"],
+      "description": "for-in loop"
+    },
+    "async_await": {
+      "node_types": ["await_expression"],
+      "description": "await expression"
+    }
+  },
+  "test_runner": {
+    "command": "dart",
+    "args": ["test", "--reporter=expanded"],
+    "parse_pattern": {
+      "failure": "^\\s*-\\d+: .+ \\[E\\]\\s*(.+)",
+      "pass": "^\\s*\\+\\d+: .+$"
+    }
+  },
+  "compile_runner": {
+    "command": "dart",
+    "args": ["analyze"],
+    "parse_pattern": {
+      "error": "^\\s*error .+ (.+?):(\\d+):(\\d+) .+ (.+)$",
+      "undefined_symbol": "Undefined name '(\\w+)'"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "pubspec.yaml", "format": "pubspec_path"}
+    ]
+  }
+}

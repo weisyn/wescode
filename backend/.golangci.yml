@@ -1,0 +1,71 @@
+version: "2"
+
+# 原则：只开能抓 bug / 死码 / 安全问题的 linter；命名/风格/复杂度全关。
+# 配置对齐 wesgine.git/.golangci.yml（2026-07-11）。
+
+linters:
+  default: standard   # govet / staticcheck / unused / ineffassign / errcheck
+  enable:
+    - bodyclose       # HTTP response body 未 Close
+    - durationcheck   # 两个 duration 相乘（单位错误）
+    - forcetypeassert # 裸 type assertion
+    - errorlint       # Go 1.13 error wrapping（== 改 errors.Is）
+    - fatcontext      # 循环体内嵌套 context
+    - unparam         # unexported 函数参数始终是同一个值
+    - exhaustive      # switch 缺少枚举 case
+
+  disable:
+    - errcheck        # defer Close() 占90% noise；staticcheck 覆盖关键 error 检查
+    - nilerr          # 噪音过高
+    - contextcheck    # goroutine/defer ctx 模式误报率高
+
+    # 命名 / 风格 / 格式 ── 全部关闭
+    - godot
+    - godox
+    - goheader
+    - funcorder
+    - decorder
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocyclo
+    - cyclop
+    - funlen
+    - dupl
+    - goconst
+    - gocritic
+    - inamedparam
+    - interfacebloat
+    - exhaustruct
+    - wrapcheck
+    - err113
+    - dupword
+    - gosmopolitan
+    - iface
+    - embeddedstructfieldcheck
+
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+      ignore-enum-types: "EventType"
+
+    staticcheck:
+      checks:
+        - "all"
+        - "-ST*"   # 关闭命名/风格检查
+        - "-QF*"   # 关闭 quick-fix 提示
+
+    unparam:
+      check-exported: false
+
+issues:
+  exclude-rules:
+    - path: "_test\\.go"
+      linters:
+        - forcetypeassert
+        - unparam
+        - exhaustive
+        - bodyclose
+
+  max-issues-per-linter: 50
+  max-same-issues: 5

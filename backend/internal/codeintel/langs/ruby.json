@@ -1,0 +1,57 @@
+{
+  "language": {
+    "name": "Ruby",
+    "id": "ruby",
+    "extensions": [".rb"],
+    "test_file_patterns": ["*_test.rb", "*_spec.rb", "test_*.rb"],
+    "marker_files": ["Gemfile"],
+    "tree_sitter_grammar": "tree_sitter_ruby"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call",
+      "function_field": "method"
+    },
+    "method_call": {
+      "node_type": "call",
+      "function_field": "method",
+      "receiver_field": "receiver",
+      "method_field": "method"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["rescue"],
+      "description": "begin/rescue block"
+    },
+    "iteration": {
+      "node_types": ["for", "call"],
+      "description": "for or .each block",
+      "text_match": "\\.each|\\.(map|select|reject|reduce)"
+    },
+    "block": {
+      "node_types": ["do_block", "block"],
+      "description": "block (do..end or {})"
+    }
+  },
+  "test_runner": {
+    "command": "bundle",
+    "args": ["exec", "rspec", "--format", "documentation"],
+    "parse_pattern": {
+      "failure": "^\\s+\\d+\\) (.+)$",
+      "pass": "^\\s+(\\d+) examples?, 0 failures"
+    }
+  },
+  "compile_runner": {
+    "command": "ruby",
+    "args": ["-c"],
+    "parse_pattern": {
+      "error": "^(.+?):(\\d+): (.+)$"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "Gemfile", "format": "gemfile_path"}
+    ]
+  }
+}

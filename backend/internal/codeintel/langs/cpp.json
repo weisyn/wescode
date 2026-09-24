@@ -1,0 +1,58 @@
+{
+  "language": {
+    "name": "C++",
+    "id": "cpp",
+    "extensions": [".cpp", ".cc", ".cxx", ".hpp", ".h", ".hxx"],
+    "test_file_patterns": ["*_test.cpp", "*_test.cc", "test_*.cpp"],
+    "marker_files": ["CMakeLists.txt", "Makefile", "meson.build"],
+    "tree_sitter_grammar": "tree_sitter_cpp"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "object",
+      "method_field": "field"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement"],
+      "description": "try/catch block"
+    },
+    "iteration": {
+      "node_types": ["for_statement", "for_range_loop"],
+      "description": "for or range-based for loop"
+    },
+    "raii": {
+      "node_types": ["declaration"],
+      "description": "RAII resource management",
+      "text_match": "unique_ptr|shared_ptr|lock_guard|scoped_lock"
+    }
+  },
+  "test_runner": {
+    "command": "ctest",
+    "args": ["--test-dir", "build", "--output-on-failure"],
+    "parse_pattern": {
+      "failure": "^\\s*\\d+/\\d+ Test #\\d+: (\\S+) \\.+\\*\\*\\*Failed",
+      "pass": "^\\s*\\d+/\\d+ Test #\\d+: (\\S+) \\.+\\s+Passed"
+    }
+  },
+  "compile_runner": {
+    "command": "cmake",
+    "args": ["--build", "build"],
+    "parse_pattern": {
+      "error": "^(.+?):(\\d+):(\\d+): error: (.+)$",
+      "undefined_symbol": "undefined reference to `(\\w+)'"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "CMakeLists.txt", "format": "cmake_add_subdirectory"}
+    ]
+  }
+}

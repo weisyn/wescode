@@ -1,0 +1,54 @@
+{
+  "language": {
+    "name": "C",
+    "id": "c",
+    "extensions": [".c"],
+    "test_file_patterns": ["*_test.c", "test_*.c"],
+    "marker_files": ["CMakeLists.txt", "Makefile"],
+    "tree_sitter_grammar": "tree_sitter_c"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "",
+      "method_field": ""
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["if_statement"],
+      "description": "return code check (errno, NULL)",
+      "text_match": "==\\s*(NULL|-1|0)|!=\\s*(NULL|0)"
+    },
+    "iteration": {
+      "node_types": ["for_statement", "while_statement"],
+      "description": "for/while loop"
+    }
+  },
+  "test_runner": {
+    "command": "ctest",
+    "args": ["--test-dir", "build", "--output-on-failure"],
+    "parse_pattern": {
+      "failure": "^\\s*\\d+/\\d+ Test #\\d+: (\\S+) \\.+\\*\\*\\*Failed",
+      "pass": "^\\s*\\d+/\\d+ Test #\\d+: (\\S+) \\.+\\s+Passed"
+    }
+  },
+  "compile_runner": {
+    "command": "make",
+    "args": [],
+    "parse_pattern": {
+      "error": "^(.+?):(\\d+):(\\d+): error: (.+)$",
+      "undefined_symbol": "undefined reference to `(\\w+)'"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "CMakeLists.txt", "format": "cmake_add_subdirectory"}
+    ]
+  }
+}

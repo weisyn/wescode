@@ -1,0 +1,59 @@
+{
+  "language": {
+    "name": "Rust",
+    "id": "rust",
+    "extensions": [".rs"],
+    "test_file_patterns": [],
+    "marker_files": ["Cargo.toml"],
+    "tree_sitter_grammar": "tree_sitter_rust"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "value",
+      "method_field": "field"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_expression"],
+      "description": "? operator (try expression)"
+    },
+    "type_narrowing": {
+      "node_types": ["match_expression", "if_let_expression"],
+      "description": "match or if-let pattern"
+    },
+    "iteration": {
+      "node_types": ["for_expression"],
+      "description": "for-in loop"
+    }
+  },
+  "test_runner": {
+    "command": "cargo",
+    "args": ["test", "--", "--format=terse"],
+    "parse_pattern": {
+      "failure": "^test (.+?) \\.\\.\\.\\s+FAILED",
+      "pass": "^test (.+?) \\.\\.\\.\\s+ok"
+    }
+  },
+  "compile_runner": {
+    "command": "cargo",
+    "args": ["check", "--message-format=short"],
+    "parse_pattern": {
+      "error": "^error(?:\\[E\\d+\\])?: (.+)$",
+      "location": "^\\s*--> (.+?):(\\d+):(\\d+)",
+      "undefined_symbol": "cannot find (?:value|type|function) `(\\w+)`"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "Cargo.toml", "format": "cargo_toml_path"},
+      {"file": "Cargo.toml", "format": "cargo_workspace"}
+    ]
+  }
+}

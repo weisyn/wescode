@@ -1,0 +1,59 @@
+{
+  "language": {
+    "name": "Java",
+    "id": "java",
+    "extensions": [".java"],
+    "test_file_patterns": ["*Test.java", "*Tests.java", "Test*.java"],
+    "marker_files": ["pom.xml", "build.gradle", "build.gradle.kts"],
+    "tree_sitter_grammar": "tree_sitter_java"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "method_invocation",
+      "function_field": "name"
+    },
+    "method_call": {
+      "node_type": "method_invocation",
+      "function_field": "name",
+      "receiver_field": "object",
+      "method_field": "name"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement"],
+      "description": "try/catch block"
+    },
+    "iteration": {
+      "node_types": ["for_statement", "enhanced_for_statement"],
+      "description": "for or enhanced-for loop"
+    },
+    "type_narrowing": {
+      "node_types": ["if_statement"],
+      "description": "instanceof check",
+      "text_match": "instanceof"
+    }
+  },
+  "test_runner": {
+    "command": "mvn",
+    "args": ["test", "-pl", ".", "--no-transfer-progress"],
+    "parse_pattern": {
+      "failure": "^\\[ERROR\\]\\s+(.+?)\\s+Time elapsed",
+      "pass": "^Tests run: (\\d+), Failures: 0"
+    }
+  },
+  "compile_runner": {
+    "command": "mvn",
+    "args": ["compile", "-pl", ".", "--no-transfer-progress"],
+    "parse_pattern": {
+      "error": "^\\[ERROR\\] (.+?):\\[(\\d+),(\\d+)\\] (.+)$",
+      "undefined_symbol": "cannot find symbol.*symbol:\\s+(?:variable|method|class) (\\w+)"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "settings.gradle", "format": "gradle_settings"},
+      {"file": "settings.gradle.kts", "format": "gradle_settings"}
+    ]
+  }
+}

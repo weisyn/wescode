@@ -1,0 +1,49 @@
+{
+  "language": {
+    "name": "JavaScript",
+    "id": "javascript",
+    "extensions": [".js", ".jsx", ".mjs", ".cjs"],
+    "test_file_patterns": ["*.test.js", "*.spec.js", "*.test.jsx", "*.spec.jsx"],
+    "marker_files": ["package.json"],
+    "tree_sitter_grammar": "tree_sitter_javascript"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "object",
+      "method_field": "property"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement", "catch_clause"],
+      "description": "try-catch error handling"
+    },
+    "iteration": {
+      "node_types": ["for_statement", "for_in_statement", "while_statement"],
+      "description": "for/for-in/while loop"
+    },
+    "async": {
+      "node_types": ["await_expression"],
+      "description": "async/await"
+    }
+  },
+  "test_runner": {
+    "command": "npx",
+    "args": ["jest", "--no-coverage"],
+    "parse_pattern": {
+      "failure": "FAIL\\s+(\\S+)",
+      "pass": "PASS\\s+(\\S+)"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "package.json", "format": "npm_workspace"}
+    ]
+  }
+}

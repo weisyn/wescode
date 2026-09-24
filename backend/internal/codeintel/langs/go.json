@@ -1,0 +1,59 @@
+{
+  "language": {
+    "name": "Go",
+    "id": "go",
+    "extensions": [".go"],
+    "test_file_patterns": ["*_test.go"],
+    "marker_files": ["go.mod"],
+    "tree_sitter_grammar": "tree_sitter_go"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "operand",
+      "method_field": "field"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["if_statement"],
+      "description": "if err != nil pattern",
+      "text_match": "err.*!=.*nil"
+    },
+    "iteration": {
+      "node_types": ["for_statement", "for_range_clause"],
+      "description": "for-range loop"
+    },
+    "type_narrowing": {
+      "node_types": ["type_switch_statement", "expression_switch_statement"],
+      "description": "type switch"
+    }
+  },
+  "test_runner": {
+    "command": "go",
+    "args": ["test", "-count=1", "-timeout", "60s"],
+    "parse_pattern": {
+      "failure": "^--- FAIL: (Test\\w+)",
+      "pass": "^--- PASS: (Test\\w+)",
+      "package_fail": "^FAIL\\t(\\S+)"
+    }
+  },
+  "compile_runner": {
+    "command": "go",
+    "args": ["build", "./..."],
+    "parse_pattern": {
+      "error": "^(.+?):(\\d+):(\\d+): (.+)$",
+      "undefined_symbol": "undefined:\\s*(\\S+)"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "go.mod", "format": "gomod_replace"}
+    ]
+  }
+}

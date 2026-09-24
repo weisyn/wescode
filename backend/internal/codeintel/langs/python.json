@@ -1,0 +1,63 @@
+{
+  "language": {
+    "name": "Python",
+    "id": "python",
+    "extensions": [".py"],
+    "test_file_patterns": ["test_*.py", "*_test.py"],
+    "marker_files": ["pyproject.toml", "setup.py", "requirements.txt"],
+    "tree_sitter_grammar": "tree_sitter_python"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call",
+      "function_field": "function",
+      "receiver_field": "object",
+      "method_field": "attribute"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement"],
+      "description": "try/except block"
+    },
+    "context_manager": {
+      "node_types": ["with_statement"],
+      "description": "with statement (context manager)"
+    },
+    "iteration": {
+      "node_types": ["for_statement"],
+      "description": "for-in loop"
+    },
+    "type_narrowing": {
+      "node_types": ["if_statement"],
+      "description": "isinstance() check",
+      "text_match": "isinstance\\("
+    }
+  },
+  "test_runner": {
+    "command": "python",
+    "args": ["-m", "pytest", "-v", "--tb=short"],
+    "parse_pattern": {
+      "failure": "^FAILED (.+?)(?:\\s+-|$)",
+      "pass": "^PASSED (.+?)(?:\\s+-|$)",
+      "error": "^(.+?):(\\d+): (.+)$"
+    }
+  },
+  "compile_runner": {
+    "command": "pyright",
+    "args": [],
+    "parse_pattern": {
+      "error": "^\\s*(.+?):(\\d+):(\\d+) - error: (.+)$",
+      "undefined_symbol": "\"(\\w+)\" is not defined"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "pyproject.toml", "format": "pyproject_path"}
+    ]
+  }
+}

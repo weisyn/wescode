@@ -1,0 +1,64 @@
+{
+  "language": {
+    "name": "TypeScript",
+    "id": "typescript",
+    "extensions": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],
+    "test_file_patterns": ["*.test.ts", "*.spec.ts", "*.test.tsx", "*.spec.tsx", "*.test.js", "*.spec.js"],
+    "marker_files": ["package.json", "tsconfig.json"],
+    "tree_sitter_grammar": "tree_sitter_typescript"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "object",
+      "method_field": "property"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement"],
+      "description": "try/catch block"
+    },
+    "async_await": {
+      "node_types": ["await_expression"],
+      "description": "await expression"
+    },
+    "iteration": {
+      "node_types": ["for_of_statement", "for_in_statement"],
+      "description": "for-of/for-in loop"
+    },
+    "promise_chain": {
+      "node_types": ["call_expression"],
+      "description": ".then()/.catch() chain",
+      "text_match": "\\.(then|catch)\\("
+    }
+  },
+  "test_runner": {
+    "command": "npx",
+    "args": ["vitest", "run", "--reporter=verbose"],
+    "parse_pattern": {
+      "failure": "^\\s*[×✗]\\s+(.+)",
+      "pass": "^\\s*[✓√]\\s+(.+)"
+    }
+  },
+  "compile_runner": {
+    "command": "npx",
+    "args": ["tsc", "--noEmit"],
+    "parse_pattern": {
+      "error": "^(.+?)\\((\\d+),(\\d+)\\): error (TS\\d+): (.+)$",
+      "undefined_symbol": "Cannot find name '(\\w+)'"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "package.json", "format": "package_json_workspaces"},
+      {"file": "tsconfig.json", "format": "tsconfig_references"},
+      {"file": "pnpm-workspace.yaml", "format": "pnpm_workspace_yaml"}
+    ]
+  }
+}

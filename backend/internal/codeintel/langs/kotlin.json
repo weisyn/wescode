@@ -1,0 +1,63 @@
+{
+  "language": {
+    "name": "Kotlin",
+    "id": "kotlin",
+    "extensions": [".kt", ".kts"],
+    "test_file_patterns": ["*Test.kt", "*Tests.kt", "Test*.kt"],
+    "marker_files": ["build.gradle.kts", "build.gradle"],
+    "tree_sitter_grammar": "tree_sitter_kotlin"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "object",
+      "method_field": "suffix"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_expression"],
+      "description": "try/catch expression"
+    },
+    "iteration": {
+      "node_types": ["for_statement"],
+      "description": "for-in loop"
+    },
+    "null_safety": {
+      "node_types": ["safe_navigation", "not_null_assertion"],
+      "description": "?. or !! null safety operators"
+    },
+    "coroutine": {
+      "node_types": ["call_expression"],
+      "description": "suspend/launch/async coroutine",
+      "text_match": "launch|async|withContext|coroutineScope"
+    }
+  },
+  "test_runner": {
+    "command": "gradle",
+    "args": ["test", "--info"],
+    "parse_pattern": {
+      "failure": "^(.+) > (.+) FAILED$",
+      "pass": "^(.+) > (.+) PASSED$"
+    }
+  },
+  "compile_runner": {
+    "command": "gradle",
+    "args": ["compileKotlin"],
+    "parse_pattern": {
+      "error": "^e: (.+?):(\\d+):(\\d+): (.+)$",
+      "undefined_symbol": "Unresolved reference: (\\w+)"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "settings.gradle.kts", "format": "gradle_settings"},
+      {"file": "settings.gradle", "format": "gradle_settings"}
+    ]
+  }
+}

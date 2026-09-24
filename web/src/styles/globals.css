@@ -1,0 +1,460 @@
+@import "tailwindcss";
+@import "../../../../wesui.git/src/tokens/base.css";
+@source "../../../../wesui.git/src";
+
+/* ─── Keyframes ─────────────────────────────────────────── */
+@keyframes message-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes thinking-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50%       { opacity: 1;   transform: scale(1); }
+}
+
+@keyframes stream-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+@keyframes stream-shimmer {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes orbit-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+@keyframes constellation-draw {
+  from { stroke-dashoffset: 20; opacity: 0; }
+  to   { stroke-dashoffset: 0;  opacity: 0.45; }
+}
+
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: scaleY(1);   opacity: 0.35; }
+  40%           { transform: scaleY(1.7); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { opacity: 0.3; transform: translateY(-4px); }
+  50%  { opacity: 1;   transform: translateY(0); }
+  100% { opacity: 0.3; transform: translateY(4px); }
+}
+
+@keyframes slide-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ─── Design Tokens ─────────────────────────────────────── */
+@theme {
+  /* ── Background layers */
+  --color-background: #0a0b0f;
+  --color-card: #151720;
+  --color-card-2: #1e2029;
+  --color-card-3: #262a36;
+  --color-card-hover: #2e3240;
+  /* 侧栏搜索内嵌槽（对比 card-2 ~1.45:1，勿复用 card-hover） */
+  --color-search-field: #363b4a;
+
+  /* ── Borders */
+  --color-border:    #2a2d38;
+  --color-border-hi: #3d4155;
+
+  /* ── Text */
+  --color-foreground:     #d6dbe7;
+  --color-text-secondary: #a7adc0;
+  --color-muted-foreground: #7f869c;
+  --color-muted:          #484c5e;
+
+  /* ── Brand / Accent (blue) */
+  --color-primary:            #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-primary-soft:       rgba(59, 130, 246, 0.12);
+  --color-primary-glow:       rgba(59, 130, 246, 0.25);
+  --color-primary-light:      #93c5fd;
+
+  /* ── Semantic */
+  --color-success:      #34d399;
+  --color-success-soft: rgba(52, 211, 153, 0.12);
+  --color-warning:      #fbbf24;
+  --color-warning-soft: rgba(251, 191, 36, 0.12);
+  --color-destructive:       #f87171;
+  --color-destructive-soft:  rgba(248, 113, 113, 0.12);
+  --color-info:         #60a5fa;
+  --color-info-soft:    rgba(96, 165, 250, 0.12);
+
+  /* Backward-compatible aliases (to avoid risky big-bang CSS regressions) */
+  --color-bg: var(--color-background);
+  --color-surface: var(--color-card);
+  --color-surface-2: var(--color-card-2);
+  --color-surface-3: var(--color-card-3);
+  --color-surface-hover: var(--color-card-hover);
+  --color-text: var(--color-foreground);
+  --color-dim: var(--color-muted-foreground);
+  --color-accent: var(--color-primary);
+  --color-accent-foreground: var(--color-primary-foreground);
+  --color-accent-soft: var(--color-primary-soft);
+  --color-accent-glow: var(--color-primary-glow);
+  --color-accent-light: var(--color-primary-light);
+  --color-danger: var(--color-destructive);
+  --color-danger-soft: var(--color-destructive-soft);
+
+  /* ── Agent-specific */
+  --color-msg-user-bg:    #1e2030;
+  --color-msg-user-text:  #c9ccdc;
+  --color-msg-ai-bg:      #13141a;
+  --color-thinking-pulse: #3b82f6;
+  --color-tool-card-bg:   #181a22;
+  --color-stream-cursor:  #60a5fa;
+
+  /* ── Border radius */
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* ── Fonts */
+  --font-sans:  'Noto Sans SC Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+  --font-serif: 'Noto Serif SC', serif;
+
+  /* ── Shadows */
+  --shadow-sm:     0 1px 4px rgba(0, 0, 0, 0.18);
+  --shadow-md:     0 2px 12px rgba(0, 0, 0, 0.28);
+  --shadow-lg:     0 8px 32px rgba(0, 0, 0, 0.40);
+  --shadow-accent: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  --shadow-glow:   0 0 40px rgba(59, 130, 246, 0.25);
+
+  /* ── Motion durations */
+  --duration-fast:   100ms;
+  --duration-normal: 200ms;
+  --duration-slow:   350ms;
+  --ease-default: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /*
+   * macOS Electron hiddenInset:
+   * padding-top: 34px 将全部内容下移，使内容区从 y=34 开始，
+   * traffic lights (trafficLightPosition { x:12, y:12 }) 处于 y=12-24 范围，
+   * 不与任何内容产生水平重叠，无需额外的左内边距补偿。
+   */
+  --electron-mac-traffic-shift-y: 34px;
+  /* drag strip starts after traffic lights (hiddenInset) */
+  --electron-mac-titlebar-drag-left: 68px;
+
+  /* ── 全站统一内容宽度 */
+  --container-content: 760px;
+  /* 会话列表栏（CenterPanel），对齐微信/Slack 侧栏体感，避免 240px 空态过窄 */
+  --center-panel-width: 280px;
+
+  /* ── Animations */
+  --animate-message-enter:  message-enter  350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  --animate-thinking-pulse: thinking-pulse 0.6s  ease-in-out infinite;
+  --animate-stream-blink:   stream-blink   0.8s  step-start  infinite;
+  --animate-fade-in:        fade-in        200ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  --animate-slide-in-right: slide-in-right 350ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  --animate-scale-in:       scale-in       200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ─── Light theme override ───────────────────────────────── */
+/* Activated when explicitly opting into light mode via .light class on root,
+   or via VS Code's vscode-light body class. Default = dark (matches @theme). */
+:root.light, body.vscode-light {
+  --color-background:     #f5f6f9;
+  --color-card:           #ffffff;
+  --color-card-2:         #f0f1f5;
+  --color-card-3:         #e8eaf0;
+  --color-card-hover:     #e0e3eb;
+  --color-search-field:   #d0d4e0;
+  --color-border:         #dde1ec;
+  --color-border-hi:      #c8cedd;
+  --color-foreground:     #1f2535;
+  --color-text-secondary: #4f5672;
+  --color-muted-foreground: #7780a0;
+  --color-muted:          #b0b6cc;
+  --color-primary:        #2563eb;
+  --color-primary-light:  #60a5fa;
+  --color-primary-soft:   rgba(37, 99, 235, 0.10);
+  --color-primary-glow:   rgba(37, 99, 235, 0.20);
+  --color-success:        #16a34a;
+  --color-success-soft:   rgba(22, 163, 74, 0.10);
+  --color-warning:        #d97706;
+  --color-warning-soft:   rgba(217, 119, 6, 0.10);
+  --color-destructive:    #dc2626;
+  --color-destructive-soft: rgba(220, 38, 38, 0.10);
+  --color-info:           #2563eb;
+  --color-info-soft:      rgba(37, 99, 235, 0.10);
+  --color-msg-user-bg:    #eff1ff;
+  --color-msg-user-text:  #2e3470;
+  --color-msg-ai-bg:      #ffffff;
+  --color-thinking-pulse: #2563eb;
+  --color-tool-card-bg:   #f3f4fb;
+  --color-stream-cursor:  #3b82f6;
+  --color-bg: var(--color-background);
+  --color-surface: var(--color-card);
+  --color-surface-2: var(--color-card-2);
+  --color-surface-3: var(--color-card-3);
+  --color-surface-hover: var(--color-card-hover);
+  --color-text: var(--color-foreground);
+  --color-dim: var(--color-muted-foreground);
+  --color-accent: var(--color-primary);
+  --color-accent-light: var(--color-primary-light);
+  --color-accent-soft: var(--color-primary-soft);
+  --color-accent-glow: var(--color-primary-glow);
+  --color-danger: var(--color-destructive);
+  --color-danger-soft: var(--color-destructive-soft);
+  --shadow-sm:     0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md:     0 2px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg:     0 8px 32px rgba(0, 0, 0, 0.18);
+  --shadow-accent: 0 0 0 3px rgba(37, 99, 235, 0.20);
+  --shadow-glow:   0 0 40px rgba(37, 99, 235, 0.20);
+}
+
+/* ─── CSS variables (non-theme, for direct var() use) ───── */
+:root {
+  /* Spacing scale (4pt grid) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+}
+
+/* ─── Base ───────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    /* In webview context, VS Code injects --vscode-font-size on body (typically 13px).
+       Use it as rem base so Tailwind rem units align with the actual rendering size.
+       Falls back to 16px for standalone dev (Vite dev server). */
+    font-size: var(--vscode-font-size, 16px);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  /* Scrollbar — thin by default, slightly wider on hover */
+  * { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  *:hover { scrollbar-color: rgba(127,134,156,0.25) transparent; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
+  *:hover::-webkit-scrollbar-thumb { background: rgba(127,134,156,0.25); }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* Selection */
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-accent);
+  }
+}
+
+/* ─── Typography overrides for VS Code Webview context ────
+ * All @utility text-* definitions are inherited from wesui base.css.
+ * wescode only overrides the CSS variables to match VS Code's 13px base. */
+:root {
+  --type-body: 14px;
+  --type-body-lh: 1.7;
+  --type-small: 13px;
+  --type-small-lh: 1.6;
+  --type-caption: 12px;
+  --type-mono: 13px;
+  --type-prose: 14px;
+  --type-prose-lh: 1.7;
+  --type-prose-weight: 400;
+  --type-prose-h1: 16px;
+  --type-prose-h2: 15px;
+}
+
+/* ─── Named utilities ────────────────────────────────────── */
+@utility text-gradient {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility glow {
+  box-shadow: var(--shadow-glow);
+}
+
+@utility electron-mac-traffic-shift-y {
+  padding-top: var(--electron-mac-traffic-shift-y);
+}
+
+@utility electron-mac-window-chrome {
+  padding-top: var(--electron-mac-traffic-shift-y);
+}
+
+@utility electron-drag {
+  -webkit-app-region: drag;
+}
+
+@utility electron-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+@utility electron-mac-titlebar-drag {
+  -webkit-app-region: drag;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--electron-mac-titlebar-drag-left);
+  height: var(--electron-mac-traffic-shift-y);
+  z-index: 100;
+}
+
+@utility electron-mac-side-panel-top {
+  top: var(--electron-mac-traffic-shift-y);
+}
+
+/* macOS hiddenInset: keep controls clickable inside the titlebar band */
+.electron-mac-shell :is(button, a, input, textarea, select, [role='button']) {
+  -webkit-app-region: no-drag;
+}
+
+@utility shadow-accent-ring {
+  box-shadow: var(--shadow-accent);
+}
+
+@utility page-content {
+  /* 760 content + 32px gutters on both sides */
+  width: min(100%, calc(var(--container-content) + var(--space-8) * 2));
+  margin-inline: auto;
+  padding-inline: var(--space-8);
+}
+
+/* content-narrow / content-standard / content-full: 与 wesui base.css 保持一致（720/860） */
+@utility content-narrow {
+  width: min(100%, calc(720px + 48px));
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+@utility content-standard {
+  width: min(100%, calc(860px + 48px));
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+@utility content-full {
+  width: 100%;
+  padding-inline: 24px;
+}
+
+/* ─── Interactive state utilities ───────────────────────── */
+@utility interactive {
+  transition-property: background-color, color, border-color, box-shadow, opacity;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-default);
+}
+
+@utility interactive-slow {
+  transition-property: background-color, color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--duration-normal);
+  transition-timing-function: var(--ease-default);
+}
+
+/* prose-chat is inherited from wesui base.css; sizes come from
+ * --type-prose-* variables overridden above. */
+
+.prose-chat-streaming > *:last-child::after {
+  content: '▋';
+  display: inline-block;
+  margin-left: 0.125rem;
+  vertical-align: baseline;
+  color: var(--color-stream-cursor);
+  font-size: 0.9em;
+  animation: var(--animate-stream-blink);
+}
+
+/* ─── Touch device: always show hover-dependent action buttons ─── */
+@media (hover: none) {
+  .group\/msg .opacity-0,
+  .group\/code .opacity-0 {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+/* ─── Chat input utilities ───────────────────────────────── */
+
+/* Inline @mention highlight in plain textarea text (progressive enhancement) */
+.mention-pill-text {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* Dropdown/picker scale-in animation utility */
+@utility animate-scale-in {
+  animation: var(--animate-scale-in);
+}
+
+@utility animate-shimmer {
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+
+@utility animate-slide-indeterminate {
+  animation: slide-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* Danger color helpers */
+@utility text-destructive {
+  color: var(--color-destructive);
+}
+
+@utility bg-destructive-soft {
+  background-color: var(--color-destructive-soft);
+}
+
+@utility text-warning {
+  color: var(--color-warning);
+}
+

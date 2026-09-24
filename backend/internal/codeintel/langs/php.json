@@ -1,0 +1,52 @@
+{
+  "language": {
+    "name": "PHP",
+    "id": "php",
+    "extensions": [".php"],
+    "test_file_patterns": ["*Test.php", "Test*.php"],
+    "marker_files": ["composer.json"],
+    "tree_sitter_grammar": "tree_sitter_php"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "function_call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "member_call_expression",
+      "function_field": "name",
+      "receiver_field": "object",
+      "method_field": "name"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["try_statement"],
+      "description": "try/catch block"
+    },
+    "iteration": {
+      "node_types": ["foreach_statement", "for_statement"],
+      "description": "foreach or for loop"
+    }
+  },
+  "test_runner": {
+    "command": "vendor/bin/phpunit",
+    "args": ["--testdox"],
+    "parse_pattern": {
+      "failure": "^\\s*✘\\s+(.+)",
+      "pass": "^\\s*✔\\s+(.+)"
+    }
+  },
+  "compile_runner": {
+    "command": "php",
+    "args": ["-l"],
+    "parse_pattern": {
+      "error": "^Parse error: (.+) in (.+) on line (\\d+)$"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "composer.json", "format": "composer_path_repo"}
+    ]
+  }
+}

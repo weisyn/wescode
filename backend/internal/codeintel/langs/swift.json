@@ -1,0 +1,58 @@
+{
+  "language": {
+    "name": "Swift",
+    "id": "swift",
+    "extensions": [".swift"],
+    "test_file_patterns": ["*Tests.swift", "*Test.swift"],
+    "marker_files": ["Package.swift", "*.xcodeproj"],
+    "tree_sitter_grammar": "tree_sitter_swift"
+  },
+  "calls": {
+    "function_call": {
+      "node_type": "call_expression",
+      "function_field": "function"
+    },
+    "method_call": {
+      "node_type": "call_expression",
+      "function_field": "function",
+      "receiver_field": "object",
+      "method_field": "suffix"
+    }
+  },
+  "patterns": {
+    "error_handling": {
+      "node_types": ["do_statement"],
+      "description": "do/try/catch"
+    },
+    "iteration": {
+      "node_types": ["for_statement"],
+      "description": "for-in loop"
+    },
+    "optional_binding": {
+      "node_types": ["if_statement", "guard_statement"],
+      "description": "if let / guard let optional binding",
+      "text_match": "(if|guard)\\s+let"
+    }
+  },
+  "test_runner": {
+    "command": "swift",
+    "args": ["test"],
+    "parse_pattern": {
+      "failure": "^Test Case .+ '(.+)' failed",
+      "pass": "^Test Case .+ '(.+)' passed"
+    }
+  },
+  "compile_runner": {
+    "command": "swift",
+    "args": ["build"],
+    "parse_pattern": {
+      "error": "^(.+?):(\\d+):(\\d+): error: (.+)$",
+      "undefined_symbol": "cannot find '(\\w+)' in scope"
+    }
+  },
+  "topology": {
+    "dependency_files": [
+      {"file": "Package.swift", "format": "swift_package_path"}
+    ]
+  }
+}

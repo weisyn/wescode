@@ -1,0 +1,584 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) wescode contributors. All rights reserved.
+ *  Licensed under the MIT License.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Hide WES 管理 ViewContainer from Activity Bar entirely (item + label) */
+.monaco-workbench .activitybar .action-item:has(.codicon-wescode-manage-hidden-icon) {
+	display: none !important;
+}
+.monaco-workbench .activitybar .codicon-wescode-manage-hidden-icon {
+	display: none !important;
+}
+
+/* Chat Panel */
+.wescode-chat-panel {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+	position: relative;
+}
+
+/*
+ * Chrome-style color hierarchy:
+ *   Header row (tabs)  = AuxiliaryBar header background (framework)
+ *   Active tab         = tab-activeBackground
+ *   Toolbar row        = tab-activeBackground (visual continuity with active tab)
+ *   Message area       = editor-background
+ */
+
+/* Header tabs (rendered in AuxiliaryBar header via WescodeHeaderTabsService) */
+.wescode-tab-strip::-webkit-scrollbar {
+	display: none;
+}
+
+.wescode-tab:hover .codicon-close {
+	opacity: 1 !important;
+}
+
+/* Tab status icon — spinning animation for streaming */
+.wescode-tab-spinning {
+	animation: wescode-spin 1.2s linear infinite;
+}
+
+@keyframes wescode-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+/* ── Top Toolbar ────────────────────────────────────────────────────────── */
+
+.wescode-toolbar {
+	flex: none;
+	display: flex;
+	align-items: center;
+	height: 30px;
+	padding: 0 6px;
+	gap: 4px;
+	border-bottom: 1px solid var(--vscode-panel-border);
+	background: var(--vscode-tab-activeBackground, var(--vscode-editor-background));
+}
+
+.wescode-toolbar button {
+	height: 22px;
+	padding: 0 6px;
+	border: none;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+	font-size: 11px;
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	white-space: nowrap;
+	transition: background 0.12s, color 0.12s;
+}
+
+.wescode-toolbar button:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-foreground);
+}
+
+.wescode-toolbar .codicon {
+	font-size: 12px;
+}
+
+.wescode-toolbar-search {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	height: 22px;
+	border-radius: 4px;
+	background: var(--vscode-input-background);
+	border: 1px solid var(--vscode-input-border);
+	padding: 0 6px;
+	gap: 4px;
+	transition: border-color 0.15s;
+}
+
+.wescode-toolbar-search.focused {
+	border-color: var(--vscode-focusBorder);
+}
+
+.wescode-toolbar-search .codicon {
+	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
+	flex: none;
+}
+
+.wescode-toolbar-search-input {
+	flex: 1;
+	min-width: 0;
+	border: none;
+	outline: none;
+	background: transparent;
+	color: var(--vscode-input-foreground);
+	font-size: 11px;
+	line-height: 20px;
+}
+
+.wescode-toolbar-sep {
+	width: 1px;
+	height: 14px;
+	background: var(--vscode-panel-border);
+	flex: none;
+}
+
+/* ── More Dropdown Menu (Chrome-style) ─────────────────────────────────── */
+
+.wescode-more-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	background: transparent;
+}
+
+.wescode-more-dropdown {
+	position: fixed;
+	z-index: 10000;
+	min-width: 220px;
+	max-width: 300px;
+	background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #252526));
+	color: var(--vscode-editorWidget-foreground, var(--vscode-foreground, #ccc));
+	border: 1px solid var(--vscode-editorWidget-border, var(--vscode-widget-border, #454545));
+	border-radius: 8px;
+	padding: 4px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36), 0 2px 8px rgba(0, 0, 0, 0.2);
+	font-family: var(--vscode-font-family, system-ui, sans-serif);
+	font-size: 12px;
+	line-height: 1;
+	max-height: 80vh;
+	overflow-y: auto;
+}
+
+.wescode-more-group {
+	padding: 8px 10px 4px;
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	color: var(--vscode-descriptionForeground, #999);
+	user-select: none;
+}
+
+.wescode-more-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 6px 10px;
+	border: none;
+	background: transparent;
+	color: var(--vscode-editorWidget-foreground, var(--vscode-foreground, #ccc));
+	font-size: 12px;
+	font-family: inherit;
+	cursor: pointer;
+	text-align: left;
+	line-height: 1.4;
+	border-radius: 4px;
+}
+
+.wescode-more-item:hover,
+.wescode-more-item:focus {
+	background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.06));
+	color: var(--vscode-list-hoverForeground, var(--vscode-foreground, #fff));
+	outline: none;
+}
+
+.wescode-more-item .codicon {
+	font-size: 14px;
+	flex: none;
+	width: 16px;
+	text-align: center;
+	color: var(--vscode-descriptionForeground, #999);
+}
+
+.wescode-more-item:hover .codicon {
+	color: var(--vscode-list-hoverForeground, var(--vscode-foreground, #fff));
+}
+
+.wescode-more-label {
+	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.wescode-more-check {
+	flex: none;
+	width: 16px;
+	text-align: center;
+	font-size: 11px;
+	color: var(--vscode-editorWidget-foreground, var(--vscode-foreground, #ccc));
+}
+
+.wescode-more-sep {
+	height: 1px;
+	margin: 4px 8px;
+	background: var(--vscode-editorWidget-border, var(--vscode-panel-border, #333));
+}
+
+/* ── Messages Webview ───────────────────────────────────────────────────── */
+
+.wescode-chat-webview {
+	flex: 1 1 0;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.wescode-chat-fallback {
+	overflow-y: auto;
+	padding: 12px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.wescode-chat-fallback-notice {
+	padding: 16px 0;
+	color: var(--vscode-descriptionForeground);
+	text-align: center;
+}
+
+/* Billing banner moved into the webview (BillingDebtBanner from @wesui/billing). */
+
+/* ── Chips (file attachments & code snippets) ───────────────────────────── */
+
+.wescode-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: 4px;
+	background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.15));
+	color: var(--vscode-foreground);
+	font-size: 11px;
+	cursor: pointer;
+	max-width: 200px;
+}
+
+.wescode-chip .codicon {
+	font-size: 11px;
+	opacity: 0.7;
+}
+
+.wescode-chip-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wescode-chip-remove {
+	cursor: pointer;
+	margin-left: 2px;
+	opacity: 0.6;
+	font-size: 12px;
+}
+
+.wescode-chip-remove:hover {
+	opacity: 1;
+}
+
+.wescode-file-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	height: 20px;
+	padding: 0 6px;
+	border-radius: 3px;
+	background: var(--vscode-badge-background);
+	color: var(--vscode-badge-foreground);
+	font-size: 10px;
+	cursor: default;
+	max-width: 120px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wescode-file-chip img {
+	width: 14px;
+	height: 14px;
+	border-radius: 2px;
+	object-fit: cover;
+}
+
+.wescode-file-chip .wescode-chip-remove {
+	opacity: 0.7;
+}
+
+/* Inline Diff - Pending (tool executing) */
+.wescode-diff-pending {
+	background-color: rgba(128, 128, 128, 0.08);
+	border-left: 2px dashed rgba(128, 128, 128, 0.4);
+}
+
+.wescode-diff-glyph-pending {
+	background-color: rgba(128, 128, 128, 0.4);
+	width: 4px !important;
+	margin-left: 3px;
+}
+
+/* Inline Diff - Confirmed */
+.wescode-diff-removed {
+	background-color: rgba(255, 0, 0, 0.1);
+	text-decoration: line-through;
+	text-decoration-color: rgba(255, 0, 0, 0.5);
+}
+
+.wescode-diff-added {
+	background-color: rgba(0, 255, 0, 0.1);
+}
+
+.wescode-diff-glyph-removed {
+	background-color: rgba(255, 0, 0, 0.6);
+	width: 4px !important;
+	margin-left: 3px;
+}
+
+.wescode-diff-glyph-added {
+	background-color: rgba(0, 200, 0, 0.6);
+	width: 4px !important;
+	margin-left: 3px;
+}
+
+/* Dark theme adjustments */
+.vs-dark .wescode-diff-pending,
+.hc-black .wescode-diff-pending {
+	background-color: rgba(128, 128, 128, 0.12);
+	border-left-color: rgba(180, 180, 180, 0.4);
+}
+
+.vs-dark .wescode-diff-removed,
+.hc-black .wescode-diff-removed {
+	background-color: rgba(255, 80, 80, 0.15);
+}
+
+.vs-dark .wescode-diff-added,
+.hc-black .wescode-diff-added {
+	background-color: rgba(80, 255, 80, 0.12);
+}
+
+/* ── Input Area ─────────────────────────────────────────────────────────── */
+
+.wescode-chat-input {
+	flex: none;
+	padding: 8px 10px;
+	box-sizing: border-box;
+}
+
+/* Resume Banner — shown when plan is incomplete */
+.wescode-resume-banner {
+	display: none;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	margin-bottom: 6px;
+	border-radius: 8px;
+	background: var(--vscode-editor-selectionBackground, rgba(100, 150, 255, 0.08));
+	border: 1px solid var(--vscode-focusBorder, rgba(100, 150, 255, 0.3));
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s;
+	user-select: none;
+}
+
+.wescode-resume-banner:hover {
+	background: var(--vscode-list-hoverBackground, rgba(100, 150, 255, 0.15));
+	border-color: var(--vscode-focusBorder);
+}
+
+.wescode-resume-banner:active {
+	opacity: 0.85;
+}
+
+.wescode-resume-banner > .codicon {
+	font-size: 12px;
+	color: var(--vscode-focusBorder);
+}
+
+.wescode-resume-text {
+	font-size: 12px;
+	color: var(--vscode-foreground);
+	line-height: 1.4;
+}
+
+.wescode-input-card {
+	position: relative;
+	border: 1px solid var(--vscode-input-border);
+	border-radius: 10px;
+	background: var(--vscode-input-background);
+	overflow: hidden;
+	transition: border-color 0.15s;
+}
+
+.wescode-input-card.focused,
+.wescode-input-card:focus-within {
+	border-color: var(--vscode-input-border, transparent) !important;
+	outline: none !important;
+	outline-width: 0 !important;
+	outline-style: none !important;
+	box-shadow: none !important;
+}
+
+/* Chip containers */
+.wescode-file-chips,
+.wescode-code-chips {
+	display: none;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 4px 12px 0;
+}
+
+/* Textarea */
+.wescode-input-card > textarea {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	min-height: 44px;
+	max-height: 140px;
+	resize: none;
+	background: transparent;
+	color: var(--vscode-input-foreground);
+	border: none;
+	padding: 10px 12px;
+	font-size: 13px;
+	font-family: inherit;
+	outline: none;
+	box-shadow: none;
+	line-height: 1.45;
+}
+
+.wescode-input-card > textarea,
+.wescode-input-card > textarea:focus,
+.wescode-input-card > textarea:focus-visible {
+	border: none !important;
+	outline: none !important;
+	outline-width: 0 !important;
+	box-shadow: none !important;
+	-webkit-appearance: none;
+}
+
+/* Drag-drop overlay */
+.wescode-drop-overlay {
+	display: none;
+	position: absolute;
+	inset: 0;
+	border-radius: 10px;
+	background: var(--vscode-editor-selectionBackground, rgba(100, 150, 255, 0.1));
+	border: 2px dashed var(--vscode-focusBorder);
+	pointer-events: none;
+	z-index: 10;
+	align-items: center;
+	justify-content: center;
+}
+
+.wescode-drop-overlay > span {
+	font-size: 11px;
+	color: var(--vscode-foreground);
+	opacity: 0.8;
+}
+
+/* ── Bottom Toolbar ─────────────────────────────────────────────────────── */
+
+.wescode-input-toolbar {
+	display: flex;
+	align-items: center;
+	padding: 4px 8px;
+	gap: 2px;
+}
+
+/* Icon-only tool button (28×28) */
+.wescode-input-toolbar .tool-btn {
+	width: 28px;
+	height: 28px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.15s, color 0.15s;
+	padding: 0;
+	flex: none;
+}
+
+/* Label tool button (pill with icon + text) */
+.wescode-input-toolbar .tool-pill {
+	height: 24px;
+	padding: 0 8px;
+	border: none;
+	border-radius: 5px;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+	font-size: 11px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	transition: background 0.15s, color 0.15s;
+	white-space: nowrap;
+	flex: none;
+}
+
+.wescode-input-toolbar .tool-btn:focus,
+.wescode-input-toolbar .tool-btn:focus-visible,
+.wescode-input-toolbar .tool-pill:focus,
+.wescode-input-toolbar .tool-pill:focus-visible,
+.wescode-input-toolbar .send-btn:focus,
+.wescode-input-toolbar .send-btn:focus-visible {
+	outline: none !important;
+	outline-width: 0 !important;
+	box-shadow: none !important;
+}
+
+.wescode-input-toolbar .tool-btn:hover,
+.wescode-input-toolbar .tool-pill:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-foreground);
+}
+
+/* Codicon sizing inside toolbar */
+.wescode-input-toolbar .codicon {
+	font-size: 14px;
+	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.wescode-input-toolbar .tool-pill .codicon {
+	font-size: 12px;
+}
+
+/* Send / Stop button */
+.wescode-input-toolbar .send-btn {
+	width: 30px;
+	height: 30px;
+	border: none;
+	border-radius: 8px;
+	background: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: opacity 0.15s, background 0.15s;
+	flex: none;
+	padding: 0;
+}
+
+.wescode-input-toolbar .send-btn:hover {
+	opacity: 0.85;
+}
+
+.wescode-input-toolbar .send-btn .codicon {
+	font-size: 14px;
+}
+
+.wescode-input-toolbar .spacer {
+	flex: 1;
+}
