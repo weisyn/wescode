@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.weisyn.com/wescode"><img src="https://img.shields.io/badge/🌐_官网-weisyn.com-blue?style=for-the-badge" /></a>
-  <a href="https://docs.weisyn.com/wescode"><img src="https://img.shields.io/badge/📖_文档-docs-green?style=for-the-badge" /></a>
-  <a href="https://github.com/weisyn/wescode/releases"><img src="https://img.shields.io/badge/⬇️_下载-Releases-orange?style=for-the-badge" /></a>
+  <a href="https://www.weisyn.com"><img src="https://img.shields.io/badge/🌐_官网-weisyn.com-blue?style=for-the-badge" /></a>
+  <a href="https://www.weisyn.com/download/wescode"><img src="https://img.shields.io/badge/⬇️_下载-macOS%20%7C%20Windows-orange?style=for-the-badge" /></a>
+  <a href="https://www.weisyn.com/docs/wescode/quickstart"><img src="https://img.shields.io/badge/📖_文档-快速开始-green?style=for-the-badge" /></a>
 </p>
 
 <p align="center">
@@ -29,19 +29,17 @@ WES Code 是一个**开箱即用的桌面应用**，下载安装即可使用：
 
 | 平台 | 架构 | 下载 |
 |------|------|------|
-| **macOS** | Apple Silicon (M1/M2/M3/M4) | [📦 下载 .dmg](https://www.weisyn.com/wescode/download/mac-arm64) |
-| **macOS** | Intel | [📦 下载 .dmg](https://www.weisyn.com/wescode/download/mac-x64) |
-| **Windows** | x64 | [📦 下载安装包](https://www.weisyn.com/wescode/download/win-x64) |
+| **macOS** | Apple Silicon (M1/M2/M3/M4) | [📦 下载 .dmg](https://www.weisyn.com/api/downloads/wescode/file/darwin-arm64) |
+| **macOS** | Intel | [📦 下载 .dmg](https://www.weisyn.com/api/downloads/wescode/file/darwin-amd64) |
+| **Windows** | x64 | [📦 下载安装包](https://www.weisyn.com/api/downloads/wescode/file/windows-amd64) |
 
-> 也可以从 [GitHub Releases](https://github.com/weisyn/wescode/releases) 获取所有版本。
->
-> 📖 安装指南与常见问题：[docs.weisyn.com/wescode/install](https://docs.weisyn.com/wescode/install)
+> 📖 也可以访问 [下载页面](https://www.weisyn.com/download/wescode) 查看版本详情与更新日志。
 
 ### 首次使用
 
 1. **下载安装** — macOS 双击 `.dmg` 拖入应用文件夹；Windows 运行安装程序
 2. **添加模型** — 启动后点击左侧 ⚡ 图标，添加 LLM Provider（推荐 [DeepSeek](https://platform.deepseek.com)，性价比最高）
-3. **开始编程** — 打开任何项目，Ctrl+L 呼出 AI 对话
+3. **开始编程** — 打开任何项目，`Ctrl+L` 呼出 AI 对话
 
 <p align="center">
   <img src="docs/images/showcase-01-hero-macbook.png" alt="WES Code 界面" width="700" />
@@ -65,6 +63,8 @@ AI 编程卡住全行业的三件事：
 | 📐 **规矩** — 没写进文件的约束会被改掉 | 静态 .cursorrules | **CSE**（约束满足引擎）：自动发现 + 机械验证 |
 | ✅ **证明没改坏** — 测试绿了但行为变了 | 无等价方案 | **L2.5**（行为基线门控）：纯确定性 diff 拦截 |
 
+> 📖 更多介绍请访问 [weisyn.com](https://www.weisyn.com) · 技术原理详见 [AI 编程原理](design/01-first-principles.md) 和 [产品故事](design/23-wescode-story.md)
+
 ---
 
 ## 核心能力
@@ -83,6 +83,8 @@ AI 编程卡住全行业的三件事：
 
 支持 **Go / TypeScript / Python / Java / Rust / C++ / C# / Kotlin / Swift / PHP / Ruby / Dart** 12 种语言。
 
+> 📖 [CKG 文档](https://www.weisyn.com/docs/wescode/ckg) · [调用图可视化](https://www.weisyn.com/docs/wescode/callgraph)
+
 ### 🔒 CSE · 约束满足引擎
 
 <p align="center">
@@ -91,9 +93,13 @@ AI 编程卡住全行业的三件事：
 
 **13 个 Checker × 4 种推断路径**：自动发现代码中的隐式约束，编辑后机械验证，形成飞轮学习。
 
+> 📖 [CSE 文档](https://www.weisyn.com/docs/wescode/cse)
+
 ### 📊 L2.5 · 行为基线门控
 
 零 LLM token 消耗，纯确定性 diff 拦截隐蔽回归 — **竞品无等价方案**。
+
+> 📖 [验证文档](https://www.weisyn.com/docs/wescode/verification)
 
 ---
 
@@ -110,6 +116,8 @@ L3  理解       ★ CKG 代码知识图谱 + CSE 约束引擎 + WsIntel 工作�
 L2  解析       tree-sitter AST · 符号提取 · 数据流
 L1  基础设施   SQLite FTS5 · 多语言支持 · 增量索引（<500ms）
 ```
+
+> 📖 [五层架构文档](https://www.weisyn.com/docs/wescode/five-layers)
 
 ---
 
@@ -141,6 +149,8 @@ L1  基础设施   SQLite FTS5 · 多语言支持 · 增量索引（<500ms）
 | [vLLM](https://docs.vllm.ai) | 任意 HF 模型 | 高性能本地推理 |
 | 自定义 | OpenAI 兼容 API | 任何 OpenAI 兼容端点 |
 
+> 📖 [模型配置指南](https://www.weisyn.com/docs/wescode/providers)
+
 ---
 
 ## Agent 预设角色
@@ -162,6 +172,8 @@ L1  基础设施   SQLite FTS5 · 多语言支持 · 增量索引（<500ms）
 
 角色预设源码在 [`backend/presets/agents/`](backend/presets/agents/) — 欢迎贡献新角色！
 
+> 📖 [Agent 配置文档](https://www.weisyn.com/docs/wescode/agent-config)
+
 ---
 
 ## 与竞品的区别
@@ -179,6 +191,22 @@ L1  基础设施   SQLite FTS5 · 多语言支持 · 增量索引（<500ms）
 | 开源 | **✅ Open Core** | ❌ | ❌ | ❌ |
 | 价格 | **BYOK 免费** | $20/月 | $10/月 | 按量付费 |
 | 中文支持 | **原生中文** | 英文为主 | 英文为主 | 部分中文 |
+
+> 📖 [详细对比分析](https://www.weisyn.com/blog) · [从 Cursor 迁移只需 10 分钟](https://www.weisyn.com/blog/cursor-to-wescode-10min)
+
+---
+
+## 同一个账号的其他产品
+
+WES Code 是 [Weisyn](https://www.weisyn.com) 生态的编程工具。同一个账号还能用：
+
+| 产品 | 定位 | 说明 |
+|------|------|------|
+| **[wesclaw](https://www.weisyn.com)** | 个人助手 | 读过邮件再帮你回 |
+| **[wescraft](https://www.weisyn.com)** | 知识工作台 | 读过材料再帮你写 |
+| **网页版** | 在线使用 | 不想装软件，打开浏览器就用 |
+
+> 不装也行。只用 WES Code 写代码完全够。
 
 ---
 
@@ -202,8 +230,8 @@ make editor   # Editor TypeScript（首次约 3 分钟）
 make run
 
 # 打包为可分发应用
-make package-mac-arm64    # macOS Apple Silicon
-make package-mac-intel    # macOS Intel
+make package-mac-arm64    # macOS Apple Silicon .app + .dmg
+make package-mac-intel    # macOS Intel .app + .dmg
 make package-win          # Windows（需在 Windows 上执行）
 ```
 
@@ -230,6 +258,8 @@ bin/wescode bench --dataset ./tests/bench/swebench-100 --runs 1
 3. 🏗️ [实现态架构](design/00-architecture.md) — 三进程 + 包依赖 + 数据流
 4. 🗼 [五层能力栈](design/03-five-layer-architecture.md) — 金字塔
 5. 🗺️ [终极蓝图](design/16-roadmap.md) — 四维能力全景
+
+> 📖 在线文档：[www.weisyn.com/docs/wescode](https://www.weisyn.com/docs/wescode/quickstart)
 
 ---
 
@@ -261,11 +291,11 @@ bin/wescode bench --dataset ./tests/bench/swebench-100 --runs 1
 | 渠道 | 链接 |
 |------|------|
 | 🌐 官网 | [weisyn.com](https://www.weisyn.com) |
-| 📖 产品文档 | [docs.weisyn.com/wescode](https://docs.weisyn.com/wescode) |
-| ⬇️ 下载 | [weisyn.com/wescode/download](https://www.weisyn.com/wescode/download) |
+| ⬇️ 下载 | [weisyn.com/download/wescode](https://www.weisyn.com/download/wescode) |
+| 📖 产品文档 | [weisyn.com/docs/wescode](https://www.weisyn.com/docs/wescode/quickstart) |
+| 📝 技术博客 | [weisyn.com/blog](https://www.weisyn.com/blog) |
 | 💬 讨论 | [GitHub Discussions](https://github.com/weisyn/wescode/discussions) |
 | 🐛 Issue | [GitHub Issues](https://github.com/weisyn/wescode/issues) |
-| 📧 联系我们 | [weisyn.com/contact](https://www.weisyn.com/contact) |
 
 ---
 
@@ -274,6 +304,6 @@ bin/wescode bench --dataset ./tests/bench/swebench-100 --runs 1
 </p>
 
 <p align="center">
-  <strong>WES Code</strong> 由 <a href="https://www.weisyn.com">Weisyn</a> 团队开发维护。<br/>
+  <strong>WES Code</strong> 由 <a href="https://www.weisyn.com">微迅互联（杭州）科技有限责任公司</a> 开发维护。<br/>
   如果觉得有用，请给个 ⭐ Star！
 </p>
