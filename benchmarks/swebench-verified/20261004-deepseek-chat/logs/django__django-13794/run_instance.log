@@ -1,0 +1,112 @@
+2026-10-04 17:52:16,237 - INFO - Creating container for django__django-13794...
+2026-10-04 17:52:16,292 - INFO - Container for django__django-13794 created: 595c3845da7f29f3f78906105e9eca16e8a46cafc45ac357724915e54a33027b
+2026-10-04 17:52:16,491 - INFO - Container for django__django-13794 started: 595c3845da7f29f3f78906105e9eca16e8a46cafc45ac357724915e54a33027b
+2026-10-04 17:52:16,491 - INFO - Intermediate patch for django__django-13794 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13794/patch.diff, now applying to container...
+2026-10-04 17:52:16,619 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:52:17,114 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:52:17,298 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:52:17,491 - INFO - >>>>> Applied Patch:
+patching file django/utils/functional.py
+patching file tests/template_tests/filter_tests/test_add.py
+patching file tests/utils_tests/test_functional.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 184 with fuzz 1.
+
+2026-10-04 17:52:17,579 - INFO - Git diff before:
+diff --git a/django/utils/functional.py b/django/utils/functional.py
+index 6d38f932f9..5c8a0c233f 100755
+--- a/django/utils/functional.py
++++ b/django/utils/functional.py
+@@ -176,6 +176,12 @@ def lazy(func, *resultclasses):
+                 return str(self) % rhs
+             return self.__cast() % rhs
+ 
++        def __add__(self, other):
++            return self.__cast() + other
++
++        def __radd__(self, other):
++            return other + self.__cast()
++
+         def __deepcopy__(self, memo):
+             # Instances of this class are effectively immutable. It's just a
+             # collection of functions. So we don't need to do anything
+diff --git a/tests/template_tests/filter_tests/test_add.py b/tests/template_tests/filter_tests/test_add.py
+index 0fcc661f4a..b5786ca136 100755
+--- a/tests/template_tests/filter_tests/test_add.py
++++ b/tests/template_tests/filter_tests/test_add.py
+@@ -2,6 +2,7 @@ from datetime import date, timedelta
+ 
+ from django.template.defaultfilters import add
+ from django.test import SimpleTestCase
++from django.utils.translation import gettext_lazy
+ 
+ from ..utils import setup
+ 
+@@ -46,6 +47,22 @@ class AddTests(SimpleTestCase):
+         output = self.engine.render_to_string('add07', {'d': date(2000, 1, 1), 't': timedelta(10)})
+         self.assertEqual(output, 'Jan. 11, 2000')
+ 
++    @setup({'add08': '{{ s1|add:lazy_s2 }}'})
++    def test_add08(self):
++        output = self.engine.render_to_string(
++            'add08',
++            {'s1': 'string', 'lazy_s2': gettext_lazy('lazy')},
++        )
++        self.assertEqual(output, 'stringlazy')
++
++    @setup({'add09': '{{ lazy_s1|add:lazy_s2 }}'})
++    def test_add09(self):
++        output = self.engine.render_to_string(
++            'add09',
++            {'lazy_s1': gettext_lazy('string'), 'lazy_s2': gettext_lazy('lazy')},
++        )
++        self.assertEqual(output, 'stringlazy')
++
+ 
+ class FunctionTests(SimpleTestCase):
+ 
+diff --git a/tests/utils_tests/test_functional.py b/tests/utils_tests/test_functional.py
+index 6e454cfef3..595479a503 100755
+--- a/tests/utils_tests/test_functional.py
++++ b/tests/utils_tests/test_functional.py
+@@ -184,6 +184,11 @@ class FunctionalTests(SimpleTestCase):
+         with self.assertRaisesMessage(TypeError, msg):
+             Foo().cp
+ 
++    def test_lazy_add(self):
++        lazy_4 = lazy(lambda: 4, int)
++        lazy_5 = lazy(lambda: 5, int)
++        self.assertEqual(lazy_4() + lazy_5(), 9)
++
+     def test_lazy_equality(self):
+         """
+         == and != work correctly for Promises.
+2026-10-04 17:52:17,579 - INFO - Eval script for django__django-13794 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13794/eval.sh; copying to container...
+2026-10-04 17:52:29,199 - INFO - Test runtime: 11.57 seconds
+2026-10-04 17:52:29,200 - INFO - Test output for django__django-13794 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13794/test_output.txt
+2026-10-04 17:52:29,262 - INFO - Git diff after:
+diff --git a/django/utils/functional.py b/django/utils/functional.py
+index 6d38f932f9..5c8a0c233f 100755
+--- a/django/utils/functional.py
++++ b/django/utils/functional.py
+@@ -176,6 +176,12 @@ def lazy(func, *resultclasses):
+                 return str(self) % rhs
+             return self.__cast() % rhs
+ 
++        def __add__(self, other):
++            return self.__cast() + other
++
++        def __radd__(self, other):
++            return other + self.__cast()
++
+         def __deepcopy__(self, memo):
+             # Instances of this class are effectively immutable. It's just a
+             # collection of functions. So we don't need to do anything
+2026-10-04 17:52:29,262 - INFO - Git diff changed after running eval script
+2026-10-04 17:52:29,262 - INFO - Grading answer for django__django-13794...
+2026-10-04 17:52:29,268 - INFO - report: {'django__django-13794': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_lazy_add (utils_tests.test_functional.FunctionalTests)', 'test_add08 (template_tests.filter_tests.test_add.AddTests)', 'test_add09 (template_tests.filter_tests.test_add.AddTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_add (template_tests.filter_tests.test_add.FunctionTests)', 'cached_property caches its value and behaves like a property.', 'test_cached_property_auto_name (utils_tests.test_functional.FunctionalTests)', "Disallow this case because the decorated function wouldn't be cached.", 'test_cached_property_reuse_same_name (utils_tests.test_functional.FunctionalTests)', 'test_cached_property_set_name_not_called (utils_tests.test_functional.FunctionalTests)', 'test_classproperty_getter (utils_tests.test_functional.FunctionalTests)', 'test_classproperty_override_getter (utils_tests.test_functional.FunctionalTests)', 'test_lazy (utils_tests.test_functional.FunctionalTests)', 'lazy also finds base class methods in the proxy object', 'lazy finds the correct (overridden) method implementation', 'test_lazy_class_preparation_caching (utils_tests.test_functional.FunctionalTests)', 'test_lazy_equality (utils_tests.test_functional.FunctionalTests)', 'test_lazy_object_to_string (utils_tests.test_functional.FunctionalTests)', 'test_lazy_repr_bytes (utils_tests.test_functional.FunctionalTests)', 'test_lazy_repr_int (utils_tests.test_functional.FunctionalTests)', 'test_lazy_repr_text (utils_tests.test_functional.FunctionalTests)', 'test_add01 (template_tests.filter_tests.test_add.AddTests)', 'test_add02 (template_tests.filter_tests.test_add.AddTests)', 'test_add03 (template_tests.filter_tests.test_add.AddTests)', 'test_add04 (template_tests.filter_tests.test_add.AddTests)', 'test_add05 (template_tests.filter_tests.test_add.AddTests)', 'test_add06 (template_tests.filter_tests.test_add.AddTests)', 'test_add07 (template_tests.filter_tests.test_add.AddTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13794: resolved: True
+2026-10-04 17:52:29,269 - INFO - Attempting to stop container sweb.eval.django__django-13794.wescode-v3...
+2026-10-04 17:52:44,584 - INFO - Container sweb.eval.django__django-13794.wescode-v3 stopped successfully.
+2026-10-04 17:52:44,584 - INFO - Attempting to remove container sweb.eval.django__django-13794.wescode-v3...
+2026-10-04 17:52:44,615 - INFO - Container sweb.eval.django__django-13794.wescode-v3 removed successfully.

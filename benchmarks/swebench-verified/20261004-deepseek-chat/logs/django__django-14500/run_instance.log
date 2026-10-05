@@ -1,0 +1,84 @@
+2026-10-04 17:59:23,116 - INFO - Creating container for django__django-14500...
+2026-10-04 17:59:23,165 - INFO - Container for django__django-14500 created: 13bc61b7e3b36d14ed25e7bf510abfeb10c0167d9f0658e799abe9dec296e018
+2026-10-04 17:59:23,366 - INFO - Container for django__django-14500 started: 13bc61b7e3b36d14ed25e7bf510abfeb10c0167d9f0658e799abe9dec296e018
+2026-10-04 17:59:23,367 - INFO - Intermediate patch for django__django-14500 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14500/patch.diff, now applying to container...
+2026-10-04 17:59:23,487 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:59:24,731 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:59:25,266 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:59:25,472 - INFO - >>>>> Applied Patch:
+patching file django/db/migrations/executor.py
+patching file tests/migrations/test_executor.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 653 with fuzz 1.
+
+2026-10-04 17:59:25,532 - INFO - Git diff before:
+diff --git a/django/db/migrations/executor.py b/django/db/migrations/executor.py
+index 57042a8690..6033107fce 100644
+--- a/django/db/migrations/executor.py
++++ b/django/db/migrations/executor.py
+@@ -277,6 +277,8 @@ class MigrationExecutor:
+             all_applied = all(m in applied for m in migration.replaces)
+             if all_applied and key not in applied:
+                 self.recorder.record_applied(*key)
++            elif not all_applied and key in applied:
++                self.recorder.record_unapplied(*key)
+ 
+     def detect_soft_applied(self, project_state, migration):
+         """
+diff --git a/tests/migrations/test_executor.py b/tests/migrations/test_executor.py
+index e61d8f1276..b96b91d806 100644
+--- a/tests/migrations/test_executor.py
++++ b/tests/migrations/test_executor.py
+@@ -653,6 +653,27 @@ class ExecutorTests(MigrationTestBase):
+             recorder.applied_migrations(),
+         )
+ 
++    @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations_squashed"})
++    def test_unapply_all_replaced_marks_replacement_as_unapplied(self):
++        """
++        Unapplying the replaced migrations marks the replacement as unapplied
++        (#24543).
++        """
++        recorder = MigrationRecorder(connection)
++        # Record all replaced migrations and their squash as applied.
++        recorder.record_applied("migrations", "0001_initial")
++        recorder.record_applied("migrations", "0002_second")
++        recorder.record_applied("migrations", "0001_squashed_0002")
++        executor = MigrationExecutor(connection)
++        executor.migrate([("migrations", None)], fake=True)
++
++        # Because 0001 and 0002 are no longer applied, their squashed
++        # replacement should also be marked as unapplied.
++        self.assertNotIn(
++            ("migrations", "0001_squashed_0002"),
++            recorder.applied_migrations(),
++        )
++
+     # When the feature is False, the operation and the record won't be
+     # performed in a transaction and the test will systematically pass.
+     @skipUnlessDBFeature('can_rollback_ddl')
+2026-10-04 17:59:25,532 - INFO - Eval script for django__django-14500 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14500/eval.sh; copying to container...
+2026-10-04 17:59:35,092 - INFO - Test runtime: 9.50 seconds
+2026-10-04 17:59:35,093 - INFO - Test output for django__django-14500 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14500/test_output.txt
+2026-10-04 17:59:35,167 - INFO - Git diff after:
+diff --git a/django/db/migrations/executor.py b/django/db/migrations/executor.py
+index 57042a8690..6033107fce 100644
+--- a/django/db/migrations/executor.py
++++ b/django/db/migrations/executor.py
+@@ -277,6 +277,8 @@ class MigrationExecutor:
+             all_applied = all(m in applied for m in migration.replaces)
+             if all_applied and key not in applied:
+                 self.recorder.record_applied(*key)
++            elif not all_applied and key in applied:
++                self.recorder.record_unapplied(*key)
+ 
+     def detect_soft_applied(self, project_state, migration):
+         """
+2026-10-04 17:59:35,167 - INFO - Git diff changed after running eval script
+2026-10-04 17:59:35,167 - INFO - Grading answer for django__django-14500...
+2026-10-04 17:59:35,168 - INFO - report: {'django__django-14500': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_migrate_marks_replacement_unapplied (migrations.test_executor.ExecutorTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['If the current state satisfies the given target, do nothing.', 'Minimize unnecessary rollbacks in connected apps.', 'Minimize rollbacks when target has multiple in-app children.', 'test_alter_id_type_with_fk (migrations.test_executor.ExecutorTests)', 'Applying all replaced migrations marks replacement as applied (#24628).', 'An atomic operation is properly rolled back inside a non-atomic', 'Regression test for #22325 - references to a custom user model defined in the', 'executor.detect_soft_applied() detects ManyToManyField tables from an', "Re-planning a full migration of a fully-migrated set doesn't", 'A new squash migration will be marked as applied even if all its', 'Migrations are applied and recorded atomically.', 'Migrations are not recorded if deferred SQL application fails.', 'Although the MigrationExecutor interfaces allows for mixed migration', 'Applying a non-atomic migration works as expected.', '#24129 - Tests callback process', 'Tests running a simple set of migrations.', 'Tests running a squashed migration from zero (should ignore what it replaces)', 'Tests detection of initial migrations already having been applied.', '#26647 - Unrelated applied migrations should be part of the final', '#24123 - All models of apps being unapplied which are', '#24123 - All models of apps already applied which are'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14500: resolved: True
+2026-10-04 17:59:35,169 - INFO - Attempting to stop container sweb.eval.django__django-14500.wescode-v3...
+2026-10-04 17:59:50,483 - INFO - Container sweb.eval.django__django-14500.wescode-v3 stopped successfully.
+2026-10-04 17:59:50,483 - INFO - Attempting to remove container sweb.eval.django__django-14500.wescode-v3...
+2026-10-04 17:59:50,669 - INFO - Container sweb.eval.django__django-14500.wescode-v3 removed successfully.

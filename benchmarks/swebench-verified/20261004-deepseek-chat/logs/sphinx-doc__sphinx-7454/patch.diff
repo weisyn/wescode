@@ -1,0 +1,40 @@
+diff --git a/CHANGES b/CHANGES
+index e0923b433..355534642 100644
+--- a/CHANGES
++++ b/CHANGES
+@@ -19,6 +19,8 @@ Bugs fixed
+ ----------
+ 
+ * #7428: py domain: a reference to class ``None`` emits a nitpicky warning
++* #7454: py domain: ``None`` in a type annotation of a signature is not linked
++  to the documentation for the ``None`` singleton
+ * #7418: std domain: duplication warning for glossary terms is case insensitive
+ * #7438: C++, fix merging overloaded functions in parallel builds.
+ * #7422: autodoc: fails with ValueError when using autodoc_mock_imports
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 893bb0a22..8b32f5b3c 100644
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -113,7 +113,7 @@ def _parse_annotation(annotation: str) -> List[Node]:
+         tree = ast_parse(annotation)
+         result = unparse(tree)
+         for i, node in enumerate(result):
+-            if isinstance(node, nodes.Text):
++            if isinstance(node, nodes.Text) and node.strip():
+                 result[i] = make_xref(str(node))
+         return result
+     except SyntaxError:
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index dc3d51d0a..bc2b365a9 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -266,6 +266,9 @@ def test_parse_annotation():
+                           [pending_xref, "int"],
+                           [desc_sig_punctuation, "]"]))
+ 
++    doctree = _parse_annotation("None")
++    assert_node(doctree, ([pending_xref, "None"],))
++
+ 
+ def test_pyfunction_signature(app):
+     text = ".. py:function:: hello(name: str) -> str"

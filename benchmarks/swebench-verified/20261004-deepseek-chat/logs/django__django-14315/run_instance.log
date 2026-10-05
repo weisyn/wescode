@@ -1,0 +1,74 @@
+2026-10-04 17:57:26,395 - INFO - Creating container for django__django-14315...
+2026-10-04 17:57:26,434 - INFO - Container for django__django-14315 created: 2f702195d7dce481894e0ff2a3d697abb2d120a7a31739478a242002d21a4b5d
+2026-10-04 17:57:26,640 - INFO - Container for django__django-14315 started: 2f702195d7dce481894e0ff2a3d697abb2d120a7a31739478a242002d21a4b5d
+2026-10-04 17:57:26,641 - INFO - Intermediate patch for django__django-14315 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14315/patch.diff, now applying to container...
+2026-10-04 17:57:26,750 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:57:27,742 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:57:28,302 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:57:28,508 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/postgresql/client.py
+patching file tests/dbshell/test_postgresql.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 134 with fuzz 1.
+
+2026-10-04 17:57:28,567 - INFO - Git diff before:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 3effab65a8..2d5397306f 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -51,7 +51,7 @@ class DatabaseClient(BaseDatabaseClient):
+             env['PGSSLKEY'] = str(sslkey)
+         if passfile:
+             env['PGPASSFILE'] = str(passfile)
+-        return args, env
++        return args, env or None
+ 
+     def runshell(self, parameters):
+         sigint_handler = signal.getsignal(signal.SIGINT)
+diff --git a/tests/dbshell/test_postgresql.py b/tests/dbshell/test_postgresql.py
+index a96acac6f1..6aaf6c8f77 100644
+--- a/tests/dbshell/test_postgresql.py
++++ b/tests/dbshell/test_postgresql.py
+@@ -39,7 +39,7 @@ class PostgreSqlDbshellCommandTestCase(SimpleTestCase):
+                 'PORT': '444',
+             }), (
+                 ['psql', '-U', 'someuser', '-h', 'somehost', '-p', '444', 'dbname'],
+-                {},
++                None,
+             )
+         )
+ 
+@@ -134,7 +134,7 @@ class PostgreSqlDbshellCommandTestCase(SimpleTestCase):
+     def test_parameters(self):
+         self.assertEqual(
+             self.settings_to_cmd_args_env({'NAME': 'dbname'}, ['--help']),
+-            (['psql', 'dbname', '--help'], {}),
++            (['psql', 'dbname', '--help'], None),
+         )
+ 
+     @skipUnless(connection.vendor == 'postgresql', 'Requires a PostgreSQL connection')
+2026-10-04 17:57:28,567 - INFO - Eval script for django__django-14315 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14315/eval.sh; copying to container...
+2026-10-04 17:57:35,707 - INFO - Test runtime: 7.07 seconds
+2026-10-04 17:57:35,707 - INFO - Test output for django__django-14315 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14315/test_output.txt
+2026-10-04 17:57:35,778 - INFO - Git diff after:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 3effab65a8..2d5397306f 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -51,7 +51,7 @@ class DatabaseClient(BaseDatabaseClient):
+             env['PGSSLKEY'] = str(sslkey)
+         if passfile:
+             env['PGPASSFILE'] = str(passfile)
+-        return args, env
++        return args, env or None
+ 
+     def runshell(self, parameters):
+         sigint_handler = signal.getsignal(signal.SIGINT)
+2026-10-04 17:57:35,778 - INFO - Git diff changed after running eval script
+2026-10-04 17:57:35,778 - INFO - Grading answer for django__django-14315...
+2026-10-04 17:57:35,779 - INFO - report: {'django__django-14315': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_crash_password_does_not_leak (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_parameters (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_passfile (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_service (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_ssl_certificate (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)'], 'failure': ['test_runshell_use_environ (backends.base.test_client.SimpleDatabaseClientTests)', 'test_settings_to_cmd_args_env (backends.base.test_client.SimpleDatabaseClientTests)']}, 'PASS_TO_PASS': {'success': [], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14315: resolved: False
+2026-10-04 17:57:35,779 - INFO - Attempting to stop container sweb.eval.django__django-14315.wescode-v3...
+2026-10-04 17:57:51,089 - INFO - Container sweb.eval.django__django-14315.wescode-v3 stopped successfully.
+2026-10-04 17:57:51,089 - INFO - Attempting to remove container sweb.eval.django__django-14315.wescode-v3...
+2026-10-04 17:57:51,273 - INFO - Container sweb.eval.django__django-14315.wescode-v3 removed successfully.

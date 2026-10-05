@@ -1,0 +1,47 @@
+diff --git a/sympy/concrete/products.py b/sympy/concrete/products.py
+index 66aafde2d6..c9a289d4bb 100644
+--- a/sympy/concrete/products.py
++++ b/sympy/concrete/products.py
+@@ -278,14 +278,23 @@ def _eval_product(self, term, limits):
+             p, q = term.as_numer_denom()
+             q = self._eval_product(q, (k, a, n))
+             if q.is_Number:
+-
+                 # There is expression, which couldn't change by
+                 # as_numer_denom(). E.g. n**(2/3) + 1 --> (n**(2/3) + 1, 1).
+                 # We have to catch this case.
+-
+-                p = sum([self._eval_product(i, (k, a, n)) for i in p.as_coeff_Add()])
++                #
++                # The coefficient part may be non-zero (e.g. the leading
++                # term of the numerator is a sum), in which case the
++                # product is not the sum of the products of the summands
++                # and it must be left unevaluated.
++                coeff, rest = p.as_coeff_Add()
++                if coeff != 0:
++                    return None
++                p = self._eval_product(rest, (k, a, n))
+             else:
+                 p = self._eval_product(p, (k, a, n))
++
++            if p is None:
++                return None
+             return p / q
+ 
+         elif term.is_Mul:
+diff --git a/sympy/concrete/tests/test_products.py b/sympy/concrete/tests/test_products.py
+index 311d5153e2..b73c61954a 100644
+--- a/sympy/concrete/tests/test_products.py
++++ b/sympy/concrete/tests/test_products.py
+@@ -234,6 +234,11 @@ def test__eval_product():
+     assert product(2*a(i), (i, 1, n)) == 2**n * Product(a(i), (i, 1, n))
+     # issue 4810
+     assert product(2**i, (i, 1, n)) == 2**(n/2 + n**2/2)
++    # issue 11626
++    assert product(n + 1 / 2**k, (k, 0, n - 1)) == \
++        Product(n + 1 / 2**k, (k, 0, n - 1))
++    assert product(k**(S(2)/3) + 1, (k, 0, n - 1)) == \
++        Product(k**(S(2)/3) + 1, (k, 0, n - 1))
+ 
+ 
+ def test_product_pow():

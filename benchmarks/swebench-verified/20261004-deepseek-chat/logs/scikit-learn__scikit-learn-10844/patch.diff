@@ -1,0 +1,62 @@
+diff --git a/sklearn/metrics/cluster/supervised.py b/sklearn/metrics/cluster/supervised.py
+index a987778ae..6520e68fe 100644
+--- a/sklearn/metrics/cluster/supervised.py
++++ b/sklearn/metrics/cluster/supervised.py
+@@ -856,7 +856,7 @@ def fowlkes_mallows_score(labels_true, labels_pred, sparse=False):
+     tk = np.dot(c.data, c.data) - n_samples
+     pk = np.sum(np.asarray(c.sum(axis=0)).ravel() ** 2) - n_samples
+     qk = np.sum(np.asarray(c.sum(axis=1)).ravel() ** 2) - n_samples
+-    return tk / np.sqrt(pk * qk) if tk != 0. else 0.
++    return (float(np.sqrt(tk / pk) * np.sqrt(tk / qk)) if tk != 0.0 else 0.0)
+ 
+ 
+ def entropy(labels):
+diff --git a/sklearn/metrics/cluster/tests/test_supervised.py b/sklearn/metrics/cluster/tests/test_supervised.py
+index 8da03d1e1..ecfac50fb 100644
+--- a/sklearn/metrics/cluster/tests/test_supervised.py
++++ b/sklearn/metrics/cluster/tests/test_supervised.py
+@@ -1,4 +1,5 @@
+ import numpy as np
++import warnings
+ 
+ from sklearn.metrics.cluster import adjusted_mutual_info_score
+ from sklearn.metrics.cluster import adjusted_rand_score
+@@ -253,6 +254,38 @@ def test_fowlkes_mallows_score():
+     assert_almost_equal(worst_score, 0.)
+ 
+ 
++def test_fowlkes_mallows_score_int_overflow():
++    # Non-regression test for the integer overflow in ``pk * qk`` (see #9515).
++    # ``contingency_matrix`` already builds an ``int64`` matrix, so the
++    # overflow happens on the ``int64`` product and only manifests when
++    # ``n_samples`` is large enough for it to exceed ``2 ** 63 - 1``.
++    # ``labels_true`` has 2 clusters while ``labels_pred`` alternates
++    # between 2 clusters, so every cell of the contingency matrix holds
++    # ``n_samples / 4``. This makes both ``tk / pk`` and ``tk / qk``
++    # different from 1 and used to make ``np.sqrt`` of the wrapped negative
++    # product return ``nan``, together with a ``RuntimeWarning``.
++    n_samples = 4 * 100000
++
++    labels_true = np.zeros(n_samples, dtype=np.int32)
++    labels_true[n_samples // 2:] = 1
++    labels_pred = np.zeros(n_samples, dtype=np.int32)
++    labels_pred[0::2] = 1
++
++    cell = n_samples // 4
++    assert cell * cell * cell * cell > np.iinfo(np.int64).max
++
++    # FMI = TP / sqrt((TP + FP) * (TP + FN)) with
++    # TP = 2 * cell * (cell - 1), FP = FN = 2 * cell ** 2
++    tp = 2. * cell * (cell - 1.)
++    fp = fn = 2. * cell * cell
++    expected = tp / np.sqrt((tp + fp) * (tp + fn))
++
++    with warnings.catch_warnings():
++        warnings.simplefilter("error", RuntimeWarning)
++        assert_almost_equal(fowlkes_mallows_score(labels_true, labels_pred),
++                            expected)
++
++
+ def test_fowlkes_mallows_score_properties():
+     # handcrafted example
+     labels_a = np.array([0, 0, 0, 1, 1, 2])

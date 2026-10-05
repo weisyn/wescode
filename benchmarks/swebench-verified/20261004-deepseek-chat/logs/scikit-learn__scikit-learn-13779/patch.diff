@@ -1,0 +1,38 @@
+diff --git a/sklearn/ensemble/tests/test_voting.py b/sklearn/ensemble/tests/test_voting.py
+index 2a19bc9a6..7511e11dd 100644
+--- a/sklearn/ensemble/tests/test_voting.py
++++ b/sklearn/ensemble/tests/test_voting.py
+@@ -432,6 +432,20 @@ def test_set_estimator_none():
+     assert_raise_message(
+         ValueError, msg, eclf2.set_params(lr=None, rf=None, nb=None).fit, X, y)
+ 
++    # Test that setting an estimator to None works when sample_weight is
++    # passed: the None estimators must be skipped when checking for
++    # sample_weight support (gh-13779).
++    eclf1 = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2)],
++                             voting='hard', weights=[1, 1])
++    eclf2 = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2)],
++                             voting='hard', weights=[1, 1])
++    sample_weight = np.ones(X.shape[0])
++    eclf2.set_params(rf=None).fit(X, y, sample_weight=sample_weight)
++    assert len(eclf2.estimators_) == 1
++    assert_array_equal(
++        eclf2.predict(X), clf1.fit(X, y, sample_weight=sample_weight).predict(X)
++    )
++
+     # Test soft voting transform
+     X1 = np.array([[1], [2]])
+     y1 = np.array([1, 2])
+diff --git a/sklearn/ensemble/voting.py b/sklearn/ensemble/voting.py
+index 7afa7180c..d8e14b152 100644
+--- a/sklearn/ensemble/voting.py
++++ b/sklearn/ensemble/voting.py
+@@ -78,6 +78,8 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+ 
+         if sample_weight is not None:
+             for name, step in self.estimators:
++                if step is None:
++                    continue
+                 if not has_fit_parameter(step, 'sample_weight'):
+                     raise ValueError('Underlying estimator \'%s\' does not'
+                                      ' support sample weights.' % name)

@@ -1,0 +1,165 @@
+2026-10-04 18:20:39,951 - INFO - Creating container for django__django-9296...
+2026-10-04 18:20:39,999 - INFO - Container for django__django-9296 created: 6ca72af5f2395aab052b6c41c584234a7aec4cc29882807d56c1c65e9a2dfb22
+2026-10-04 18:20:40,191 - INFO - Container for django__django-9296 started: 6ca72af5f2395aab052b6c41c584234a7aec4cc29882807d56c1c65e9a2dfb22
+2026-10-04 18:20:40,191 - INFO - Intermediate patch for django__django-9296 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-9296/patch.diff, now applying to container...
+2026-10-04 18:20:40,312 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:20:41,492 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:20:41,921 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:20:42,334 - INFO - >>>>> Applied Patch:
+patching file django/core/paginator.py
+patching file docs/ref/paginator.txt
+patching file docs/releases/3.1.txt
+patching file tests/pagination/tests.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 297 with fuzz 1.
+
+2026-10-04 18:20:42,392 - INFO - Git diff before:
+diff --git a/django/core/paginator.py b/django/core/paginator.py
+index 1f92da5d4f..ec0ebe0403 100644
+--- a/django/core/paginator.py
++++ b/django/core/paginator.py
+@@ -34,6 +34,10 @@ class Paginator:
+         self.orphans = int(orphans)
+         self.allow_empty_first_page = allow_empty_first_page
+ 
++    def __iter__(self):
++        for page_number in self.page_range:
++            yield self.page(page_number)
++
+     def validate_number(self, number):
+         """Validate the given 1-based page number."""
+         try:
+diff --git a/docs/ref/paginator.txt b/docs/ref/paginator.txt
+index 9ee6f0104c..877d6ba0d8 100644
+--- a/docs/ref/paginator.txt
++++ b/docs/ref/paginator.txt
+@@ -14,6 +14,13 @@ classes live in :source:`django/core/paginator.py`.
+ 
+ .. class:: Paginator(object_list, per_page, orphans=0, allow_empty_first_page=True)
+ 
++    A paginator acts like a sequence of :class:`Page` when using ``len()`` or
++    iterating it directly.
++
++    .. versionchanged:: 3.1
++
++        Support for iterating over ``Paginator`` was added.
++
+ .. attribute:: Paginator.object_list
+ 
+     Required. A list, tuple, ``QuerySet``, or other sliceable object with a
+@@ -98,8 +105,8 @@ Attributes
+ ``Page`` class
+ ==============
+ 
+-You usually won't construct ``Page`` objects by hand -- you'll get them using
+-:meth:`Paginator.page`.
++You usually won't construct ``Page`` objects by hand -- you'll get them by
++iterating :class:`Paginator`, or by using :meth:`Paginator.page`.
+ 
+ .. class:: Page(object_list, number, paginator)
+ 
+diff --git a/docs/releases/3.1.txt b/docs/releases/3.1.txt
+index da954bab56..d2078469ee 100644
+--- a/docs/releases/3.1.txt
++++ b/docs/releases/3.1.txt
+@@ -162,6 +162,11 @@ Models
+ 
+ * ...
+ 
++Pagination
++~~~~~~~~~~
++
++* Support for iterating over ``Paginator`` was added.
++
+ Requests and Responses
+ ~~~~~~~~~~~~~~~~~~~~~~
+ 
+diff --git a/tests/pagination/tests.py b/tests/pagination/tests.py
+index ef6e355e8d..f82d333ae7 100644
+--- a/tests/pagination/tests.py
++++ b/tests/pagination/tests.py
+@@ -297,6 +297,13 @@ class PaginationTests(SimpleTestCase):
+         with self.assertRaises(EmptyPage):
+             paginator.get_page(1)
+ 
++    def test_paginator_iteration(self):
++        paginator = Paginator([1, 2, 3], 2)
++        page_iterator = iter(paginator)
++        for page, expected in enumerate(([1, 2], [3]), start=1):
++            with self.subTest(page=page):
++                self.assertEqual(expected, list(next(page_iterator)))
++
+ 
+ class ModelPaginationTests(TestCase):
+     """
+2026-10-04 18:20:42,393 - INFO - Eval script for django__django-9296 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-9296/eval.sh; copying to container...
+2026-10-04 18:20:49,325 - INFO - Test runtime: 6.88 seconds
+2026-10-04 18:20:49,325 - INFO - Test output for django__django-9296 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-9296/test_output.txt
+2026-10-04 18:20:49,403 - INFO - Git diff after:
+diff --git a/django/core/paginator.py b/django/core/paginator.py
+index 1f92da5d4f..ec0ebe0403 100644
+--- a/django/core/paginator.py
++++ b/django/core/paginator.py
+@@ -34,6 +34,10 @@ class Paginator:
+         self.orphans = int(orphans)
+         self.allow_empty_first_page = allow_empty_first_page
+ 
++    def __iter__(self):
++        for page_number in self.page_range:
++            yield self.page(page_number)
++
+     def validate_number(self, number):
+         """Validate the given 1-based page number."""
+         try:
+diff --git a/docs/ref/paginator.txt b/docs/ref/paginator.txt
+index 9ee6f0104c..877d6ba0d8 100644
+--- a/docs/ref/paginator.txt
++++ b/docs/ref/paginator.txt
+@@ -14,6 +14,13 @@ classes live in :source:`django/core/paginator.py`.
+ 
+ .. class:: Paginator(object_list, per_page, orphans=0, allow_empty_first_page=True)
+ 
++    A paginator acts like a sequence of :class:`Page` when using ``len()`` or
++    iterating it directly.
++
++    .. versionchanged:: 3.1
++
++        Support for iterating over ``Paginator`` was added.
++
+ .. attribute:: Paginator.object_list
+ 
+     Required. A list, tuple, ``QuerySet``, or other sliceable object with a
+@@ -98,8 +105,8 @@ Attributes
+ ``Page`` class
+ ==============
+ 
+-You usually won't construct ``Page`` objects by hand -- you'll get them using
+-:meth:`Paginator.page`.
++You usually won't construct ``Page`` objects by hand -- you'll get them by
++iterating :class:`Paginator`, or by using :meth:`Paginator.page`.
+ 
+ .. class:: Page(object_list, number, paginator)
+ 
+diff --git a/docs/releases/3.1.txt b/docs/releases/3.1.txt
+index da954bab56..d2078469ee 100644
+--- a/docs/releases/3.1.txt
++++ b/docs/releases/3.1.txt
+@@ -162,6 +162,11 @@ Models
+ 
+ * ...
+ 
++Pagination
++~~~~~~~~~~
++
++* Support for iterating over ``Paginator`` was added.
++
+ Requests and Responses
+ ~~~~~~~~~~~~~~~~~~~~~~
+2026-10-04 18:20:49,403 - INFO - Git diff changed after running eval script
+2026-10-04 18:20:49,403 - INFO - Grading answer for django__django-9296...
+2026-10-04 18:20:49,403 - INFO - report: {'django__django-9296': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_paginator_iteration (pagination.tests.PaginationTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_count_does_not_silence_attribute_error (pagination.tests.PaginationTests)', 'test_count_does_not_silence_type_error (pagination.tests.PaginationTests)', 'test_float_integer_page (pagination.tests.PaginationTests)', 'test_get_page (pagination.tests.PaginationTests)', 'Paginator.get_page() with an empty object_list.', 'test_get_page_empty_object_list_and_allow_empty_first_page_false (pagination.tests.PaginationTests)', 'test_get_page_hook (pagination.tests.PaginationTests)', 'test_invalid_page_number (pagination.tests.PaginationTests)', 'test_no_content_allow_empty_first_page (pagination.tests.PaginationTests)', 'test_page_indexes (pagination.tests.PaginationTests)', 'test_page_range_iterator (pagination.tests.PaginationTests)', 'test_page_sequence (pagination.tests.PaginationTests)', 'test_paginate_misc_classes (pagination.tests.PaginationTests)', 'test_paginator (pagination.tests.PaginationTests)', 'test_first_page (pagination.tests.ModelPaginationTests)', 'test_last_page (pagination.tests.ModelPaginationTests)', 'test_page_getitem (pagination.tests.ModelPaginationTests)', 'test_paginating_empty_queryset_does_not_warn (pagination.tests.ModelPaginationTests)', 'test_paginating_unordered_object_list_raises_warning (pagination.tests.ModelPaginationTests)', 'test_paginating_unordered_queryset_raises_warning (pagination.tests.ModelPaginationTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-9296: resolved: True
+2026-10-04 18:20:49,404 - INFO - Attempting to stop container sweb.eval.django__django-9296.wescode-v3...
+2026-10-04 18:21:04,761 - INFO - Container sweb.eval.django__django-9296.wescode-v3 stopped successfully.
+2026-10-04 18:21:04,761 - INFO - Attempting to remove container sweb.eval.django__django-9296.wescode-v3...
+2026-10-04 18:21:04,987 - INFO - Container sweb.eval.django__django-9296.wescode-v3 removed successfully.

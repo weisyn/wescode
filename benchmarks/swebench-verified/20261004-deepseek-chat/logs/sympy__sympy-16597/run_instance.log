@@ -1,0 +1,118 @@
+2026-10-04 19:47:20,018 - INFO - Creating container for sympy__sympy-16597...
+2026-10-04 19:47:20,057 - INFO - Container for sympy__sympy-16597 created: 3921805fe21b47ce08348f6bd38844abe3fdbe330975743d9627fa40edf1e20f
+2026-10-04 19:47:20,274 - INFO - Container for sympy__sympy-16597 started: 3921805fe21b47ce08348f6bd38844abe3fdbe330975743d9627fa40edf1e20f
+2026-10-04 19:47:20,275 - INFO - Intermediate patch for sympy__sympy-16597 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-16597/patch.diff, now applying to container...
+2026-10-04 19:47:20,400 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:47:20,536 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:47:20,639 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:47:20,759 - INFO - >>>>> Applied Patch:
+patching file sympy/core/assumptions.py
+patching file sympy/core/tests/test_assumptions.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 125 with fuzz 1.
+
+2026-10-04 19:47:20,814 - INFO - Git diff before:
+diff --git a/sympy/core/assumptions.py b/sympy/core/assumptions.py
+index ce4dd30f2..280cc6ecb 100755
+--- a/sympy/core/assumptions.py
++++ b/sympy/core/assumptions.py
+@@ -163,7 +163,7 @@
+ _assume_rules = FactRules([
+ 
+     'integer        ->  rational',
+-    'rational       ->  real',
++    'rational       ->  real & finite',
+     'rational       ->  algebraic',
+     'algebraic      ->  complex',
+     'real           ->  complex',
+diff --git a/sympy/core/tests/test_assumptions.py b/sympy/core/tests/test_assumptions.py
+index 4db1c1c24..90f73da8d 100755
+--- a/sympy/core/tests/test_assumptions.py
++++ b/sympy/core/tests/test_assumptions.py
+@@ -98,26 +98,26 @@ def test_infinity():
+     oo = S.Infinity
+ 
+     assert oo.is_commutative is True
+-    assert oo.is_integer is None
+-    assert oo.is_rational is None
++    assert oo.is_integer is False
++    assert oo.is_rational is False
+     assert oo.is_algebraic is None
+     assert oo.is_transcendental is None
+     assert oo.is_real is True
+     assert oo.is_complex is True
+-    assert oo.is_noninteger is None
+-    assert oo.is_irrational is None
++    assert oo.is_noninteger is True
++    assert oo.is_irrational is True
+     assert oo.is_imaginary is False
+     assert oo.is_positive is True
+     assert oo.is_negative is False
+     assert oo.is_nonpositive is False
+     assert oo.is_nonnegative is True
+-    assert oo.is_even is None
+-    assert oo.is_odd is None
++    assert oo.is_even is False
++    assert oo.is_odd is False
+     assert oo.is_finite is False
+     assert oo.is_infinite is True
+     assert oo.is_comparable is True
+     assert oo.is_prime is False
+-    assert oo.is_composite is None
++    assert oo.is_composite is False
+     assert oo.is_number is True
+ 
+ 
+@@ -125,21 +125,21 @@ def test_neg_infinity():
+     mm = S.NegativeInfinity
+ 
+     assert mm.is_commutative is True
+-    assert mm.is_integer is None
+-    assert mm.is_rational is None
++    assert mm.is_integer is False
++    assert mm.is_rational is False
+     assert mm.is_algebraic is None
+     assert mm.is_transcendental is None
+     assert mm.is_real is True
+     assert mm.is_complex is True
+-    assert mm.is_noninteger is None
+-    assert mm.is_irrational is None
++    assert mm.is_noninteger is True
++    assert mm.is_irrational is True
+     assert mm.is_imaginary is False
+     assert mm.is_positive is False
+     assert mm.is_negative is True
+     assert mm.is_nonpositive is True
+     assert mm.is_nonnegative is False
+-    assert mm.is_even is None
+-    assert mm.is_odd is None
++    assert mm.is_even is False
++    assert mm.is_odd is False
+     assert mm.is_finite is False
+     assert mm.is_infinite is True
+     assert mm.is_comparable is True
+2026-10-04 19:47:20,815 - INFO - Eval script for sympy__sympy-16597 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-16597/eval.sh; copying to container...
+2026-10-04 19:47:38,941 - INFO - Test runtime: 18.07 seconds
+2026-10-04 19:47:38,941 - INFO - Test output for sympy__sympy-16597 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-16597/test_output.txt
+2026-10-04 19:47:38,997 - INFO - Git diff after:
+diff --git a/sympy/core/assumptions.py b/sympy/core/assumptions.py
+index ce4dd30f2..280cc6ecb 100755
+--- a/sympy/core/assumptions.py
++++ b/sympy/core/assumptions.py
+@@ -163,7 +163,7 @@
+ _assume_rules = FactRules([
+ 
+     'integer        ->  rational',
+-    'rational       ->  real',
++    'rational       ->  real & finite',
+     'rational       ->  algebraic',
+     'algebraic      ->  complex',
+     'real           ->  complex',
+2026-10-04 19:47:38,997 - INFO - Git diff changed after running eval script
+2026-10-04 19:47:38,997 - INFO - Grading answer for sympy__sympy-16597...
+2026-10-04 19:47:38,999 - INFO - report: {'sympy__sympy-16597': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_infinity', 'test_neg_infinity', 'test_other_symbol']}, 'PASS_TO_PASS': {'success': ['test_symbol_unset', 'test_zero', 'test_one', 'test_negativeone', 'test_zoo', 'test_nan', 'test_pos_rational', 'test_neg_rational', 'test_pi', 'test_E', 'test_I', 'test_symbol_real', 'test_symbol_imaginary', 'test_symbol_zero', 'test_symbol_positive', 'test_neg_symbol_positive', 'test_symbol_nonpositive', 'test_neg_symbol_nonpositive', 'test_symbol_falsepositive', 'test_symbol_falsepositive_mul', 'test_neg_symbol_falsepositive', 'test_neg_symbol_falsenegative', 'test_symbol_falsepositive_real', 'test_neg_symbol_falsepositive_real', 'test_symbol_falsenonnegative', 'test_symbol_falsenonnegative_real', 'test_neg_symbol_falsenonnegative_real', 'test_prime', 'test_composite', 'test_prime_symbol', 'test_symbol_noncommutative', 'test_issue_3825', 'test_issue_4822', 'test_hash_vs_typeinfo', 'test_hash_vs_typeinfo_2', 'test_hash_vs_eq', 'test_Add_is_pos_neg', 'test_Add_is_imaginary', 'test_Add_is_algebraic', 'test_Mul_is_algebraic', 'test_Pow_is_algebraic', 'test_Mul_is_prime_composite', 'test_Pow_is_pos_neg', 'test_Pow_is_prime_composite', 'test_Mul_is_infinite', 'test_special_is_rational', 'test_sanitize_assumptions', 'test_special_assumptions', 'test_inconsistent', 'test_issue_6631', 'test_issue_2730', 'test_issue_4149', 'test_issue_2920', 'test_issue_7899', 'test_issue_8075', 'test_issue_8642', 'test_issues_8632_8633_8638_8675_8992', 'test_issue_9115_9150', 'test_issue_9165', 'test_issue_10024', 'test_issue_10302', 'test_complex_reciprocal_imaginary', 'test_Min', 'test_Max', 'test_minmax_assumptions', 'test_issue_8413', 'test_root', 'test_real_root', 'test_rewrite_MaxMin_as_Heaviside', 'test_rewrite_MaxMin_as_Piecewise', 'test_issue_11099', 'test_issue_12638', 'test_instantiation_evaluation', 'test_rewrite_as_Abs'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-16597: resolved: False
+2026-10-04 19:47:38,999 - INFO - Attempting to stop container sweb.eval.sympy__sympy-16597.wescode-v3...
+2026-10-04 19:47:54,136 - INFO - Container sweb.eval.sympy__sympy-16597.wescode-v3 stopped successfully.
+2026-10-04 19:47:54,136 - INFO - Attempting to remove container sweb.eval.sympy__sympy-16597.wescode-v3...
+2026-10-04 19:47:54,166 - INFO - Container sweb.eval.sympy__sympy-16597.wescode-v3 removed successfully.

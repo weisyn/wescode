@@ -1,0 +1,136 @@
+2026-10-04 19:24:30,883 - INFO - Creating container for sphinx-doc__sphinx-10323...
+2026-10-04 19:24:30,928 - INFO - Container for sphinx-doc__sphinx-10323 created: e08bf475b0e99c0c3d5044a1f2949ff277cc0bd9e9cc038d616089dd6a1cfc2c
+2026-10-04 19:24:31,135 - INFO - Container for sphinx-doc__sphinx-10323 started: e08bf475b0e99c0c3d5044a1f2949ff277cc0bd9e9cc038d616089dd6a1cfc2c
+2026-10-04 19:24:31,135 - INFO - Intermediate patch for sphinx-doc__sphinx-10323 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-10323/patch.diff, now applying to container...
+2026-10-04 19:24:31,250 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:24:31,491 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:24:31,607 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:24:31,729 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file doc/usage/restructuredtext/directives.rst
+patching file sphinx/directives/code.py
+patching file tests/test_directive_code.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 216 with fuzz 1.
+
+2026-10-04 19:24:31,808 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index 7037723fe..7cb77096a 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -72,6 +72,8 @@ Bugs fixed
+   bulding texinfo document
+ * #10000: LaTeX: glossary terms with common definition are rendered with
+   too much vertical whitespace
++* #10323: ``literalinclude``: An indentation of ``prepend`` and ``append``
++  options is no longer stripped by the ``dedent`` option
+ 
+ Testing
+ --------
+diff --git a/doc/usage/restructuredtext/directives.rst b/doc/usage/restructuredtext/directives.rst
+index d1877bca0..7b0115214 100755
+--- a/doc/usage/restructuredtext/directives.rst
++++ b/doc/usage/restructuredtext/directives.rst
+@@ -731,6 +731,9 @@ __ https://pygments.org/docs/lexers
+    ``prepend`` and ``append`` option, respectively.  This is useful e.g. for
+    highlighting PHP code that doesn't include the ``<?php``/``?>`` markers.
+ 
++   The ``prepend`` and ``append`` content is not affected by the ``dedent``
++   option; indentation given in these options is preserved as-is.
++
+    If you want to show the diff of the code, you can specify the old file by
+    giving a ``diff`` option::
+ 
+diff --git a/sphinx/directives/code.py b/sphinx/directives/code.py
+index dc44ed314..9437fe9a5 100755
+--- a/sphinx/directives/code.py
++++ b/sphinx/directives/code.py
+@@ -224,9 +224,9 @@ class LiteralIncludeReader:
+                        self.start_filter,
+                        self.end_filter,
+                        self.lines_filter,
++                       self.dedent_filter,
+                        self.prepend_filter,
+-                       self.append_filter,
+-                       self.dedent_filter]
++                       self.append_filter]
+             lines = self.read_file(self.filename, location=location)
+             for func in filters:
+                 lines = func(lines, location=location)
+diff --git a/tests/test_directive_code.py b/tests/test_directive_code.py
+index 98a9aa899..47c0294a6 100755
+--- a/tests/test_directive_code.py
++++ b/tests/test_directive_code.py
+@@ -216,6 +216,17 @@ def test_LiteralIncludeReader_prepend(literal_inc_path):
+                        "Sphinx\n")
+ 
+ 
++@pytest.mark.xfail(os.name != 'posix', reason="Not working on windows")
++def test_LiteralIncludeReader_prepend_and_dedent(literal_inc_path):
++    # dedent must not affect the prepend/append content (refs: #10323)
++    options = {'lines': '1', 'dedent': 4, 'prepend': '    <plugin>', 'append': '    </plugin>'}
++    reader = LiteralIncludeReader(literal_inc_path, options, DUMMY_CONFIG)
++    content, lines = reader.read()
++    assert content == ("    <plugin>\n"
++                       "terally included file using Python highlighting\n"
++                       "    </plugin>\n")
++
++
+ @pytest.mark.xfail(os.name != 'posix', reason="Not working on windows")
+ def test_LiteralIncludeReader_dedent(literal_inc_path):
+     # dedent: 2
+2026-10-04 19:24:31,808 - INFO - Eval script for sphinx-doc__sphinx-10323 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-10323/eval.sh; copying to container...
+2026-10-04 19:24:41,163 - INFO - Test runtime: 9.30 seconds
+2026-10-04 19:24:41,163 - INFO - Test output for sphinx-doc__sphinx-10323 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-10323/test_output.txt
+2026-10-04 19:24:41,221 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index 7037723fe..7cb77096a 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -72,6 +72,8 @@ Bugs fixed
+   bulding texinfo document
+ * #10000: LaTeX: glossary terms with common definition are rendered with
+   too much vertical whitespace
++* #10323: ``literalinclude``: An indentation of ``prepend`` and ``append``
++  options is no longer stripped by the ``dedent`` option
+ 
+ Testing
+ --------
+diff --git a/doc/usage/restructuredtext/directives.rst b/doc/usage/restructuredtext/directives.rst
+index d1877bca0..7b0115214 100755
+--- a/doc/usage/restructuredtext/directives.rst
++++ b/doc/usage/restructuredtext/directives.rst
+@@ -731,6 +731,9 @@ __ https://pygments.org/docs/lexers
+    ``prepend`` and ``append`` option, respectively.  This is useful e.g. for
+    highlighting PHP code that doesn't include the ``<?php``/``?>`` markers.
+ 
++   The ``prepend`` and ``append`` content is not affected by the ``dedent``
++   option; indentation given in these options is preserved as-is.
++
+    If you want to show the diff of the code, you can specify the old file by
+    giving a ``diff`` option::
+ 
+diff --git a/sphinx/directives/code.py b/sphinx/directives/code.py
+index dc44ed314..9437fe9a5 100755
+--- a/sphinx/directives/code.py
++++ b/sphinx/directives/code.py
+@@ -224,9 +224,9 @@ class LiteralIncludeReader:
+                        self.start_filter,
+                        self.end_filter,
+                        self.lines_filter,
++                       self.dedent_filter,
+                        self.prepend_filter,
+-                       self.append_filter,
+-                       self.dedent_filter]
++                       self.append_filter]
+             lines = self.read_file(self.filename, location=location)
+             for func in filters:
+                 lines = func(lines, location=location)
+2026-10-04 19:24:41,221 - INFO - Git diff changed after running eval script
+2026-10-04 19:24:41,221 - INFO - Grading answer for sphinx-doc__sphinx-10323...
+2026-10-04 19:24:41,227 - INFO - report: {'sphinx-doc__sphinx-10323': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_directive_code.py::test_LiteralIncludeReader_dedent_and_append_and_prepend'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_directive_code.py::test_LiteralIncludeReader', 'tests/test_directive_code.py::test_LiteralIncludeReader_lineno_start', 'tests/test_directive_code.py::test_LiteralIncludeReader_pyobject1', 'tests/test_directive_code.py::test_LiteralIncludeReader_pyobject2', 'tests/test_directive_code.py::test_LiteralIncludeReader_pyobject3', 'tests/test_directive_code.py::test_LiteralIncludeReader_pyobject_and_lines', 'tests/test_directive_code.py::test_LiteralIncludeReader_lines1', 'tests/test_directive_code.py::test_LiteralIncludeReader_lines2', 'tests/test_directive_code.py::test_LiteralIncludeReader_lines_and_lineno_match1', 'tests/test_directive_code.py::test_LiteralIncludeReader_lines_and_lineno_match2', 'tests/test_directive_code.py::test_LiteralIncludeReader_lines_and_lineno_match3', 'tests/test_directive_code.py::test_LiteralIncludeReader_start_at', 'tests/test_directive_code.py::test_LiteralIncludeReader_start_after', 'tests/test_directive_code.py::test_LiteralIncludeReader_start_after_and_lines', 'tests/test_directive_code.py::test_LiteralIncludeReader_start_at_and_lines', 'tests/test_directive_code.py::test_LiteralIncludeReader_missing_start_and_end', 'tests/test_directive_code.py::test_LiteralIncludeReader_end_before', 'tests/test_directive_code.py::test_LiteralIncludeReader_prepend', 'tests/test_directive_code.py::test_LiteralIncludeReader_dedent', 'tests/test_directive_code.py::test_LiteralIncludeReader_tabwidth', 'tests/test_directive_code.py::test_LiteralIncludeReader_tabwidth_dedent', 'tests/test_directive_code.py::test_LiteralIncludeReader_diff', 'tests/test_directive_code.py::test_code_block', 'tests/test_directive_code.py::test_force_option', 'tests/test_directive_code.py::test_code_block_caption_html', 'tests/test_directive_code.py::test_code_block_caption_latex', 'tests/test_directive_code.py::test_code_block_namedlink_latex', 'tests/test_directive_code.py::test_code_block_emphasize_latex', 'tests/test_directive_code.py::test_literal_include', 'tests/test_directive_code.py::test_literal_include_block_start_with_comment_or_brank', 'tests/test_directive_code.py::test_literal_include_linenos', 'tests/test_directive_code.py::test_literalinclude_file_whole_of_emptyline', 'tests/test_directive_code.py::test_literalinclude_caption_html', 'tests/test_directive_code.py::test_literalinclude_caption_latex', 'tests/test_directive_code.py::test_literalinclude_namedlink_latex', 'tests/test_directive_code.py::test_literalinclude_classes', 'tests/test_directive_code.py::test_literalinclude_pydecorators', 'tests/test_directive_code.py::test_code_block_highlighted', 'tests/test_directive_code.py::test_linenothreshold', 'tests/test_directive_code.py::test_code_block_dedent'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-10323: resolved: True
+2026-10-04 19:24:41,227 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-10323.wescode-v3...
+2026-10-04 19:24:56,362 - INFO - Container sweb.eval.sphinx-doc__sphinx-10323.wescode-v3 stopped successfully.
+2026-10-04 19:24:56,362 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-10323.wescode-v3...
+2026-10-04 19:24:56,391 - INFO - Container sweb.eval.sphinx-doc__sphinx-10323.wescode-v3 removed successfully.

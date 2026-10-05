@@ -1,0 +1,36 @@
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 7eaf9a46f..3a11a8268 100644
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -219,6 +219,10 @@ class Pipeline(_BaseComposition):
+             return self.named_steps[ind]
+         return est
+ 
++    def __len__(self):
++        """Returns the length of the Pipeline"""
++        return len(self.steps)
++
+     @property
+     def _estimator_type(self):
+         return self.steps[-1][1]._estimator_type
+diff --git a/sklearn/tests/test_pipeline.py b/sklearn/tests/test_pipeline.py
+index 8d6fe8f70..c9e9862f7 100644
+--- a/sklearn/tests/test_pipeline.py
++++ b/sklearn/tests/test_pipeline.py
+@@ -540,6 +540,16 @@ def test_pipeline_slice():
+     assert_raises(ValueError, lambda: pipe[::-1])
+ 
+ 
++def test_pipeline_slice_len():
++    # Non-regression test for GH-13439: slicing with len(pipe) should work
++    pipe = Pipeline([('transf1', Transf()),
++                     ('transf2', Transf()),
++                     ('clf', FitParamT())])
++    assert len(pipe) == 3
++    assert pipe[:len(pipe)].steps == pipe.steps
++    assert len(Pipeline([])) == 0
++
++
+ def test_pipeline_index():
+     transf = Transf()
+     clf = FitParamT()

@@ -1,0 +1,48 @@
+diff --git a/sympy/printing/mathematica.py b/sympy/printing/mathematica.py
+index ea7e3a2d94..67f0500c6f 100644
+--- a/sympy/printing/mathematica.py
++++ b/sympy/printing/mathematica.py
+@@ -93,6 +93,20 @@ def _print_list(self, expr):
+     _print_tuple = _print_list
+     _print_Tuple = _print_list
+ 
++    def _print_Max(self, expr):
++        from sympy import Max
++        if len(expr.args) == 1:
++            return self._print(expr.args[0])
++        return "Max[%s, %s]" % (self._print(expr.args[0]),
++                                self._print(Max(*expr.args[1:])))
++
++    def _print_Min(self, expr):
++        from sympy import Min
++        if len(expr.args) == 1:
++            return self._print(expr.args[0])
++        return "Min[%s, %s]" % (self._print(expr.args[0]),
++                                self._print(Min(*expr.args[1:])))
++
+     def _print_Function(self, expr):
+         if expr.func.__name__ in self.known_functions:
+             cond_mfunc = self.known_functions[expr.func.__name__]
+diff --git a/sympy/printing/tests/test_mathematica.py b/sympy/printing/tests/test_mathematica.py
+index dd636d0623..efa6afa882 100644
+--- a/sympy/printing/tests/test_mathematica.py
++++ b/sympy/printing/tests/test_mathematica.py
+@@ -30,6 +30,18 @@ def test_Function():
+     assert mcode(conjugate(x)) == "Conjugate[x]"
+ 
+ 
++def test_Min():
++    from sympy import Min
++    assert mcode(Min(x, 2)) == "Min[2, x]"
++    assert mcode(Min(x, y, 2)) == "Min[2, Min[x, y]]"
++
++
++def test_Max():
++    from sympy import Max
++    assert mcode(Max(x, 2)) == "Max[2, x]"
++    assert mcode(Max(x, 2, 3)) == "Max[3, x]"
++
++
+ def test_Pow():
+     assert mcode(x**3) == "x^3"
+     assert mcode(x**(y**3)) == "x^(y^3)"

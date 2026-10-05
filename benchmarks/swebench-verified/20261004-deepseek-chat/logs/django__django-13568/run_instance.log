@@ -1,0 +1,132 @@
+2026-10-04 17:50:34,852 - INFO - Creating container for django__django-13568...
+2026-10-04 17:50:34,899 - INFO - Container for django__django-13568 created: e1efd0e318e68b1a21a7c001c20e45250edf3d8caee75da051b7aec36af4a84d
+2026-10-04 17:50:35,102 - INFO - Container for django__django-13568 started: e1efd0e318e68b1a21a7c001c20e45250edf3d8caee75da051b7aec36af4a84d
+2026-10-04 17:50:35,102 - INFO - Intermediate patch for django__django-13568 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13568/patch.diff, now applying to container...
+2026-10-04 17:50:35,234 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:50:36,384 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:50:36,743 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:50:37,100 - INFO - >>>>> Applied Patch:
+patching file django/contrib/auth/checks.py
+patching file tests/auth_tests/test_checks.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 86 with fuzz 1.
+
+2026-10-04 17:50:37,241 - INFO - Git diff before:
+diff --git a/django/contrib/auth/checks.py b/django/contrib/auth/checks.py
+index 65fc266f7e..c08ed8a49a 100644
+--- a/django/contrib/auth/checks.py
++++ b/django/contrib/auth/checks.py
+@@ -52,7 +52,10 @@ def check_user_model(app_configs=None, **kwargs):
+         )
+ 
+     # Check that the username field is unique
+-    if not cls._meta.get_field(cls.USERNAME_FIELD).unique:
++    if not cls._meta.get_field(cls.USERNAME_FIELD).unique and not any(
++        constraint.fields == (cls.USERNAME_FIELD,)
++        for constraint in cls._meta.total_unique_constraints
++    ):
+         if (settings.AUTHENTICATION_BACKENDS ==
+                 ['django.contrib.auth.backends.ModelBackend']):
+             errors.append(
+diff --git a/tests/auth_tests/test_checks.py b/tests/auth_tests/test_checks.py
+index cfaa4063f8..4dc1ef4aec 100644
+--- a/tests/auth_tests/test_checks.py
++++ b/tests/auth_tests/test_checks.py
+@@ -4,6 +4,7 @@ from django.contrib.auth.checks import (
+ from django.contrib.auth.models import AbstractBaseUser
+ from django.core import checks
+ from django.db import models
++from django.db.models import Q, UniqueConstraint
+ from django.test import (
+     SimpleTestCase, override_settings, override_system_checks,
+ )
+@@ -85,6 +86,61 @@ class UserModelChecksTests(SimpleTestCase):
+                 ),
+             ])
+ 
++    @override_settings(AUTH_USER_MODEL='auth_tests.CustomUserPartiallyUnique')
++    def test_username_partially_unique(self):
++        class CustomUserPartiallyUnique(AbstractBaseUser):
++            username = models.CharField(max_length=30)
++            USERNAME_FIELD = 'username'
++
++            class Meta:
++                constraints = [
++                    UniqueConstraint(
++                        fields=['username'],
++                        name='partial_username_unique',
++                        condition=Q(password__isnull=False),
++                    ),
++                ]
++
++        errors = checks.run_checks(app_configs=self.apps.get_app_configs())
++        self.assertEqual(errors, [
++            checks.Error(
++                "'CustomUserPartiallyUnique.username' must be unique because "
++                "it is named as the 'USERNAME_FIELD'.",
++                obj=CustomUserPartiallyUnique,
++                id='auth.E003',
++            ),
++        ])
++        with self.settings(AUTHENTICATION_BACKENDS=['my.custom.backend']):
++            errors = checks.run_checks(app_configs=self.apps.get_app_configs())
++            self.assertEqual(errors, [
++                checks.Warning(
++                    "'CustomUserPartiallyUnique.username' is named as the "
++                    "'USERNAME_FIELD', but it is not unique.",
++                    hint=(
++                        'Ensure that your authentication backend(s) can '
++                        'handle non-unique usernames.'
++                    ),
++                    obj=CustomUserPartiallyUnique,
++                    id='auth.W004',
++                ),
++            ])
++
++    @override_settings(AUTH_USER_MODEL='auth_tests.CustomUserUniqueConstraint')
++    def test_username_unique_with_model_constraint(self):
++        class CustomUserUniqueConstraint(AbstractBaseUser):
++            username = models.CharField(max_length=30)
++            USERNAME_FIELD = 'username'
++
++            class Meta:
++                constraints = [
++                    UniqueConstraint(fields=['username'], name='username_unique'),
++                ]
++
++        self.assertEqual(checks.run_checks(app_configs=self.apps.get_app_configs()), [])
++        with self.settings(AUTHENTICATION_BACKENDS=['my.custom.backend']):
++            errors = checks.run_checks(app_configs=self.apps.get_app_configs())
++            self.assertEqual(errors, [])
++
+     @override_settings(AUTH_USER_MODEL='auth_tests.BadUser')
+     def test_is_anonymous_authenticated_methods(self):
+         """
+2026-10-04 17:50:37,242 - INFO - Eval script for django__django-13568 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13568/eval.sh; copying to container...
+2026-10-04 17:50:43,463 - INFO - Test runtime: 6.17 seconds
+2026-10-04 17:50:43,463 - INFO - Test output for django__django-13568 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13568/test_output.txt
+2026-10-04 17:50:43,523 - INFO - Git diff after:
+diff --git a/django/contrib/auth/checks.py b/django/contrib/auth/checks.py
+index 65fc266f7e..c08ed8a49a 100644
+--- a/django/contrib/auth/checks.py
++++ b/django/contrib/auth/checks.py
+@@ -52,7 +52,10 @@ def check_user_model(app_configs=None, **kwargs):
+         )
+ 
+     # Check that the username field is unique
+-    if not cls._meta.get_field(cls.USERNAME_FIELD).unique:
++    if not cls._meta.get_field(cls.USERNAME_FIELD).unique and not any(
++        constraint.fields == (cls.USERNAME_FIELD,)
++        for constraint in cls._meta.total_unique_constraints
++    ):
+         if (settings.AUTHENTICATION_BACKENDS ==
+                 ['django.contrib.auth.backends.ModelBackend']):
+             errors.append(
+2026-10-04 17:50:43,523 - INFO - Git diff changed after running eval script
+2026-10-04 17:50:43,523 - INFO - Grading answer for django__django-13568...
+2026-10-04 17:50:43,524 - INFO - report: {'django__django-13568': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_username_unique_with_model_constraint (auth_tests.test_checks.UserModelChecksTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_clashing_custom_permissions (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_clashing_default_permissions (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_custom_permission_codename_max_length (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_custom_permission_name_max_length (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_empty_default_permissions (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_model_name_max_length (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_non_clashing_custom_permissions (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_verbose_name_max_length (auth_tests.test_checks.ModelsPermissionsChecksTests)', 'test_is_anonymous_authenticated_methods (auth_tests.test_checks.UserModelChecksTests)', 'REQUIRED_FIELDS should be a list.', 'test_username_non_unique (auth_tests.test_checks.UserModelChecksTests)', 'USERNAME_FIELD should not appear in REQUIRED_FIELDS.', 'test_username_partially_unique (auth_tests.test_checks.UserModelChecksTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13568: resolved: True
+2026-10-04 17:50:43,524 - INFO - Attempting to stop container sweb.eval.django__django-13568.wescode-v3...
+2026-10-04 17:50:58,686 - INFO - Container sweb.eval.django__django-13568.wescode-v3 stopped successfully.
+2026-10-04 17:50:58,686 - INFO - Attempting to remove container sweb.eval.django__django-13568.wescode-v3...
+2026-10-04 17:50:58,877 - INFO - Container sweb.eval.django__django-13568.wescode-v3 removed successfully.

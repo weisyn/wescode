@@ -1,0 +1,97 @@
+diff --git a/django/contrib/staticfiles/storage.py b/django/contrib/staticfiles/storage.py
+index 494890cc23..3c6e993e51 100644
+--- a/django/contrib/staticfiles/storage.py
++++ b/django/contrib/staticfiles/storage.py
+@@ -226,35 +226,52 @@ class HashedFilesMixin:
+             path for path in paths
+             if matches_patterns(path, self._patterns)
+         ]
++        # Adjustable files are passed through multiple passes so that nested
++        # references between files are resolved. A file is only yielded once,
++        # the first time it is actually processed (or fails), so that callers
++        # don't receive the same file multiple times.
++        processed_adjustable_paths = set()
++
++        # Tracks whether any adjustable file was modified during the current
++        # pass. It is updated for every processed file, including ones that
++        # are no longer yielded, so the outer loop knows when nested
++        # references have stabilized.
++        substitutions = [False]
++
+         # Do a single pass first. Post-process all files once, then repeat for
+         # adjustable files.
+-        for name, hashed_name, processed, _ in self._post_process(paths, adjustable_paths, hashed_files):
++        for name, hashed_name, processed, _ in self._post_process(
++            paths, adjustable_paths, hashed_files, processed_adjustable_paths,
++            substitutions,
++        ):
+             yield name, hashed_name, processed
+ 
+         paths = {path: paths[path] for path in adjustable_paths}
+ 
+         for i in range(self.max_post_process_passes):
+-            substitutions = False
+-            for name, hashed_name, processed, subst in self._post_process(paths, adjustable_paths, hashed_files):
++            substitutions[0] = False
++            for name, hashed_name, processed, _ in self._post_process(
++                paths, adjustable_paths, hashed_files, processed_adjustable_paths,
++                substitutions,
++            ):
+                 yield name, hashed_name, processed
+-                substitutions = substitutions or subst
+ 
+-            if not substitutions:
++            if not substitutions[0]:
+                 break
+ 
+-        if substitutions:
++        if substitutions[0]:
+             yield 'All', None, RuntimeError('Max post-process passes exceeded.')
+ 
+         # Store the processed paths
+         self.hashed_files.update(hashed_files)
+ 
+-    def _post_process(self, paths, adjustable_paths, hashed_files):
++    def _post_process(self, paths, adjustable_paths, hashed_files,
++                      processed_adjustable_paths, substitutions):
+         # Sort the files by directory level
+         def path_level(name):
+             return len(name.split(os.sep))
+ 
+         for name in sorted(paths, key=path_level, reverse=True):
+-            substitutions = True
+             # use the original, local file, not the copied-but-unprocessed
+             # file, which might be somewhere far away, like S3
+             storage, path = paths[name]
+@@ -302,9 +319,11 @@ class HashedFilesMixin:
+ 
+                     saved_name = self._save(hashed_name, content_file)
+                     hashed_name = self.clean_name(saved_name)
+-                    # If the file hash stayed the same, this file didn't change
+-                    if old_hashed_name == hashed_name:
+-                        substitutions = False
++                    # If the file hash stayed the same, this file didn't
++                    # change during this pass. Otherwise nested references
++                    # may need another pass to resolve.
++                    if old_hashed_name != hashed_name:
++                        substitutions[0] = True
+                     processed = True
+ 
+                 if not processed:
+@@ -318,7 +337,15 @@ class HashedFilesMixin:
+                 # and then set the cache accordingly
+                 hashed_files[hash_key] = hashed_name
+ 
+-                yield name, hashed_name, processed, substitutions
++                # An adjustable file is yielded only the first time it is
++                # processed, so callers don't see it on every pass. Non
++                # adjustable files are always yielded since they're only
++                # visited on the first pass.
++                if name not in adjustable_paths or name not in processed_adjustable_paths:
++                    yield name, hashed_name, processed, substitutions[0]
++
++                if name in adjustable_paths:
++                    processed_adjustable_paths.add(name)
+ 
+     def clean_name(self, name):
+         return name.replace('\\', '/')

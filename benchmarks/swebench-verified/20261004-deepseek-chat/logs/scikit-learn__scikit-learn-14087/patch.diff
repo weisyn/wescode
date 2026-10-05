@@ -1,0 +1,91 @@
+diff --git a/sklearn/linear_model/logistic.py b/sklearn/linear_model/logistic.py
+index 1999f1dae..25374b8a9 100644
+--- a/sklearn/linear_model/logistic.py
++++ b/sklearn/linear_model/logistic.py
+@@ -983,6 +983,10 @@ def _logistic_regression_path(X, y, pos_class=None, Cs=10, fit_intercept=True,
+             if n_classes == 2:
+                 multi_w0 = multi_w0[1][np.newaxis, :]
+             coefs.append(multi_w0.copy())
++        elif classes.size > 2:
++            # OvR on a multi-class problem yields one coefficient vector per
++            # class, each of shape (n_features + fit_intercept,).
++            coefs.append(w0.reshape(classes.size, -1))
+         else:
+             coefs.append(w0.copy())
+ 
+@@ -1120,6 +1124,13 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
+         fit_intercept is set to True then the second dimension will be
+         n_features + 1, where the last item represents the intercept.
+ 
++        .. note::
++
++            For multi-class problems (``multi_class`` set to 'ovr' or
++            'multinomial'), the returned array has shape
++            ``(n_cs, n_classes, n_features)`` or
++            ``(n_cs, n_classes, n_features + 1)`` instead.
++
+     Cs : ndarray
+         Grid of Cs used for cross-validation.
+ 
+@@ -1154,11 +1165,8 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
+     # The score method of Logistic Regression has a classes_ attribute.
+     if multi_class == 'ovr':
+         log_reg.classes_ = np.array([-1, 1])
+-    elif multi_class == 'multinomial':
+-        log_reg.classes_ = np.unique(y_train)
+     else:
+-        raise ValueError("multi_class should be either multinomial or ovr, "
+-                         "got %d" % multi_class)
++        log_reg.classes_ = np.unique(y_train)
+ 
+     if pos_class is not None:
+         mask = (y_test == pos_class)
+@@ -2170,7 +2178,7 @@ class LogisticRegressionCV(LogisticRegression, BaseEstimator,
+                 # Take the best scores across every fold and the average of
+                 # all coefficients corresponding to the best scores.
+                 best_indices = np.argmax(scores, axis=1)
+-                if self.multi_class == 'ovr':
++                if multi_class == 'ovr':
+                     w = np.mean([coefs_paths[i, best_indices[i], :]
+                                  for i in range(len(folds))], axis=0)
+                 else:
+diff --git a/sklearn/linear_model/tests/test_logistic.py b/sklearn/linear_model/tests/test_logistic.py
+index 6ad9a4ec9..6710b8d5f 100644
+--- a/sklearn/linear_model/tests/test_logistic.py
++++ b/sklearn/linear_model/tests/test_logistic.py
+@@ -1554,6 +1554,35 @@ def test_LogisticRegressionCV_no_refit(multi_class):
+     assert lrcv.coef_.shape == (n_classes, n_features)
+ 
+ 
++def test_LogisticRegressionCV_no_refit_binary():
++    # Non-regression test for gh-14086: refit=False on a binary problem used
++    # to raise an IndexError because the number of classes was checked instead
++    # of whether the problem is actually binary.
++    rng = np.random.RandomState(0)
++    X = rng.normal(size=(100, 3))
++    beta = rng.normal(size=3)
++    y = np.sign(X @ beta)
++
++    for solver in ('saga', 'liblinear'):
++        lrcv = LogisticRegressionCV(cv=5, solver=solver, tol=1e-2,
++                                    refit=False).fit(X, y)
++        assert lrcv.coef_.shape == (1, X.shape[1])
++        assert lrcv.intercept_.shape == (1,)
++
++
++def test_LogisticRegressionCV_no_refit_multiclass():
++    # Same as above but for a multiclass problem solved with OvR (gh-14086).
++    X, y = make_classification(n_samples=100, n_classes=3, n_informative=3,
++                               n_features=10, random_state=0)
++
++    lrcv = LogisticRegressionCV(cv=3, solver='saga', tol=1e-2,
++                                multi_class='ovr', refit=False).fit(X, y)
++    assert lrcv.coef_.shape == (3, X.shape[1])
++    assert lrcv.intercept_.shape == (3,)
++    # Each class must have its own coefficient vector, not just the last one.
++    assert not np.allclose(lrcv.coef_[0], lrcv.coef_[1])
++
++
+ def test_LogisticRegressionCV_elasticnet_attribute_shapes():
+     # Make sure the shapes of scores_ and coefs_paths_ attributes are correct
+     # when using elasticnet (added one dimension for l1_ratios)

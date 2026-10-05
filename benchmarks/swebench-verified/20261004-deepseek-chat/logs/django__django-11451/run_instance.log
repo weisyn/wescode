@@ -1,0 +1,76 @@
+2026-10-04 17:35:01,292 - INFO - Creating container for django__django-11451...
+2026-10-04 17:35:01,339 - INFO - Container for django__django-11451 created: 7ad69c7f18ae45778196da59094de818089f7e75bbfcd071256fcb2b9103886a
+2026-10-04 17:35:01,522 - INFO - Container for django__django-11451 started: 7ad69c7f18ae45778196da59094de818089f7e75bbfcd071256fcb2b9103886a
+2026-10-04 17:35:01,523 - INFO - Intermediate patch for django__django-11451 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11451/patch.diff, now applying to container...
+2026-10-04 17:35:01,635 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:35:01,953 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:35:02,123 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:35:02,299 - INFO - >>>>> Applied Patch:
+patching file django/contrib/auth/backends.py
+patching file tests/auth_tests/test_auth_backends.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 251 with fuzz 1.
+
+2026-10-04 17:35:02,394 - INFO - Git diff before:
+diff --git a/django/contrib/auth/backends.py b/django/contrib/auth/backends.py
+index f4b1722757..a3765ae0f1 100755
+--- a/django/contrib/auth/backends.py
++++ b/django/contrib/auth/backends.py
+@@ -39,6 +39,8 @@ class ModelBackend(BaseBackend):
+     def authenticate(self, request, username=None, password=None, **kwargs):
+         if username is None:
+             username = kwargs.get(UserModel.USERNAME_FIELD)
++        if username is None or password is None:
++            return
+         try:
+             user = UserModel._default_manager.get_by_natural_key(username)
+         except UserModel.DoesNotExist:
+diff --git a/tests/auth_tests/test_auth_backends.py b/tests/auth_tests/test_auth_backends.py
+index 6447edefc9..2c9d965385 100755
+--- a/tests/auth_tests/test_auth_backends.py
++++ b/tests/auth_tests/test_auth_backends.py
+@@ -251,6 +251,19 @@ class ModelBackendTest(BaseModelBackendTest, TestCase):
+         self.user.save()
+         self.assertIsNone(authenticate(**self.user_credentials))
+ 
++    @override_settings(AUTHENTICATION_BACKENDS=['django.contrib.auth.backends.ModelBackend'])
++    def test_authenticate_without_username_or_password(self):
++        """
++        ModelBackend.authenticate() doesn't make a database query and doesn't
++        run the password hasher when the username or password is None.
++        """
++        with self.assertNumQueries(0):
++            self.assertIsNone(authenticate(username=None, password=None))
++        with self.assertNumQueries(0):
++            self.assertIsNone(authenticate(username='test', password=None))
++        with self.assertNumQueries(0):
++            self.assertIsNone(authenticate(username=None, password='test'))
++
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUserWithoutIsActiveField')
+     def test_authenticate_user_without_is_active_field(self):
+         """
+2026-10-04 17:35:02,394 - INFO - Eval script for django__django-11451 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11451/eval.sh; copying to container...
+2026-10-04 17:35:13,838 - INFO - Test runtime: 11.38 seconds
+2026-10-04 17:35:13,839 - INFO - Test output for django__django-11451 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11451/test_output.txt
+2026-10-04 17:35:13,900 - INFO - Git diff after:
+diff --git a/django/contrib/auth/backends.py b/django/contrib/auth/backends.py
+index f4b1722757..a3765ae0f1 100755
+--- a/django/contrib/auth/backends.py
++++ b/django/contrib/auth/backends.py
+@@ -39,6 +39,8 @@ class ModelBackend(BaseBackend):
+     def authenticate(self, request, username=None, password=None, **kwargs):
+         if username is None:
+             username = kwargs.get(UserModel.USERNAME_FIELD)
++        if username is None or password is None:
++            return
+         try:
+             user = UserModel._default_manager.get_by_natural_key(username)
+         except UserModel.DoesNotExist:
+2026-10-04 17:35:13,900 - INFO - Git diff changed after running eval script
+2026-10-04 17:35:13,900 - INFO - Grading answer for django__django-11451...
+2026-10-04 17:35:13,906 - INFO - report: {'django__django-11451': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_authentication_without_credentials (auth_tests.test_auth_backends.ModelBackendTest)', 'test_custom_perms (auth_tests.test_auth_backends.ModelBackendTest)', 'test_authentication_without_credentials (auth_tests.test_auth_backends.CustomPermissionsUserModelBackendTest)', 'test_custom_perms (auth_tests.test_auth_backends.CustomPermissionsUserModelBackendTest)', 'test_authentication_without_credentials (auth_tests.test_auth_backends.ExtensionUserModelBackendTest)', 'test_custom_perms (auth_tests.test_auth_backends.ExtensionUserModelBackendTest)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_raises_exception (auth_tests.test_auth_backends.NoBackendsTest)', 'test_get_all_permissions (auth_tests.test_auth_backends.BaseBackendTest)', 'test_get_group_permissions (auth_tests.test_auth_backends.BaseBackendTest)', 'test_get_user_permissions (auth_tests.test_auth_backends.BaseBackendTest)', 'test_has_perm (auth_tests.test_auth_backends.BaseBackendTest)', 'test_skips_backends_without_arguments (auth_tests.test_auth_backends.AuthenticateTests)', 'A TypeError within a backend is propagated properly (#18171).', 'test_has_module_perms (auth_tests.test_auth_backends.InActiveUserBackendTest)', 'test_has_perm (auth_tests.test_auth_backends.InActiveUserBackendTest)', 'test_get_all_permissions (auth_tests.test_auth_backends.AnonymousUserBackendTest)', 'test_has_module_perms (auth_tests.test_auth_backends.AnonymousUserBackendTest)', 'test_has_perm (auth_tests.test_auth_backends.AnonymousUserBackendTest)', 'test_has_perms (auth_tests.test_auth_backends.AnonymousUserBackendTest)', 'test_get_all_permissions (auth_tests.test_auth_backends.RowlevelBackendTest)', 'test_get_group_permissions (auth_tests.test_auth_backends.RowlevelBackendTest)', 'test_has_perm (auth_tests.test_auth_backends.RowlevelBackendTest)', 'test_authenticates (auth_tests.test_auth_backends.PermissionDeniedBackendTest)', 'test_has_perm (auth_tests.test_auth_backends.PermissionDeniedBackendTest)', 'test_has_perm_denied (auth_tests.test_auth_backends.PermissionDeniedBackendTest)', 'user is not authenticated after a backend raises permission denied #2550', 'test_authenticate (auth_tests.test_auth_backends.AllowAllUsersModelBackendTest)', 'test_get_user (auth_tests.test_auth_backends.AllowAllUsersModelBackendTest)', 'test_backend_path (auth_tests.test_auth_backends.ImportedBackendTests)', 'test_changed_backend_settings (auth_tests.test_auth_backends.ChangedBackendSettingsTest)', 'test_backend_path_login_with_explicit_backends (auth_tests.test_auth_backends.SelectingBackendTests)', 'test_backend_path_login_without_authenticate_multiple_backends (auth_tests.test_auth_backends.SelectingBackendTests)', 'test_backend_path_login_without_authenticate_single_backend (auth_tests.test_auth_backends.SelectingBackendTests)', 'test_non_string_backend (auth_tests.test_auth_backends.SelectingBackendTests)', 'test_does_not_shadow_exception (auth_tests.test_auth_backends.ImproperlyConfiguredUserModelTest)', 'test_authenticate (auth_tests.test_auth_backends.CustomUserModelBackendAuthenticateTest)', 'test_login (auth_tests.test_auth_backends.UUIDUserTests)', 'test_anonymous_has_no_permissions (auth_tests.test_auth_backends.ModelBackendTest)', 'test_authenticate_inactive (auth_tests.test_auth_backends.ModelBackendTest)', 'test_authenticate_user_without_is_active_field (auth_tests.test_auth_backends.ModelBackendTest)', 'Hasher is run once regardless of whether the user exists. Refs #20760.', 'A superuser has all permissions. Refs #14795.', 'Regressiontest for #12462', 'test_has_perm (auth_tests.test_auth_backends.ModelBackendTest)', 'test_inactive_has_no_permissions (auth_tests.test_auth_backends.ModelBackendTest)', 'test_anonymous_has_no_permissions (auth_tests.test_auth_backends.CustomPermissionsUserModelBackendTest)', 'test_has_perm (auth_tests.test_auth_backends.CustomPermissionsUserModelBackendTest)', 'test_inactive_has_no_permissions (auth_tests.test_auth_backends.CustomPermissionsUserModelBackendTest)', 'test_anonymous_has_no_permissions (auth_tests.test_auth_backends.ExtensionUserModelBackendTest)', 'test_has_perm (auth_tests.test_auth_backends.ExtensionUserModelBackendTest)', 'test_inactive_has_no_permissions (auth_tests.test_auth_backends.ExtensionUserModelBackendTest)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11451: resolved: True
+2026-10-04 17:35:13,907 - INFO - Attempting to stop container sweb.eval.django__django-11451.wescode-v3...
+2026-10-04 17:35:29,097 - INFO - Container sweb.eval.django__django-11451.wescode-v3 stopped successfully.
+2026-10-04 17:35:29,097 - INFO - Attempting to remove container sweb.eval.django__django-11451.wescode-v3...
+2026-10-04 17:35:29,125 - INFO - Container sweb.eval.django__django-11451.wescode-v3 removed successfully.

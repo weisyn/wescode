@@ -1,0 +1,131 @@
+2026-10-04 17:40:22,819 - INFO - Creating container for django__django-12262...
+2026-10-04 17:40:22,861 - INFO - Container for django__django-12262 created: f66811352f05120b63714226e3f2bcf5912ebaba9b1dc1749f87d0305d41f9bb
+2026-10-04 17:40:23,068 - INFO - Container for django__django-12262 started: f66811352f05120b63714226e3f2bcf5912ebaba9b1dc1749f87d0305d41f9bb
+2026-10-04 17:40:23,068 - INFO - Intermediate patch for django__django-12262 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12262/patch.diff, now applying to container...
+2026-10-04 17:40:23,178 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:40:24,143 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:40:24,739 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:40:24,936 - INFO - >>>>> Applied Patch:
+patching file django/template/library.py
+patching file tests/template_tests/templatetags/inclusion.py
+patching file tests/template_tests/test_custom.py
+patch unexpectedly ends in middle of line
+Hunk #4 succeeded at 226 with fuzz 1.
+
+2026-10-04 17:40:25,001 - INFO - Git diff before:
+diff --git a/django/template/library.py b/django/template/library.py
+index 20bc86dac8..2f74556268 100644
+--- a/django/template/library.py
++++ b/django/template/library.py
+@@ -261,7 +261,7 @@ def parse_bits(parser, bits, params, varargs, varkw, defaults,
+         if kwarg:
+             # The kwarg was successfully extracted
+             param, value = kwarg.popitem()
+-            if param not in params and param not in unhandled_kwargs and varkw is None:
++            if param not in params and param not in kwonly and varkw is None:
+                 # An unexpected keyword argument was supplied
+                 raise TemplateSyntaxError(
+                     "'%s' received unexpected keyword argument '%s'" %
+diff --git a/tests/template_tests/templatetags/inclusion.py b/tests/template_tests/templatetags/inclusion.py
+index 242fbe80cb..21b4b10a6e 100644
+--- a/tests/template_tests/templatetags/inclusion.py
++++ b/tests/template_tests/templatetags/inclusion.py
+@@ -136,6 +136,15 @@ def inclusion_one_default(one, two='hi'):
+ inclusion_one_default.anything = "Expected inclusion_one_default __dict__"
+ 
+ 
++@register.inclusion_tag('inclusion.html')
++def inclusion_keyword_only_default(*, kwarg=42):
++    return {
++        'result': (
++            'inclusion_keyword_only_default - Expected result: %s' % kwarg
++        ),
++    }
++
++
+ @register.inclusion_tag(engine.get_template('inclusion.html'))
+ def inclusion_one_default_from_template(one, two='hi'):
+     """Expected inclusion_one_default_from_template __doc__"""
+diff --git a/tests/template_tests/test_custom.py b/tests/template_tests/test_custom.py
+index dbc5bc267d..62db0d44bc 100644
+--- a/tests/template_tests/test_custom.py
++++ b/tests/template_tests/test_custom.py
+@@ -62,6 +62,10 @@ class SimpleTagTests(TagTestCase):
+                 'simple_keyword_only_param - Expected result: 37'),
+             ('{% load custom %}{% simple_keyword_only_default %}',
+                 'simple_keyword_only_default - Expected result: 42'),
++            (
++                '{% load custom %}{% simple_keyword_only_default kwarg=37 %}',
++                'simple_keyword_only_default - Expected result: 37',
++            ),
+             ('{% load custom %}{% simple_one_default 37 %}', 'simple_one_default - Expected result: 37, hi'),
+             ('{% load custom %}{% simple_one_default 37 two="hello" %}',
+                 'simple_one_default - Expected result: 37, hello'),
+@@ -97,6 +101,18 @@ class SimpleTagTests(TagTestCase):
+                 '{% load custom %}{% simple_one_default 37 42 56 %}'),
+             ("'simple_keyword_only_param' did not receive value(s) for the argument(s): 'kwarg'",
+                 '{% load custom %}{% simple_keyword_only_param %}'),
++            (
++                "'simple_keyword_only_param' received multiple values for "
++                "keyword argument 'kwarg'",
++                '{% load custom %}{% simple_keyword_only_param kwarg=42 '
++                'kwarg=37 %}',
++            ),
++            (
++                "'simple_keyword_only_default' received multiple values for "
++                "keyword argument 'kwarg'",
++                '{% load custom %}{% simple_keyword_only_default kwarg=42 '
++                'kwarg=37 %}',
++            ),
+             ("'simple_unlimited_args_kwargs' received some positional argument(s) after some keyword argument(s)",
+                 '{% load custom %}{% simple_unlimited_args_kwargs 37 40|add:2 eggs="scrambled" 56 four=1|add:3 %}'),
+             ("'simple_unlimited_args_kwargs' received multiple values for keyword argument 'eggs'",
+@@ -180,6 +196,10 @@ class InclusionTagTests(TagTestCase):
+                 'inclusion_one_default - Expected result: 99, hello\n'),
+             ('{% load inclusion %}{% inclusion_one_default 37 42 %}',
+                 'inclusion_one_default - Expected result: 37, 42\n'),
++            (
++                '{% load inclusion %}{% inclusion_keyword_only_default kwarg=37 %}',
++                'inclusion_keyword_only_default - Expected result: 37\n',
++            ),
+             ('{% load inclusion %}{% inclusion_unlimited_args 37 %}',
+                 'inclusion_unlimited_args - Expected result: 37, hi\n'),
+             ('{% load inclusion %}{% inclusion_unlimited_args 37 42 56 89 %}',
+@@ -206,6 +226,12 @@ class InclusionTagTests(TagTestCase):
+                 '{% load inclusion %}{% inclusion_one_default 37 42 56 %}'),
+             ("'inclusion_one_default' did not receive value(s) for the argument(s): 'one'",
+                 '{% load inclusion %}{% inclusion_one_default %}'),
++            (
++                "'inclusion_keyword_only_default' received multiple values "
++                "for keyword argument 'kwarg'",
++                '{% load inclusion %}{% inclusion_keyword_only_default '
++                'kwarg=37 kwarg=42 %}',
++            ),
+             ("'inclusion_unlimited_args' did not receive value(s) for the argument(s): 'one'",
+                 '{% load inclusion %}{% inclusion_unlimited_args %}'),
+             (
+2026-10-04 17:40:25,001 - INFO - Eval script for django__django-12262 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12262/eval.sh; copying to container...
+2026-10-04 17:40:31,162 - INFO - Test runtime: 6.10 seconds
+2026-10-04 17:40:31,162 - INFO - Test output for django__django-12262 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12262/test_output.txt
+2026-10-04 17:40:31,226 - INFO - Git diff after:
+diff --git a/django/template/library.py b/django/template/library.py
+index 20bc86dac8..2f74556268 100644
+--- a/django/template/library.py
++++ b/django/template/library.py
+@@ -261,7 +261,7 @@ def parse_bits(parser, bits, params, varargs, varkw, defaults,
+         if kwarg:
+             # The kwarg was successfully extracted
+             param, value = kwarg.popitem()
+-            if param not in params and param not in unhandled_kwargs and varkw is None:
++            if param not in params and param not in kwonly and varkw is None:
+                 # An unexpected keyword argument was supplied
+                 raise TemplateSyntaxError(
+                     "'%s' received unexpected keyword argument '%s'" %
+2026-10-04 17:40:31,226 - INFO - Git diff changed after running eval script
+2026-10-04 17:40:31,226 - INFO - Grading answer for django__django-12262...
+2026-10-04 17:40:31,227 - INFO - report: {'django__django-12262': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_inclusion_tag_errors (template_tests.test_custom.InclusionTagTests)', 'test_inclusion_tags (template_tests.test_custom.InclusionTagTests)', 'test_simple_tag_errors (template_tests.test_custom.SimpleTagTests)', 'test_simple_tags (template_tests.test_custom.SimpleTagTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_decorated_filter (template_tests.test_custom.CustomFilterTests)', 'test_filter (template_tests.test_custom.CustomFilterTests)', 'test_15070_use_l10n (template_tests.test_custom.InclusionTagTests)', 'test_include_tag_missing_context (template_tests.test_custom.InclusionTagTests)', 'test_inclusion_tag_registration (template_tests.test_custom.InclusionTagTests)', 'test_inclusion_tags_from_template (template_tests.test_custom.InclusionTagTests)', 'test_no_render_side_effect (template_tests.test_custom.InclusionTagTests)', 'test_render_context_is_cleared (template_tests.test_custom.InclusionTagTests)', 'test_simple_tag_escaping_autoescape_off (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_explicit_escaping (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_format_html_escaping (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_missing_context (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_naive_escaping (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_registration (template_tests.test_custom.SimpleTagTests)', 'test_load_annotated_function (template_tests.test_custom.TemplateTagLoadingTests)', 'test_load_error (template_tests.test_custom.TemplateTagLoadingTests)', 'test_load_error_egg (template_tests.test_custom.TemplateTagLoadingTests)', 'test_load_working_egg (template_tests.test_custom.TemplateTagLoadingTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12262: resolved: True
+2026-10-04 17:40:31,228 - INFO - Attempting to stop container sweb.eval.django__django-12262.wescode-v3...
+2026-10-04 17:40:46,619 - INFO - Container sweb.eval.django__django-12262.wescode-v3 stopped successfully.
+2026-10-04 17:40:46,619 - INFO - Attempting to remove container sweb.eval.django__django-12262.wescode-v3...
+2026-10-04 17:40:46,803 - INFO - Container sweb.eval.django__django-12262.wescode-v3 removed successfully.

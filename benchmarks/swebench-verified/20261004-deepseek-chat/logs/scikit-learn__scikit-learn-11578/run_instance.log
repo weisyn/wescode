@@ -1,0 +1,100 @@
+2026-10-04 19:18:48,818 - INFO - Creating container for scikit-learn__scikit-learn-11578...
+2026-10-04 19:18:48,857 - INFO - Container for scikit-learn__scikit-learn-11578 created: 49dec1e2f52f6c9e07e40302e525e26786375a0e76c85bcb5ef1e7890cdd3ec3
+2026-10-04 19:18:49,047 - INFO - Container for scikit-learn__scikit-learn-11578 started: 49dec1e2f52f6c9e07e40302e525e26786375a0e76c85bcb5ef1e7890cdd3ec3
+2026-10-04 19:18:49,047 - INFO - Intermediate patch for scikit-learn__scikit-learn-11578 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-11578/patch.diff, now applying to container...
+2026-10-04 19:18:49,163 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:18:49,358 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:18:49,468 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:18:49,580 - INFO - >>>>> Applied Patch:
+patching file sklearn/linear_model/logistic.py
+patching file sklearn/linear_model/tests/test_logistic.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 128 with fuzz 1.
+
+2026-10-04 19:18:49,641 - INFO - Git diff before:
+diff --git a/sklearn/linear_model/logistic.py b/sklearn/linear_model/logistic.py
+index e4ea696ce..2d2e87dae 100755
+--- a/sklearn/linear_model/logistic.py
++++ b/sklearn/linear_model/logistic.py
+@@ -922,7 +922,7 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
+         check_input=False, max_squared_sum=max_squared_sum,
+         sample_weight=sample_weight)
+ 
+-    log_reg = LogisticRegression(fit_intercept=fit_intercept)
++    log_reg = LogisticRegression(solver=solver, multi_class=multi_class)
+ 
+     # The score method of Logistic Regression has a classes_ attribute.
+     if multi_class == 'ovr':
+@@ -931,7 +931,7 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
+         log_reg.classes_ = np.unique(y_train)
+     else:
+         raise ValueError("multi_class should be either multinomial or ovr, "
+-                         "got %d" % multi_class)
++                         "got %r" % multi_class)
+ 
+     if pos_class is not None:
+         mask = (y_test == pos_class)
+diff --git a/sklearn/linear_model/tests/test_logistic.py b/sklearn/linear_model/tests/test_logistic.py
+index 56be87f71..8d05fb6af 100755
+--- a/sklearn/linear_model/tests/test_logistic.py
++++ b/sklearn/linear_model/tests/test_logistic.py
+@@ -128,6 +128,25 @@ def test_logistic_cv_mock_scorer():
+     assert mock_scorer.calls == 1
+ 
+ 
++def test_logistic_cv_multinomial_score():
++    # Check that the scoring of LogisticRegressionCV with
++    # multi_class='multinomial' uses the multinomial (softmax) probabilities,
++    # as LogisticRegression.predict_proba does, and not the OvR ones.
++    # Non-regression test for #8720.
++    X, y = make_classification(n_samples=30, n_features=4, n_classes=3,
++                               n_informative=3, n_redundant=0, random_state=0)
++
++    # A probabilistic scorer such as neg_log_loss uses predict_proba, which
++    # returns the softmax probabilities when multi_class='multinomial'. The
++    # score returned during cross-validation must therefore be computed from
++    # the same softmax probabilities that LogisticRegression.predict_proba
++    # builds, and not from the OvR ones.
++    lr = LogisticRegressionCV(solver='lbfgs', multi_class='multinomial', cv=3,
++                              scoring='neg_log_loss', Cs=[1.])
++    lr.fit(X, y)
++    assert_allclose(lr.scores_[:, 0, 0], -log_loss(y, lr.predict_proba(X)))
++
++
+ def test_logistic_cv_score_does_not_warn_by_default():
+     lr = LogisticRegressionCV(cv=2)
+     lr.fit(X, Y1)
+2026-10-04 19:18:49,641 - INFO - Eval script for scikit-learn__scikit-learn-11578 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-11578/eval.sh; copying to container...
+2026-10-04 19:19:01,996 - INFO - Test runtime: 12.30 seconds
+2026-10-04 19:19:01,997 - INFO - Test output for scikit-learn__scikit-learn-11578 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-11578/test_output.txt
+2026-10-04 19:19:02,050 - INFO - Git diff after:
+diff --git a/sklearn/linear_model/logistic.py b/sklearn/linear_model/logistic.py
+index e4ea696ce..2d2e87dae 100755
+--- a/sklearn/linear_model/logistic.py
++++ b/sklearn/linear_model/logistic.py
+@@ -922,7 +922,7 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
+         check_input=False, max_squared_sum=max_squared_sum,
+         sample_weight=sample_weight)
+ 
+-    log_reg = LogisticRegression(fit_intercept=fit_intercept)
++    log_reg = LogisticRegression(solver=solver, multi_class=multi_class)
+ 
+     # The score method of Logistic Regression has a classes_ attribute.
+     if multi_class == 'ovr':
+@@ -931,7 +931,7 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
+         log_reg.classes_ = np.unique(y_train)
+     else:
+         raise ValueError("multi_class should be either multinomial or ovr, "
+-                         "got %d" % multi_class)
++                         "got %r" % multi_class)
+ 
+     if pos_class is not None:
+         mask = (y_test == pos_class)
+2026-10-04 19:19:02,050 - INFO - Git diff changed after running eval script
+2026-10-04 19:19:02,050 - INFO - Grading answer for scikit-learn__scikit-learn-11578...
+2026-10-04 19:19:02,052 - INFO - report: {'scikit-learn__scikit-learn-11578': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_multinomial_score[neg_log_loss-multiclass_agg_list3]'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/linear_model/tests/test_logistic.py::test_predict_2_classes', 'sklearn/linear_model/tests/test_logistic.py::test_error', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_mock_scorer', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_score_does_not_warn_by_default', 'sklearn/linear_model/tests/test_logistic.py::test_lr_liblinear_warning', 'sklearn/linear_model/tests/test_logistic.py::test_predict_3_classes', 'sklearn/linear_model/tests/test_logistic.py::test_predict_iris', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_validation[lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_validation[newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_validation[sag]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_validation[saga]', 'sklearn/linear_model/tests/test_logistic.py::test_check_solver_option[LogisticRegression]', 'sklearn/linear_model/tests/test_logistic.py::test_check_solver_option[LogisticRegressionCV]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_binary[lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_binary[newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_binary[sag]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_binary[saga]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_binary_probabilities', 'sklearn/linear_model/tests/test_logistic.py::test_sparsify', 'sklearn/linear_model/tests/test_logistic.py::test_inconsistent_input', 'sklearn/linear_model/tests/test_logistic.py::test_write_parameters', 'sklearn/linear_model/tests/test_logistic.py::test_nan', 'sklearn/linear_model/tests/test_logistic.py::test_consistency_path', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_regression_path_convergence_fail', 'sklearn/linear_model/tests/test_logistic.py::test_liblinear_dual_random_state', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_loss_and_grad', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_grad_hess', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_multinomial_score[accuracy-multiclass_agg_list0]', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_multinomial_score[precision-multiclass_agg_list1]', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_multinomial_score[f1-multiclass_agg_list2]', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_multinomial_score[recall-multiclass_agg_list4]', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_logistic_regression_string_inputs', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_cv_sparse', 'sklearn/linear_model/tests/test_logistic.py::test_intercept_logistic_helper', 'sklearn/linear_model/tests/test_logistic.py::test_ovr_multinomial_iris', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_regression_solvers', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_regression_solvers_multiclass', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_regressioncv_class_weights', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_regression_sample_weights', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_regression_class_weights', 'sklearn/linear_model/tests/test_logistic.py::test_logistic_regression_multinomial', 'sklearn/linear_model/tests/test_logistic.py::test_multinomial_grad_hess', 'sklearn/linear_model/tests/test_logistic.py::test_liblinear_decision_function_zero', 'sklearn/linear_model/tests/test_logistic.py::test_liblinear_logregcv_sparse', 'sklearn/linear_model/tests/test_logistic.py::test_saga_sparse', 'sklearn/linear_model/tests/test_logistic.py::test_logreg_intercept_scaling', 'sklearn/linear_model/tests/test_logistic.py::test_logreg_intercept_scaling_zero', 'sklearn/linear_model/tests/test_logistic.py::test_logreg_l1', 'sklearn/linear_model/tests/test_logistic.py::test_logreg_l1_sparse_data', 'sklearn/linear_model/tests/test_logistic.py::test_logreg_cv_penalty', 'sklearn/linear_model/tests/test_logistic.py::test_logreg_predict_proba_multinomial', 'sklearn/linear_model/tests/test_logistic.py::test_max_iter', 'sklearn/linear_model/tests/test_logistic.py::test_n_iter[newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_n_iter[liblinear]', 'sklearn/linear_model/tests/test_logistic.py::test_n_iter[sag]', 'sklearn/linear_model/tests/test_logistic.py::test_n_iter[saga]', 'sklearn/linear_model/tests/test_logistic.py::test_n_iter[lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-True-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-True-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-True-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-True-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-False-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-False-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-False-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-True-False-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-True-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-True-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-True-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-True-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-False-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-False-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-False-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[ovr-False-False-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-True-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-True-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-True-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-True-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-False-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-False-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-False-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-True-False-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-True-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-True-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-True-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-True-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-False-newton-cg]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-False-sag]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-False-saga]', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start[multinomial-False-False-lbfgs]', 'sklearn/linear_model/tests/test_logistic.py::test_saga_vs_liblinear', 'sklearn/linear_model/tests/test_logistic.py::test_dtype_match', 'sklearn/linear_model/tests/test_logistic.py::test_warm_start_converge_LR'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-11578: resolved: True
+2026-10-04 19:19:02,053 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-11578.wescode-v3...
+2026-10-04 19:19:17,173 - INFO - Container sweb.eval.scikit-learn__scikit-learn-11578.wescode-v3 stopped successfully.
+2026-10-04 19:19:17,173 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-11578.wescode-v3...
+2026-10-04 19:19:17,195 - INFO - Container sweb.eval.scikit-learn__scikit-learn-11578.wescode-v3 removed successfully.

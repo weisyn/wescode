@@ -1,0 +1,79 @@
+diff --git a/django/db/models/fields/related_lookups.py b/django/db/models/fields/related_lookups.py
+index d745ecd5f9..36ccbfd7a5 100644
+--- a/django/db/models/fields/related_lookups.py
++++ b/django/db/models/fields/related_lookups.py
+@@ -100,6 +100,25 @@ class RelatedIn(In):
+                 self.rhs.add_fields([target_field], True)
+             return super().as_sql(compiler, connection)
+ 
++    def get_group_by_cols(self, alias=None):
++        cols = super().get_group_by_cols(alias)
++        if (hasattr(self.rhs, 'clear_select_clause') and
++                not getattr(self.lhs.field.target_field, 'primary_key', False)):
++            # The rhs is a query that is going to be used in an 'IN' clause, so
++            # only the related field is relevant. Its remaining selected columns
++            # must not leak into the outer query's GROUP BY clause.
++            self.rhs.clear_select_clause()
++            if (getattr(self.lhs.output_field, 'primary_key', False) and
++                    self.lhs.output_field.model == self.rhs.model):
++                # A case like Restaurant.objects.filter(place__in=restaurant_qs),
++                # where place is a OneToOneField and the primary key of
++                # Restaurant.
++                target_field = self.lhs.field.name
++            else:
++                target_field = self.lhs.field.target_field.name
++            self.rhs.add_fields([target_field], True)
++        return cols
++
+ 
+ class RelatedLookupMixin:
+     def get_prep_lookup(self):
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index 5089737034..58cd7de349 100644
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -406,6 +406,16 @@ class In(FieldGetDbPrepValueIterableMixin, BuiltinLookup):
+                 self.rhs.add_fields(['pk'])
+             return super().process_rhs(compiler, connection)
+ 
++    def get_group_by_cols(self, alias=None):
++        cols = super().get_group_by_cols(alias)
++        if hasattr(self.rhs, 'clear_select_clause'):
++            # The rhs is a query that is going to be used in an 'IN' clause, so
++            # only its primary key is relevant. Its remaining selected columns
++            # must not leak into the outer query's GROUP BY clause.
++            self.rhs.clear_select_clause()
++            self.rhs.add_fields(['pk'])
++        return cols
++
+     def get_rhs_op(self, connection, rhs):
+         return 'IN %s' % rhs
+ 
+diff --git a/tests/aggregation_regress/tests.py b/tests/aggregation_regress/tests.py
+index 877e7b49a7..9220d19af8 100644
+--- a/tests/aggregation_regress/tests.py
++++ b/tests/aggregation_regress/tests.py
+@@ -1557,6 +1557,23 @@ class JoinPromotionTests(TestCase):
+         qs = Book.objects.annotate(Count('contact__name'))
+         self.assertIn(' INNER JOIN ', str(qs.query))
+ 
++    def test_filter_q_object_with_queryset_in_lookup_and_annotation(self):
++        # Combining a filter using a queryset in an 'IN' lookup with an
++        # annotation must not leak the subquery's selected columns into the
++        # outer query's GROUP BY clause (which results in a "subquery must
++        # return only one column" error).
++        p1 = Publisher.objects.create(name='Apress', num_awards=3)
++        a1 = Author.objects.create(name='Adrian', age=29)
++        b1 = Book.objects.create(
++            isbn='159059725', name='The Definitive Guide to Django',
++            pages=447, rating=4.0, price=30, publisher=p1,
++            pubdate=datetime.date(2007, 12, 6), contact=a1,
++        )
++        b1.authors.add(a1)
++        qs = Book.objects.annotate(Count('authors')).filter(
++            Q(authors__in=Author.objects.all()) | Q(authors__count=0)
++        ).distinct()
++        self.assertSequenceEqual(qs, [b1])
+ 
+ class SelfReferentialFKTests(TestCase):
+     def test_ticket_24748(self):

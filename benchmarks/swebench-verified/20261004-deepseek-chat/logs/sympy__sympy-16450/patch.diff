@@ -1,0 +1,45 @@
+diff --git a/sympy/simplify/simplify.py b/sympy/simplify/simplify.py
+index c6b511f206..5e44694610 100644
+--- a/sympy/simplify/simplify.py
++++ b/sympy/simplify/simplify.py
+@@ -207,7 +207,8 @@ def posify(eq):
+     Any symbol that has positive=None will be replaced with a positive dummy
+     symbol having the same name. This replacement will allow more symbolic
+     processing of expressions, especially those involving powers and
+-    logarithms.
++    logarithms. The replacement preserves the assumptions of the original
++    symbol and only adds ``positive=True`` to it.
+ 
+     A dictionary that can be sent to subs to restore eq to its original
+     symbols is also returned.
+@@ -251,8 +252,8 @@ def posify(eq):
+             eq[i] = e.subs(reps)
+         return f(eq), {r: s for s, r in reps.items()}
+ 
+-    reps = {s: Dummy(s.name, positive=True)
+-                 for s in eq.free_symbols if s.is_positive is None}
++    reps = {s: Dummy(s.name, positive=True, **s._assumptions.generator)
++            for s in eq.free_symbols if s.is_positive is None}
+     eq = eq.subs(reps)
+     return eq, {r: s for s, r in reps.items()}
+ 
+diff --git a/sympy/simplify/tests/test_simplify.py b/sympy/simplify/tests/test_simplify.py
+index 5fe9352b96..a86c8dd5e5 100644
+--- a/sympy/simplify/tests/test_simplify.py
++++ b/sympy/simplify/tests/test_simplify.py
+@@ -498,6 +498,15 @@ def test_posify():
+     assert log(eq).expand().subs(rep) == -log(x)
+     assert str(posify([x, 1 + x])) == '([_x, _x + 1], {_x: x})'
+ 
++    # other assumptions should be preserved when positive=True is added
++    y = Symbol('y', finite=True, integer=True)
++    assert y.is_positive is None
++    out, rep = posify(y)
++    assert out.is_positive is True
++    assert out.is_finite is True
++    assert out.is_integer is True
++    assert out.is_rational is True
++
+     x = symbols('x')
+     p = symbols('p', positive=True)
+     n = symbols('n', negative=True)

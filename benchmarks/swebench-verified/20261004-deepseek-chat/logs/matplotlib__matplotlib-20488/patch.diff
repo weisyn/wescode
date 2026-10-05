@@ -1,0 +1,66 @@
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index e0c42c5b6..1e8c542f4 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -1471,7 +1471,19 @@ def _make_norm_from_scale(scale_cls, base_norm_cls=None, *, init=None):
+                 clip = self.clip
+             if clip:
+                 value = np.clip(value, self.vmin, self.vmax)
+-            t_value = self._trf.transform(value).reshape(np.shape(value))
++            # The transform may not be defined for some values (e.g. the log of
++            # non-positive numbers); fill masked values so that the transform
++            # does not raise on them (the mask is restored afterwards).
++            masked_values = value.mask if value.mask is not np.ma.nomask \
++                else np.ma.nomask
++            with np.errstate(invalid="ignore"):
++                t_value = self._trf.transform(
++                    np.ma.filled(value, self.vmin).astype(float))
++            t_value = np.ma.masked_invalid(
++                t_value.reshape(np.shape(value)), copy=False)
++            if masked_values is not np.ma.nomask:
++                t_value.mask = t_value.mask | np.broadcast_to(
++                    masked_values, t_value.shape)
+             t_vmin, t_vmax = self._trf.transform([self.vmin, self.vmax])
+             if not np.isfinite([t_vmin, t_vmax]).all():
+                 raise ValueError("Invalid vmin or vmax")
+@@ -1551,6 +1563,10 @@ class LogNorm(Normalize):
+         # docstring inherited.
+         super().autoscale_None(np.ma.masked_less_equal(A, 0, copy=False))
+ 
++    def scaled(self):
++        # docstring inherited.
++        return super().scaled() and not np.ma.getmask(self.vmin)
++
+ 
+ @_make_norm_from_scale(
+     scale.SymmetricalLogScale,
+diff --git a/lib/matplotlib/image.py b/lib/matplotlib/image.py
+index 95bb42d75..e671d1616 100644
+--- a/lib/matplotlib/image.py
++++ b/lib/matplotlib/image.py
+@@ -470,7 +470,9 @@ class _ImageBase(martist.Artist, cm.ScalarMappable):
+                 # have values close or equal to the boundaries end up on the
+                 # wrong side.
+                 vmin, vmax = self.norm.vmin, self.norm.vmax
+-                if vmin is np.ma.masked:
++                if not self.norm.scaled():
++                    # The norm has not been scaled yet (e.g. no data was
++                    # passed to it); fall back to the data limits.
+                     vmin, vmax = a_min, a_max
+                 vrange = np.array([vmin, vmax], dtype=scaled_dtype)
+ 
+@@ -535,11 +537,14 @@ class _ImageBase(martist.Artist, cm.ScalarMappable):
+                 if isinstance(self.norm, mcolors.LogNorm):
+                     if s_vmin < 0:
+                         s_vmin = max(s_vmin, np.finfo(scaled_dtype).eps)
++                mask = np.ma.getmaskarray(resampled_masked)
++                resampled_masked = np.ma.filled(resampled_masked, 0)
+                 with cbook._setattr_cm(self.norm,
+                                        vmin=s_vmin,
+                                        vmax=s_vmax,
+                                        ):
+                     output = self.norm(resampled_masked)
++                output = np.ma.masked_array(output, mask)
+             else:
+                 if A.shape[2] == 3:
+                     A = _rgb_to_rgba(A)

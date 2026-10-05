@@ -1,0 +1,129 @@
+2026-10-04 19:44:51,211 - INFO - Creating container for sympy__sympy-13974...
+2026-10-04 19:44:51,248 - INFO - Container for sympy__sympy-13974 created: 06e7dd3bf14efacc607587cbc62ba1ae67ddeaae34847ca6bf5e71c6cc569bde
+2026-10-04 19:44:51,435 - INFO - Container for sympy__sympy-13974 started: 06e7dd3bf14efacc607587cbc62ba1ae67ddeaae34847ca6bf5e71c6cc569bde
+2026-10-04 19:44:51,435 - INFO - Intermediate patch for sympy__sympy-13974 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13974/patch.diff, now applying to container...
+2026-10-04 19:44:51,561 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:44:51,695 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:44:51,805 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:44:51,916 - INFO - >>>>> Applied Patch:
+patching file sympy/physics/quantum/tensorproduct.py
+patching file sympy/physics/quantum/tests/test_tensorproduct.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 47 with fuzz 1.
+
+2026-10-04 19:44:51,982 - INFO - Git diff before:
+diff --git a/sympy/physics/quantum/tensorproduct.py b/sympy/physics/quantum/tensorproduct.py
+index 9dd10d219..f02386850 100755
+--- a/sympy/physics/quantum/tensorproduct.py
++++ b/sympy/physics/quantum/tensorproduct.py
+@@ -345,6 +345,24 @@ def tensor_product_simp_Mul(e):
+         return e
+ 
+ 
++def tensor_product_simp_Pow(e):
++    """Evaluates ``Pow`` expressions whose base is ``TensorProduct``
++
++    Examples
++    ========
++
++    >>> from sympy.physics.quantum.tensorproduct import tensor_product_simp_Pow
++    >>> from sympy.physics.quantum import TensorProduct
++    >>> from sympy import Pow, Symbol
++    >>> A = Symbol('A',commutative=False)
++    >>> B = Symbol('B',commutative=False)
++    >>> tensor_product_simp_Pow(Pow(TensorProduct(A, B), 2))
++    (A**2)x(B**2)
++
++    """
++    return TensorProduct(*(x**e.exp for x in e.base.args))
++
++
+ def tensor_product_simp(e, **hints):
+     """Try to simplify and combine TensorProducts.
+ 
+@@ -376,13 +394,13 @@ def tensor_product_simp(e, **hints):
+     commutators and anticommutators as well:
+ 
+     >>> tensor_product_simp(e**2)
+-    (A*C)x(B*D)**2
++    (AxB**2)x(CxD**2)
+ 
+     """
+     if isinstance(e, Add):
+         return Add(*[tensor_product_simp(arg) for arg in e.args])
+     elif isinstance(e, Pow):
+-        return tensor_product_simp(e.base) ** e.exp
++        return tensor_product_simp_Pow(e)
+     elif isinstance(e, Mul):
+         return tensor_product_simp_Mul(e)
+     elif isinstance(e, Commutator):
+diff --git a/sympy/physics/quantum/tests/test_tensorproduct.py b/sympy/physics/quantum/tests/test_tensorproduct.py
+index 9f65844c8..141d929a1 100755
+--- a/sympy/physics/quantum/tests/test_tensorproduct.py
++++ b/sympy/physics/quantum/tests/test_tensorproduct.py
+@@ -47,6 +47,8 @@ def test_tensor_product_commutator():
+ 
+ def test_tensor_product_simp():
+     assert tensor_product_simp(TP(A, B)*TP(B, C)) == TP(A*B, B*C)
++    assert tensor_product_simp(TP(A, B)**2) == TP(A**2, B**2)
++    assert tensor_product_simp(TP(A, B)**x) == TP(A**x, B**x)
+ 
+ 
+ def test_issue_5923():
+2026-10-04 19:44:51,983 - INFO - Eval script for sympy__sympy-13974 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13974/eval.sh; copying to container...
+2026-10-04 19:44:56,991 - INFO - Test runtime: 4.95 seconds
+2026-10-04 19:44:56,991 - INFO - Test output for sympy__sympy-13974 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13974/test_output.txt
+2026-10-04 19:44:57,042 - INFO - Git diff after:
+diff --git a/sympy/physics/quantum/tensorproduct.py b/sympy/physics/quantum/tensorproduct.py
+index 9dd10d219..f02386850 100755
+--- a/sympy/physics/quantum/tensorproduct.py
++++ b/sympy/physics/quantum/tensorproduct.py
+@@ -345,6 +345,24 @@ def tensor_product_simp_Mul(e):
+         return e
+ 
+ 
++def tensor_product_simp_Pow(e):
++    """Evaluates ``Pow`` expressions whose base is ``TensorProduct``
++
++    Examples
++    ========
++
++    >>> from sympy.physics.quantum.tensorproduct import tensor_product_simp_Pow
++    >>> from sympy.physics.quantum import TensorProduct
++    >>> from sympy import Pow, Symbol
++    >>> A = Symbol('A',commutative=False)
++    >>> B = Symbol('B',commutative=False)
++    >>> tensor_product_simp_Pow(Pow(TensorProduct(A, B), 2))
++    (A**2)x(B**2)
++
++    """
++    return TensorProduct(*(x**e.exp for x in e.base.args))
++
++
+ def tensor_product_simp(e, **hints):
+     """Try to simplify and combine TensorProducts.
+ 
+@@ -376,13 +394,13 @@ def tensor_product_simp(e, **hints):
+     commutators and anticommutators as well:
+ 
+     >>> tensor_product_simp(e**2)
+-    (A*C)x(B*D)**2
++    (AxB**2)x(CxD**2)
+ 
+     """
+     if isinstance(e, Add):
+         return Add(*[tensor_product_simp(arg) for arg in e.args])
+     elif isinstance(e, Pow):
+-        return tensor_product_simp(e.base) ** e.exp
++        return tensor_product_simp_Pow(e)
+     elif isinstance(e, Mul):
+         return tensor_product_simp_Mul(e)
+     elif isinstance(e, Commutator):
+2026-10-04 19:44:57,042 - INFO - Git diff changed after running eval script
+2026-10-04 19:44:57,042 - INFO - Grading answer for sympy__sympy-13974...
+2026-10-04 19:44:57,044 - INFO - report: {'sympy__sympy-13974': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_tensor_product_simp']}, 'PASS_TO_PASS': {'success': ['test_tensor_product_abstract', 'test_tensor_product_expand', 'test_tensor_product_commutator', 'test_issue_5923'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-13974: resolved: False
+2026-10-04 19:44:57,044 - INFO - Attempting to stop container sweb.eval.sympy__sympy-13974.wescode-v3...
+2026-10-04 19:45:12,168 - INFO - Container sweb.eval.sympy__sympy-13974.wescode-v3 stopped successfully.
+2026-10-04 19:45:12,168 - INFO - Attempting to remove container sweb.eval.sympy__sympy-13974.wescode-v3...
+2026-10-04 19:45:12,194 - INFO - Container sweb.eval.sympy__sympy-13974.wescode-v3 removed successfully.

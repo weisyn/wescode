@@ -1,0 +1,162 @@
+2026-10-04 19:36:04,173 - INFO - Creating container for sphinx-doc__sphinx-8551...
+2026-10-04 19:36:04,216 - INFO - Container for sphinx-doc__sphinx-8551 created: 3b19e671f5e366ceaa7a11ea0df28c48fd931a22d77535319446609f4f1ba501
+2026-10-04 19:36:04,415 - INFO - Container for sphinx-doc__sphinx-8551 started: 3b19e671f5e366ceaa7a11ea0df28c48fd931a22d77535319446609f4f1ba501
+2026-10-04 19:36:04,416 - INFO - Intermediate patch for sphinx-doc__sphinx-8551 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8551/patch.diff, now applying to container...
+2026-10-04 19:36:04,539 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:36:04,805 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:36:04,918 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:36:05,041 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/domains/python.py
+patching file sphinx/util/docfields.py
+patching file tests/test_domain_py.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 774 with fuzz 1.
+
+2026-10-04 19:36:05,126 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index 327dc5e43..d805e3fa8 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -91,6 +91,8 @@ Bugs fixed
+ * #8131: linkcheck: Use GET when HEAD requests cause Too Many Redirects, to
+   accommodate infinite redirect loops on HEAD
+ * #8437: Makefile: ``make clean`` with empty BUILDDIR is dangerous
++* #8365: py domain: ``:type:`` and ``:rtype:`` gives false ambiguous class
++  lookup warnings
+ * #8352: std domain: Failed to parse an option that starts with bracket
+ * #8519: LaTeX: Prevent page brake in the middle of a seealso
+ 
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 79d7e4f46..c4d134d08 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -272,6 +272,8 @@ class PyXrefMixin:
+         result = super().make_xref(rolename, domain, target,  # type: ignore
+                                    innernode, contnode, env)
+         result['refspecific'] = True
++        result['py:module'] = env.ref_context.get('py:module')
++        result['py:class'] = env.ref_context.get('py:class')
+         if target.startswith(('.', '~')):
+             prefix, result['reftarget'] = target[0], target[1:]
+             if prefix == '.':
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 404bb127f..9a57ccff7 100755
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -295,6 +295,7 @@ class DocFieldTransformer:
+                         self.directive.domain,
+                         target,
+                         contnode=content[0],
++                        env=self.directive.state.document.settings.env
+                     )
+                     if _is_single_paragraph(field_body):
+                         paragraph = cast(nodes.paragraph, field_body[0])
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index 2dc97bed9..f95521e2e 100755
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -774,6 +774,53 @@ def test_pydecoratormethod_signature(app):
+     assert domain.objects['deco'] == ('index', 'deco', 'method')
+ 
+ 
++def test_info_field_list(app):
++    text = (".. py:module:: example\n"
++            ".. py:class:: Class\n"
++            "\n"
++            "   :param str name: blah blah\n"
++            "   :param age: blah blah\n"
++            "   :type age: int\n")
++    doctree = restructuredtext.parse(app, text)
++    print(doctree)
++
++    assert_node(doctree, (nodes.target,
++                          addnodes.index,
++                          addnodes.index,
++                          [desc, ([desc_signature, ([desc_annotation, "class "],
++                                                    [desc_addname, "example."],
++                                                    [desc_name, "Class"])],
++                                  [desc_content, nodes.field_list, nodes.field])]))
++    assert_node(doctree[3][1][0][0],
++                ([nodes.field_name, "Parameters"],
++                 [nodes.field_body, nodes.bullet_list, ([nodes.list_item, nodes.paragraph],
++                                                        [nodes.list_item, nodes.paragraph])]))
++
++    # :param str name:
++    assert_node(doctree[3][1][0][0][1][0][0][0],
++                ([addnodes.literal_strong, "name"],
++                 " (",
++                 [pending_xref, addnodes.literal_emphasis, "str"],
++                 ")",
++                 " -- ",
++                 "blah blah"))
++    assert_node(doctree[3][1][0][0][1][0][0][0][2], pending_xref,
++                refdomain="py", reftype="class", reftarget="str",
++                **{"py:module": "example", "py:class": "Class"})
++
++    # :param age: + :type age:
++    assert_node(doctree[3][1][0][0][1][0][1][0],
++                ([addnodes.literal_strong, "age"],
++                 " (",
++                 [pending_xref, addnodes.literal_emphasis, "int"],
++                 ")",
++                 " -- ",
++                 "blah blah"))
++    assert_node(doctree[3][1][0][0][1][0][1][0][2], pending_xref,
++                refdomain="py", reftype="class", reftarget="int",
++                **{"py:module": "example", "py:class": "Class"})
++
++
+ @pytest.mark.sphinx(freshenv=True)
+ def test_module_index(app):
+     text = (".. py:module:: docutils\n"
+2026-10-04 19:36:05,126 - INFO - Eval script for sphinx-doc__sphinx-8551 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8551/eval.sh; copying to container...
+2026-10-04 19:36:11,715 - INFO - Test runtime: 6.53 seconds
+2026-10-04 19:36:11,715 - INFO - Test output for sphinx-doc__sphinx-8551 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8551/test_output.txt
+2026-10-04 19:36:11,773 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index 327dc5e43..d805e3fa8 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -91,6 +91,8 @@ Bugs fixed
+ * #8131: linkcheck: Use GET when HEAD requests cause Too Many Redirects, to
+   accommodate infinite redirect loops on HEAD
+ * #8437: Makefile: ``make clean`` with empty BUILDDIR is dangerous
++* #8365: py domain: ``:type:`` and ``:rtype:`` gives false ambiguous class
++  lookup warnings
+ * #8352: std domain: Failed to parse an option that starts with bracket
+ * #8519: LaTeX: Prevent page brake in the middle of a seealso
+ 
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 79d7e4f46..c4d134d08 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -272,6 +272,8 @@ class PyXrefMixin:
+         result = super().make_xref(rolename, domain, target,  # type: ignore
+                                    innernode, contnode, env)
+         result['refspecific'] = True
++        result['py:module'] = env.ref_context.get('py:module')
++        result['py:class'] = env.ref_context.get('py:class')
+         if target.startswith(('.', '~')):
+             prefix, result['reftarget'] = target[0], target[1:]
+             if prefix == '.':
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 404bb127f..9a57ccff7 100755
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -295,6 +295,7 @@ class DocFieldTransformer:
+                         self.directive.domain,
+                         target,
+                         contnode=content[0],
++                        env=self.directive.state.document.settings.env
+                     )
+                     if _is_single_paragraph(field_body):
+                         paragraph = cast(nodes.paragraph, field_body[0])
+2026-10-04 19:36:11,773 - INFO - Git diff changed after running eval script
+2026-10-04 19:36:11,773 - INFO - Grading answer for sphinx-doc__sphinx-8551...
+2026-10-04 19:36:11,781 - INFO - report: {'sphinx-doc__sphinx-8551': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_domain_py.py::test_info_field_list'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_domain_py.py::test_function_signatures', 'tests/test_domain_py.py::test_domain_py_xrefs', 'tests/test_domain_py.py::test_domain_py_objects', 'tests/test_domain_py.py::test_resolve_xref_for_properties', 'tests/test_domain_py.py::test_domain_py_find_obj', 'tests/test_domain_py.py::test_get_full_qualified_name', 'tests/test_domain_py.py::test_parse_annotation', 'tests/test_domain_py.py::test_pyfunction_signature', 'tests/test_domain_py.py::test_pyfunction_signature_full', 'tests/test_domain_py.py::test_pyfunction_signature_full_py38', 'tests/test_domain_py.py::test_pyfunction_with_number_literals', 'tests/test_domain_py.py::test_optional_pyfunction_signature', 'tests/test_domain_py.py::test_pyexception_signature', 'tests/test_domain_py.py::test_exceptions_module_is_ignored', 'tests/test_domain_py.py::test_pydata_signature', 'tests/test_domain_py.py::test_pydata_signature_old', 'tests/test_domain_py.py::test_pyobject_prefix', 'tests/test_domain_py.py::test_pydata', 'tests/test_domain_py.py::test_pyfunction', 'tests/test_domain_py.py::test_pyclass_options', 'tests/test_domain_py.py::test_pymethod_options', 'tests/test_domain_py.py::test_pyclassmethod', 'tests/test_domain_py.py::test_pystaticmethod', 'tests/test_domain_py.py::test_pyattribute', 'tests/test_domain_py.py::test_pydecorator_signature', 'tests/test_domain_py.py::test_pydecoratormethod_signature', 'tests/test_domain_py.py::test_module_index', 'tests/test_domain_py.py::test_module_index_submodule', 'tests/test_domain_py.py::test_module_index_not_collapsed', 'tests/test_domain_py.py::test_modindex_common_prefix', 'tests/test_domain_py.py::test_noindexentry', 'tests/test_domain_py.py::test_warn_missing_reference'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-8551: resolved: True
+2026-10-04 19:36:11,782 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-8551.wescode-v3...
+2026-10-04 19:36:26,932 - INFO - Container sweb.eval.sphinx-doc__sphinx-8551.wescode-v3 stopped successfully.
+2026-10-04 19:36:26,932 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-8551.wescode-v3...
+2026-10-04 19:36:26,956 - INFO - Container sweb.eval.sphinx-doc__sphinx-8551.wescode-v3 removed successfully.

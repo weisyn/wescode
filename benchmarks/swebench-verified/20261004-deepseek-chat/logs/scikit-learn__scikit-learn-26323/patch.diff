@@ -1,0 +1,72 @@
+diff --git a/doc/whats_new/v1.3.rst b/doc/whats_new/v1.3.rst
+index fdceb35b6..ae2f2b2a5 100644
+--- a/doc/whats_new/v1.3.rst
++++ b/doc/whats_new/v1.3.rst
+@@ -235,6 +235,10 @@ Changelog
+   output pandas dataframes with indexes that are not consistent with each other and the output is configured
+   to be pandas. :pr:`26286` by `Thomas Fan`_.
+ 
++- |Fix| :meth:`compose.ColumnTransformer.set_output` now also configures the output
++  of the transformer set as `remainder` when it is an estimator.
++  :pr:`26323` by :user:`Edoardo Abati <EdAbati>`.
++
+ :mod:`sklearn.covariance`
+ .........................
+ 
+diff --git a/sklearn/compose/_column_transformer.py b/sklearn/compose/_column_transformer.py
+index 4eddd12b1..3a89f0d63 100644
+--- a/sklearn/compose/_column_transformer.py
++++ b/sklearn/compose/_column_transformer.py
+@@ -303,6 +303,9 @@ class ColumnTransformer(TransformerMixin, _BaseComposition):
+         for trans in transformers:
+             _safe_set_output(trans, transform=transform)
+ 
++        if self.remainder not in {"passthrough", "drop"}:
++            _safe_set_output(self.remainder, transform=transform)
++
+         return self
+ 
+     def get_params(self, deep=True):
+diff --git a/sklearn/compose/tests/test_column_transformer.py b/sklearn/compose/tests/test_column_transformer.py
+index b9c8f5831..aef60a6f7 100644
+--- a/sklearn/compose/tests/test_column_transformer.py
++++ b/sklearn/compose/tests/test_column_transformer.py
+@@ -20,6 +20,7 @@ from sklearn.compose import (
+     make_column_selector,
+ )
+ from sklearn.exceptions import NotFittedError
++from sklearn.feature_selection import VarianceThreshold
+ from sklearn.preprocessing import FunctionTransformer
+ from sklearn.preprocessing import StandardScaler, Normalizer, OneHotEncoder
+ 
+@@ -1965,6 +1966,30 @@ def test_column_transformer_set_output(verbose_feature_names_out, remainder):
+     assert_array_equal(X_trans.index, df_test.index)
+ 
+ 
++def test_column_transformer_set_output_remainder_estimator():
++    """Check that `set_output` is propagated to an estimator `remainder`.
++
++    Non-regression test for:
++    https://github.com/scikit-learn/scikit-learn/issues/26323
++    """
++    pd = pytest.importorskip("pandas")
++
++    df = pd.DataFrame({"a": [True, False, True], "b": [1, 2, 3]})
++    ct = make_column_transformer(
++        (VarianceThreshold(), make_column_selector(dtype_include=bool)),
++        remainder=VarianceThreshold(),
++        verbose_feature_names_out=False,
++    ).set_output(transform="pandas")
++    X_trans = ct.fit_transform(df)
++
++    # The remainder estimator must produce a DataFrame so that its column keeps
++    # its original boolean dtype instead of being cast when concatenated.
++    assert isinstance(X_trans, pd.DataFrame)
++    assert X_trans["a"].dtype == bool
++    assert_array_equal(X_trans["a"].to_numpy(), df["a"].to_numpy())
++    assert_array_equal(X_trans["b"].to_numpy(), df["b"].to_numpy())
++
++
+ @pytest.mark.parametrize("remainder", ["drop", "passthrough"])
+ @pytest.mark.parametrize("fit_transform", [True, False])
+ def test_column_transform_set_output_mixed(remainder, fit_transform):

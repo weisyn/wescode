@@ -1,0 +1,194 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index db4e971848..96c2b4bdc3 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -313,10 +313,10 @@ def __eq__(self, other):
+             try:
+                 other = _sympify(other)
+             except SympifyError:
+-                return False    # sympy != other
++                return NotImplemented  # sympy != other
+ 
+             if type(self) != type(other):
+-                return False
++                return NotImplemented
+ 
+         return self._hashable_content() == other._hashable_content()
+ 
+@@ -329,7 +329,14 @@ def __ne__(self, other):
+ 
+            but faster
+         """
+-        return not self.__eq__(other)
++        # XXX: this is only needed for Python 2, which doesn't have a
++        # default __ne__ implementation in terms of __eq__ (see PEP 207).
++        # In Python 3 the default would do this and handle NotImplemented
++        # correctly.
++        eq = self.__eq__(other)
++        if eq is NotImplemented:
++            return eq
++        return not eq
+ 
+     def dummy_eq(self, other, symbol=None):
+         """
+@@ -1174,7 +1181,10 @@ def _has(self, pattern):
+ 
+         try:
+             match = pattern._has_matcher()
+-            return any(match(arg) for arg in preorder_traversal(self))
++            for arg in preorder_traversal(self):
++                if match(arg) is True:
++                    return True
++            return False
+         except AttributeError:
+             return any(arg == pattern for arg in preorder_traversal(self))
+ 
+diff --git a/sympy/core/containers.py b/sympy/core/containers.py
+index 1ca774c1bc..69047a7367 100644
+--- a/sympy/core/containers.py
++++ b/sympy/core/containers.py
+@@ -92,11 +92,15 @@ def __mul__(self, other):
+     def __eq__(self, other):
+         if isinstance(other, Basic):
+             return super(Tuple, self).__eq__(other)
++        if not isinstance(other, tuple):
++            return NotImplemented
+         return self.args == other
+ 
+     def __ne__(self, other):
+         if isinstance(other, Basic):
+             return super(Tuple, self).__ne__(other)
++        if not isinstance(other, tuple):
++            return NotImplemented
+         return self.args != other
+ 
+     def __hash__(self):
+@@ -105,11 +109,24 @@ def __hash__(self):
+     def _to_mpmath(self, prec):
+         return tuple(a._to_mpmath(prec) for a in self.args)
+ 
++    def _eval_is_lt(self, other):
++        if not isinstance(other, tuple):
++            return NotImplemented
++        return self.args < other
++
+     def __lt__(self, other):
+-        return sympify(self.args < other.args)
++        if isinstance(other, Tuple):
++            return sympify(self.args < other.args)
++        if not isinstance(other, tuple):
++            return NotImplemented
++        return sympify(self.args < other)
+ 
+     def __le__(self, other):
+-        return sympify(self.args <= other.args)
++        if isinstance(other, Tuple):
++            return sympify(self.args <= other.args)
++        if not isinstance(other, tuple):
++            return NotImplemented
++        return sympify(self.args <= other)
+ 
+     # XXX: Basic defines count() as something different, so we can't
+     # redefine it here. Originally this lead to cse() test failure.
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 34e0ecb786..131466155f 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -248,7 +248,8 @@ def __ge__(self, other):
+         try:
+             other = _sympify(other)
+         except SympifyError:
+-            raise TypeError("Invalid comparison %s >= %s" % (self, other))
++            return NotImplemented
++
+         for me in (self, other):
+             if (me.is_complex and me.is_real is False) or \
+                     me.has(S.ComplexInfinity):
+@@ -270,7 +271,8 @@ def __le__(self, other):
+         try:
+             other = _sympify(other)
+         except SympifyError:
+-            raise TypeError("Invalid comparison %s <= %s" % (self, other))
++            return NotImplemented
++
+         for me in (self, other):
+             if (me.is_complex and me.is_real is False) or \
+                     me.has(S.ComplexInfinity):
+@@ -292,7 +294,8 @@ def __gt__(self, other):
+         try:
+             other = _sympify(other)
+         except SympifyError:
+-            raise TypeError("Invalid comparison %s > %s" % (self, other))
++            return NotImplemented
++
+         for me in (self, other):
+             if (me.is_complex and me.is_real is False) or \
+                     me.has(S.ComplexInfinity):
+@@ -314,7 +317,8 @@ def __lt__(self, other):
+         try:
+             other = _sympify(other)
+         except SympifyError:
+-            raise TypeError("Invalid comparison %s < %s" % (self, other))
++            return NotImplemented
++
+         for me in (self, other):
+             if (me.is_complex and me.is_real is False) or \
+                     me.has(S.ComplexInfinity):
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 864d055087..a24a24ea90 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -1258,7 +1258,7 @@ def __eq__(self, other):
+         try:
+             other = _sympify(other)
+         except SympifyError:
+-            return False    # sympy != other  -->  not ==
++            return NotImplemented  # sympy != other  -->  not ==
+         if isinstance(other, NumberSymbol):
+             if other.is_irrational:
+                 return False
+@@ -1276,7 +1276,10 @@ def __eq__(self, other):
+         return False    # Float != non-Number
+ 
+     def __ne__(self, other):
+-        return not self.__eq__(other)
++        eq = self.__eq__(other)
++        if eq is NotImplemented:
++            return eq
++        return not eq
+ 
+     def __gt__(self, other):
+         try:
+@@ -1719,7 +1722,7 @@ def __eq__(self, other):
+         try:
+             other = _sympify(other)
+         except SympifyError:
+-            return False    # sympy != other  -->  not ==
++            return NotImplemented  # sympy != other  -->  not ==
+         if isinstance(other, NumberSymbol):
+             if other.is_irrational:
+                 return False
+@@ -1734,7 +1737,10 @@ def __eq__(self, other):
+         return False
+ 
+     def __ne__(self, other):
+-        return not self.__eq__(other)
++        eq = self.__eq__(other)
++        if eq is NotImplemented:
++            return eq
++        return not eq
+ 
+     def __gt__(self, other):
+         try:
+@@ -2112,7 +2118,10 @@ def __eq__(self, other):
+         return Rational.__eq__(self, other)
+ 
+     def __ne__(self, other):
+-        return not self.__eq__(other)
++        eq = self.__eq__(other)
++        if eq is NotImplemented:
++            return eq
++        return not eq
+ 
+     def __gt__(self, other):
+         try:

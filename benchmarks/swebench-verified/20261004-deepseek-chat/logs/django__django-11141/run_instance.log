@@ -1,0 +1,175 @@
+2026-10-04 17:31:59,265 - INFO - Creating container for django__django-11141...
+2026-10-04 17:31:59,317 - INFO - Container for django__django-11141 created: c4695ee1d8d2bf1cbd9f84b578f501e8b4ca80e0563554ee206f644bc568b87e
+2026-10-04 17:31:59,517 - INFO - Container for django__django-11141 started: c4695ee1d8d2bf1cbd9f84b578f501e8b4ca80e0563554ee206f644bc568b87e
+2026-10-04 17:31:59,518 - INFO - Intermediate patch for django__django-11141 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11141/patch.diff, now applying to container...
+2026-10-04 17:31:59,634 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:32:00,549 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:32:00,993 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:32:01,439 - INFO - >>>>> Applied Patch:
+patching file django/db/migrations/loader.py
+patching file tests/migrations/test_loader.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 509 with fuzz 2.
+
+2026-10-04 17:32:01,500 - INFO - Git diff before:
+diff --git a/django/db/migrations/loader.py b/django/db/migrations/loader.py
+index 8c308621d2..de36b1a64e 100644
+--- a/django/db/migrations/loader.py
++++ b/django/db/migrations/loader.py
+@@ -84,15 +84,19 @@ class MigrationLoader:
+                     continue
+                 raise
+             else:
+-                # Empty directories are namespaces.
+-                # getattr() needed on PY36 and older (replace w/attribute access).
+-                if getattr(module, '__file__', None) is None:
+-                    self.unmigrated_apps.add(app_config.label)
+-                    continue
+                 # Module is not a package (e.g. migrations.py).
+                 if not hasattr(module, '__path__'):
+                     self.unmigrated_apps.add(app_config.label)
+                     continue
++                # Empty directories are namespaces. Namespace packages have no
++                # __file__ and don't use a list for __path__. See
++                # https://docs.python.org/3/reference/import.html#namespace-packages
++                if (
++                    getattr(module, '__file__', None) is None and
++                    not isinstance(module.__path__, list)
++                ):
++                    self.unmigrated_apps.add(app_config.label)
++                    continue
+                 # Force a reload if it's already loaded (tests need this)
+                 if was_loaded:
+                     reload(module)
+diff --git a/tests/migrations/test_loader.py b/tests/migrations/test_loader.py
+index 0f0a590e7c..21acf4f606 100644
+--- a/tests/migrations/test_loader.py
++++ b/tests/migrations/test_loader.py
+@@ -1,5 +1,6 @@
+ import compileall
+ import os
++from importlib import import_module
+ 
+ from django.db import connection, connections
+ from django.db.migrations.exceptions import (
+@@ -508,6 +509,35 @@ class LoaderTests(TestCase):
+         migrations = [name for app, name in loader.disk_migrations if app == 'migrations']
+         self.assertEqual(migrations, ['0001_initial'])
+ 
++    @override_settings(MIGRATION_MODULES={'migrations': 'migrations.test_migrations'})
++    def test_loading_package_without__file__(self):
++        """
++        To support frozen environments, MigrationLoader loads migrations from
++        regular packages with no __file__ attribute.
++        """
++        test_module = import_module('migrations.test_migrations')
++        loader = MigrationLoader(connection)
++        # __file__ == __spec__.origin or the latter is None and former is
++        # undefined.
++        module_file = test_module.__file__
++        module_origin = test_module.__spec__.origin
++        module_has_location = test_module.__spec__.has_location
++        try:
++            del test_module.__file__
++            test_module.__spec__.origin = None
++            test_module.__spec__.has_location = False
++            loader.load_disk()
++            migrations = [
++                name
++                for app, name in loader.disk_migrations
++                if app == 'migrations'
++            ]
++            self.assertCountEqual(migrations, ['0001_initial', '0002_second'])
++        finally:
++            test_module.__file__ = module_file
++            test_module.__spec__.origin = module_origin
++            test_module.__spec__.has_location = module_has_location
++
+ 
+ class PycLoaderTests(MigrationTestBase):
+2026-10-04 17:32:01,500 - INFO - Eval script for django__django-11141 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11141/eval.sh; copying to container...
+2026-10-04 17:32:08,044 - INFO - Test runtime: 6.48 seconds
+2026-10-04 17:32:08,044 - INFO - Test output for django__django-11141 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11141/test_output.txt
+2026-10-04 17:32:08,105 - INFO - Git diff after:
+diff --git a/django/db/migrations/loader.py b/django/db/migrations/loader.py
+index 8c308621d2..de36b1a64e 100644
+--- a/django/db/migrations/loader.py
++++ b/django/db/migrations/loader.py
+@@ -84,15 +84,19 @@ class MigrationLoader:
+                     continue
+                 raise
+             else:
+-                # Empty directories are namespaces.
+-                # getattr() needed on PY36 and older (replace w/attribute access).
+-                if getattr(module, '__file__', None) is None:
+-                    self.unmigrated_apps.add(app_config.label)
+-                    continue
+                 # Module is not a package (e.g. migrations.py).
+                 if not hasattr(module, '__path__'):
+                     self.unmigrated_apps.add(app_config.label)
+                     continue
++                # Empty directories are namespaces. Namespace packages have no
++                # __file__ and don't use a list for __path__. See
++                # https://docs.python.org/3/reference/import.html#namespace-packages
++                if (
++                    getattr(module, '__file__', None) is None and
++                    not isinstance(module.__path__, list)
++                ):
++                    self.unmigrated_apps.add(app_config.label)
++                    continue
+                 # Force a reload if it's already loaded (tests need this)
+                 if was_loaded:
+                     reload(module)
+diff --git a/tests/migrations/test_loader.py b/tests/migrations/test_loader.py
+index 0f0a590e7c..21acf4f606 100644
+--- a/tests/migrations/test_loader.py
++++ b/tests/migrations/test_loader.py
+@@ -1,5 +1,6 @@
+ import compileall
+ import os
++from importlib import import_module
+ 
+ from django.db import connection, connections
+ from django.db.migrations.exceptions import (
+@@ -508,6 +509,35 @@ class LoaderTests(TestCase):
+         migrations = [name for app, name in loader.disk_migrations if app == 'migrations']
+         self.assertEqual(migrations, ['0001_initial'])
+ 
++    @override_settings(MIGRATION_MODULES={'migrations': 'migrations.test_migrations'})
++    def test_loading_package_without__file__(self):
++        """
++        To support frozen environments, MigrationLoader loads migrations from
++        regular packages with no __file__ attribute.
++        """
++        test_module = import_module('migrations.test_migrations')
++        loader = MigrationLoader(connection)
++        # __file__ == __spec__.origin or the latter is None and former is
++        # undefined.
++        module_file = test_module.__file__
++        module_origin = test_module.__spec__.origin
++        module_has_location = test_module.__spec__.has_location
++        try:
++            del test_module.__file__
++            test_module.__spec__.origin = None
++            test_module.__spec__.has_location = False
++            loader.load_disk()
++            migrations = [
++                name
++                for app, name in loader.disk_migrations
++                if app == 'migrations'
++            ]
++            self.assertCountEqual(migrations, ['0001_initial', '0002_second'])
++        finally:
++            test_module.__file__ = module_file
++            test_module.__spec__.origin = module_origin
++            test_module.__spec__.has_location = module_has_location
++
+ 
+ class PycLoaderTests(MigrationTestBase):
+2026-10-04 17:32:08,105 - INFO - Grading answer for django__django-11141...
+2026-10-04 17:32:08,106 - INFO - report: {'django__django-11141': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['Migration directories without an __init__.py file are loaded.']}, 'PASS_TO_PASS': {'success': ['test_apply (migrations.test_loader.RecorderTests)', 'test_invalid (migrations.test_loader.PycLoaderTests)', 'test_valid (migrations.test_loader.PycLoaderTests)', 'test_check_consistent_history (migrations.test_loader.LoaderTests)', 'test_check_consistent_history_squashed (migrations.test_loader.LoaderTests)', 'test_explicit_missing_module (migrations.test_loader.LoaderTests)', 'test_first (migrations.test_loader.LoaderTests)', "Files prefixed with underscore, tilde, or dot aren't loaded.", 'test_load (migrations.test_loader.LoaderTests)', 'test_load_empty_dir (migrations.test_loader.LoaderTests)', 'test_load_import_error (migrations.test_loader.LoaderTests)', 'test_load_module_file (migrations.test_loader.LoaderTests)', 'test_load_unmigrated_dependency (migrations.test_loader.LoaderTests)', 'Tests loading a squashed migration', 'Tests loading a complex set of squashed migrations', 'test_loading_squashed_complex_multi_apps (migrations.test_loader.LoaderTests)', 'test_loading_squashed_complex_multi_apps_partially_applied (migrations.test_loader.LoaderTests)', 'Tests loading a complex but erroneous set of squashed migrations', 'Tests loading a squashed migration with a new migration referencing it', 'test_marked_as_migrated (migrations.test_loader.LoaderTests)', 'test_marked_as_unmigrated (migrations.test_loader.LoaderTests)', 'Tests prefix name matching', 'test_plan_handles_repeated_migrations (migrations.test_loader.LoaderTests)', 'test_run_before (migrations.test_loader.LoaderTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11141: resolved: False
+2026-10-04 17:32:08,106 - INFO - Attempting to stop container sweb.eval.django__django-11141.wescode-v3...
+2026-10-04 17:32:23,423 - INFO - Container sweb.eval.django__django-11141.wescode-v3 stopped successfully.
+2026-10-04 17:32:23,423 - INFO - Attempting to remove container sweb.eval.django__django-11141.wescode-v3...
+2026-10-04 17:32:23,615 - INFO - Container sweb.eval.django__django-11141.wescode-v3 removed successfully.

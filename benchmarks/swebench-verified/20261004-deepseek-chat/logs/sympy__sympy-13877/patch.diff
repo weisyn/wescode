@@ -1,0 +1,78 @@
+diff --git a/sympy/core/exprtools.py b/sympy/core/exprtools.py
+index 4e0de9ec18..efba7c4d51 100644
+--- a/sympy/core/exprtools.py
++++ b/sympy/core/exprtools.py
+@@ -1167,7 +1167,15 @@ def do(expr):
+             newargs = tuple([do(i) for i in args])
+             if newargs == args:
+                 return expr
+-            return expr.func(*newargs)
++            rv = expr.func(*newargs)
++            if (rv is S.ComplexInfinity or rv.has(S.NaN)) and \
++                    not expr.has(S.NaN, S.ComplexInfinity):
++                # a subexpression that is identically zero may have been
++                # reduced to zero and then used in a division (e.g. as the
++                # base of a negative power), giving zoo or nan; the
++                # transformation is not valid so keep the original expression
++                return expr
++            return rv
+ 
+         if isinstance(expr, Sum):
+             return factor_sum(expr, radical=radical, clear=clear, fraction=fraction, sign=sign)
+@@ -1193,8 +1201,14 @@ def do(expr):
+                 clear=clear,
+                 fraction=fraction).xreplace(special)
+         elif p.args:
+-            p = p.func(
+-                *[do(a) for a in p.args])
++            newp = p.func(*[do(a) for a in p.args])
++            if newp.has(S.NaN) and not p.has(S.NaN):
++                # a subexpression that is identically zero may have been
++                # reduced to zero and then used in a division (e.g. as a
++                # denominator), giving nan; the transformation is not valid
++                # so keep the original expression
++                newp = p
++            p = newp
+         rv = _keep_coeff(cont, p, clear=clear, sign=sign)
+         return rv
+     expr = sympify(expr)
+diff --git a/sympy/core/tests/test_exprtools.py b/sympy/core/tests/test_exprtools.py
+index 69b1b09420..2c442d9397 100644
+--- a/sympy/core/tests/test_exprtools.py
++++ b/sympy/core/tests/test_exprtools.py
+@@ -274,6 +274,16 @@ def test_factor_terms():
+     assert factor_terms(eq, fraction=False) == eq
+     assert factor_terms(eq, fraction=True) == 1
+ 
++    # issue #13877: a fraction whose numerator and denominator are both
++    # identically zero (but not structurally so) must not become nan/zoo
++    eq = (2*a**2 - a*(2*a + 3) + 3*a) / (a**2 - a*(a + 1) + a)
++    assert factor_terms(eq) == 0
++    assert not factor_terms(eq).has(S.NaN, S.ComplexInfinity)
++    # a reciprocal of such a denominator must be left alone rather than
++    # reduced to zoo
++    assert factor_terms(1/(a**2 - a*(a + 1) + a)) == \
++        1/(a**2 - a*(a + 1) + a)
++
+     assert factor_terms((1/(x**3 + x**2) + 2/x**2)*y) == \
+         y*(2 + 1/(x + 1))/x**2
+ 
+diff --git a/sympy/matrices/tests/test_matrices.py b/sympy/matrices/tests/test_matrices.py
+index f4bc60c727..031b1688bc 100644
+--- a/sympy/matrices/tests/test_matrices.py
++++ b/sympy/matrices/tests/test_matrices.py
+@@ -402,6 +402,15 @@ def test_determinant():
+     assert M.det(method="bareiss") == z**2 - x*y
+     assert M.det(method="berkowitz") == z**2 - x*y
+ 
++    # issue #13877: Bareiss must not return nan/zoo for symbolic matrices
++    # whose intermediate expressions are identically zero
++    def f(n):
++        return Matrix([[i + a*j for i in range(n)] for j in range(n)])
++    assert f(5).det(method="bareiss") == 0
++    assert f(6).det(method="bareiss") == 0
++    for n in range(5, 8):
++        assert f(n).det(method="bareiss") == f(n).det(method="lu")
++
+ 
+ def test_det_LU_decomposition():

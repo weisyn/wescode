@@ -1,0 +1,135 @@
+2026-10-04 18:18:29,274 - INFO - Creating container for django__django-16801...
+2026-10-04 18:18:29,323 - INFO - Container for django__django-16801 created: b9907e811d7cba5ce1a2f71f91792cdaf93939986e7d59b8b9ec85dcaa0950ca
+2026-10-04 18:18:29,538 - INFO - Container for django__django-16801 started: b9907e811d7cba5ce1a2f71f91792cdaf93939986e7d59b8b9ec85dcaa0950ca
+2026-10-04 18:18:29,538 - INFO - Intermediate patch for django__django-16801 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16801/patch.diff, now applying to container...
+2026-10-04 18:18:29,689 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:18:30,958 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:18:31,689 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:18:31,894 - INFO - >>>>> Applied Patch:
+patching file django/db/models/fields/files.py
+patching file docs/releases/5.0.txt
+patching file tests/model_fields/test_imagefield.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 329 with fuzz 1.
+
+2026-10-04 18:18:31,964 - INFO - Git diff before:
+diff --git a/django/db/models/fields/files.py b/django/db/models/fields/files.py
+index 7f8eb128e1..e10c8cd69a 100644
+--- a/django/db/models/fields/files.py
++++ b/django/db/models/fields/files.py
+@@ -441,7 +441,8 @@ class ImageField(FileField):
+         # after their corresponding image field don't stay cleared by
+         # Model.__init__, see bug #11196.
+         # Only run post-initialization dimension update on non-abstract models
+-        if not cls._meta.abstract:
++        # with width_field/height_field.
++        if not cls._meta.abstract and (self.width_field or self.height_field):
+             signals.post_init.connect(self.update_dimension_fields, sender=cls)
+ 
+     def update_dimension_fields(self, instance, force=False, *args, **kwargs):
+@@ -457,10 +458,8 @@ class ImageField(FileField):
+         Dimensions can be forced to update with force=True, which is how
+         ImageFileDescriptor.__set__ calls this method.
+         """
+-        # Nothing to update if the field doesn't have dimension fields or if
+-        # the field is deferred.
+-        has_dimension_fields = self.width_field or self.height_field
+-        if not has_dimension_fields or self.attname not in instance.__dict__:
++        # Nothing to update if the field is deferred.
++        if self.attname not in instance.__dict__:
+             return
+ 
+         # getattr will call the ImageFileDescriptor's __get__ method, which
+diff --git a/docs/releases/5.0.txt b/docs/releases/5.0.txt
+index dafdc10d62..b1e09dab46 100644
+--- a/docs/releases/5.0.txt
++++ b/docs/releases/5.0.txt
+@@ -379,6 +379,9 @@ Miscellaneous
+ * The undocumented ``Query.annotation_select_mask`` attribute is changed from a
+   set of strings to an ordered list of strings.
+ 
++* ``ImageField.update_dimension_fields()`` is no longer called on the
++  ``post_init`` signal if ``width_field`` and ``height_field`` are not set.
++
+ .. _deprecated-features-5.0:
+ 
+ Features deprecated in 5.0
+diff --git a/tests/model_fields/test_imagefield.py b/tests/model_fields/test_imagefield.py
+index 6ef46ef200..81ac9dad61 100644
+--- a/tests/model_fields/test_imagefield.py
++++ b/tests/model_fields/test_imagefield.py
+@@ -5,6 +5,7 @@ from unittest import skipIf
+ from django.core.exceptions import ImproperlyConfigured
+ from django.core.files import File
+ from django.core.files.images import ImageFile
++from django.db.models import signals
+ from django.test import TestCase
+ from django.test.testcases import SerializeMixin
+ 
+@@ -328,6 +329,13 @@ class ImageFieldNoDimensionsTests(ImageFieldTwoDimensionsTests):
+ 
+     PersonModel = Person
+ 
++    def test_post_init_not_connected(self):
++        person_model_id = id(self.PersonModel)
++        self.assertNotIn(
++            person_model_id,
++            [sender_id for (_, sender_id), *_ in signals.post_init.receivers],
++        )
++
+ 
+ @skipIf(Image is None, "Pillow is required to test ImageField")
+ class ImageFieldOneDimensionTests(ImageFieldTwoDimensionsTests):
+2026-10-04 18:18:31,964 - INFO - Eval script for django__django-16801 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16801/eval.sh; copying to container...
+2026-10-04 18:18:39,798 - INFO - Test runtime: 7.77 seconds
+2026-10-04 18:18:39,798 - INFO - Test output for django__django-16801 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16801/test_output.txt
+2026-10-04 18:18:39,857 - INFO - Git diff after:
+diff --git a/django/db/models/fields/files.py b/django/db/models/fields/files.py
+index 7f8eb128e1..e10c8cd69a 100644
+--- a/django/db/models/fields/files.py
++++ b/django/db/models/fields/files.py
+@@ -441,7 +441,8 @@ class ImageField(FileField):
+         # after their corresponding image field don't stay cleared by
+         # Model.__init__, see bug #11196.
+         # Only run post-initialization dimension update on non-abstract models
+-        if not cls._meta.abstract:
++        # with width_field/height_field.
++        if not cls._meta.abstract and (self.width_field or self.height_field):
+             signals.post_init.connect(self.update_dimension_fields, sender=cls)
+ 
+     def update_dimension_fields(self, instance, force=False, *args, **kwargs):
+@@ -457,10 +458,8 @@ class ImageField(FileField):
+         Dimensions can be forced to update with force=True, which is how
+         ImageFileDescriptor.__set__ calls this method.
+         """
+-        # Nothing to update if the field doesn't have dimension fields or if
+-        # the field is deferred.
+-        has_dimension_fields = self.width_field or self.height_field
+-        if not has_dimension_fields or self.attname not in instance.__dict__:
++        # Nothing to update if the field is deferred.
++        if self.attname not in instance.__dict__:
+             return
+ 
+         # getattr will call the ImageFileDescriptor's __get__ method, which
+diff --git a/docs/releases/5.0.txt b/docs/releases/5.0.txt
+index dafdc10d62..b1e09dab46 100644
+--- a/docs/releases/5.0.txt
++++ b/docs/releases/5.0.txt
+@@ -379,6 +379,9 @@ Miscellaneous
+ * The undocumented ``Query.annotation_select_mask`` attribute is changed from a
+   set of strings to an ordered list of strings.
+ 
++* ``ImageField.update_dimension_fields()`` is no longer called on the
++  ``post_init`` signal if ``width_field`` and ``height_field`` are not set.
++
+ .. _deprecated-features-5.0:
+ 
+ Features deprecated in 5.0
+2026-10-04 18:18:39,857 - INFO - Git diff changed after running eval script
+2026-10-04 18:18:39,857 - INFO - Grading answer for django__django-16801...
+2026-10-04 18:18:39,859 - INFO - report: {'django__django-16801': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_post_init_not_connected (model_fields.test_imagefield.ImageFieldNoDimensionsTests.test_post_init_not_connected)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['Assigning ImageField to None clears dimensions.', "Tests assigning an image field through the model's constructor.", 'Tests assigning an image in Manager.create().', 'The default value for an ImageField is an instance of', 'Dimensions are updated correctly in various situations.', "Tests assignment using the field's save method and deletion using", 'Tests behavior when image is not passed in constructor.', 'test_assignment (model_fields.test_imagefield.TwoImageFieldTests.test_assignment)', 'test_constructor (model_fields.test_imagefield.TwoImageFieldTests.test_constructor)', 'test_create (model_fields.test_imagefield.TwoImageFieldTests.test_create)', 'test_field_save_and_delete_methods (model_fields.test_imagefield.TwoImageFieldTests.test_field_save_and_delete_methods)', 'test_defer (model_fields.test_imagefield.ImageFieldTests.test_defer)', 'Bug #8175: correctly delete an object where the file no longer', "Bug #9786: Ensure '==' and '!=' work correctly.", 'If the underlying file is unavailable, still create instantiate the', 'ImageField can be pickled, unpickled, and that the image of', 'Bug #8534: FileField.size should not leave the file open.'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-16801: resolved: True
+2026-10-04 18:18:39,859 - INFO - Attempting to stop container sweb.eval.django__django-16801.wescode-v3...
+2026-10-04 18:18:55,021 - INFO - Container sweb.eval.django__django-16801.wescode-v3 stopped successfully.
+2026-10-04 18:18:55,021 - INFO - Attempting to remove container sweb.eval.django__django-16801.wescode-v3...
+2026-10-04 18:18:55,207 - INFO - Container sweb.eval.django__django-16801.wescode-v3 removed successfully.

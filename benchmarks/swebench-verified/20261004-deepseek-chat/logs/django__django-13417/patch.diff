@@ -1,0 +1,71 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 85cd8311a7..8ecd0081a5 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -1224,7 +1224,7 @@ class QuerySet:
+             return True
+         if self.query.extra_order_by or self.query.order_by:
+             return True
+-        elif self.query.default_ordering and self.query.get_meta().ordering:
++        elif self.query.default_ordering and self.query.get_meta().ordering and not self.query.group_by:
+             return True
+         else:
+             return False
+diff --git a/tests/queries/models.py b/tests/queries/models.py
+index a5faa2a84b..d77c9e91f7 100644
+--- a/tests/queries/models.py
++++ b/tests/queries/models.py
+@@ -60,6 +60,18 @@ class Annotation(models.Model):
+         return self.name
+ 
+ 
++class OrderedAnnotation(models.Model):
++    name = models.CharField(max_length=10)
++    tag = models.ForeignKey(Tag, models.CASCADE)
++    notes = models.ManyToManyField(Note)
++
++    class Meta:
++        ordering = ['-id']
++
++    def __str__(self):
++        return self.name
++
++
+ class DateTimePK(models.Model):
+     date = models.DateTimeField(primary_key=True, auto_now_add=True)
+ 
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index f9a57b088a..73a994bb39 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -24,7 +24,8 @@ from .models import (
+     JobResponsibilities, Join, LeafA, LeafB, LoopX, LoopZ, ManagedModel,
+     Member, MixedCaseDbColumnCategoryItem, MixedCaseFieldCategoryItem, ModelA,
+     ModelB, ModelC, ModelD, MyObject, NamedCategory, Node, Note, NullableName,
+-    Number, ObjectA, ObjectB, ObjectC, OneToOneCategory, Order, OrderItem,
++    Number, ObjectA, ObjectB, ObjectC, OneToOneCategory, Order, OrderedAnnotation,
++    OrderItem,
+     Page, Paragraph, Person, Plaything, PointerA, Program, ProxyCategory,
+     ProxyObjectA, ProxyObjectB, Ranking, Related, RelatedIndividual,
+     RelatedObject, Report, ReportComment, ReservedName, Responsibility, School,
+@@ -1169,7 +1170,7 @@ class Queries1Tests(TestCase):
+         msg = (
+             "Cannot resolve keyword 'unknown_field' into field. Choices are: "
+             "annotation, category, category_id, children, id, item, "
+-            "managedmodel, name, note, parent, parent_id"
++            "managedmodel, name, note, orderedannotation, parent, parent_id"
+         )
+         with self.assertRaisesMessage(FieldError, msg):
+             Tag.objects.filter(unknown_field__name='generic')
+@@ -2084,6 +2085,11 @@ class QuerysetOrderedTests(unittest.TestCase):
+         self.assertIs(qs.ordered, False)
+         self.assertIs(qs.order_by('num_notes').ordered, True)
+ 
++    def test_annotated_ordering_with_default_ordering(self):
++        qs = OrderedAnnotation.objects.annotate(count=Count('notes'))
++        self.assertIs(qs.ordered, False)
++        self.assertIs(qs.order_by('id').ordered, True)
++
+ 
+ @skipUnlessDBFeature('allow_sliced_subqueries_with_in')
+ class SubqueryTests(TestCase):

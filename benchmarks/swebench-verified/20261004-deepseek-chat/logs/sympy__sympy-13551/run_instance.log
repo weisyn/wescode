@@ -1,0 +1,104 @@
+2026-10-04 19:42:13,035 - INFO - Creating container for sympy__sympy-13551...
+2026-10-04 19:42:13,070 - INFO - Container for sympy__sympy-13551 created: 65d15bd51802b0ca15b459f41b72f93354704b6f21ecab0ca7572d97a402dcac
+2026-10-04 19:42:13,285 - INFO - Container for sympy__sympy-13551 started: 65d15bd51802b0ca15b459f41b72f93354704b6f21ecab0ca7572d97a402dcac
+2026-10-04 19:42:13,286 - INFO - Intermediate patch for sympy__sympy-13551 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13551/patch.diff, now applying to container...
+2026-10-04 19:42:13,395 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:42:13,577 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:42:13,687 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:42:13,800 - INFO - >>>>> Applied Patch:
+patching file sympy/concrete/products.py
+patching file sympy/concrete/tests/test_products.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 234 with fuzz 1.
+
+2026-10-04 19:42:13,866 - INFO - Git diff before:
+diff --git a/sympy/concrete/products.py b/sympy/concrete/products.py
+index 66aafde2d..c9a289d4b 100755
+--- a/sympy/concrete/products.py
++++ b/sympy/concrete/products.py
+@@ -278,14 +278,23 @@ def _eval_product(self, term, limits):
+             p, q = term.as_numer_denom()
+             q = self._eval_product(q, (k, a, n))
+             if q.is_Number:
+-
+                 # There is expression, which couldn't change by
+                 # as_numer_denom(). E.g. n**(2/3) + 1 --> (n**(2/3) + 1, 1).
+                 # We have to catch this case.
+-
+-                p = sum([self._eval_product(i, (k, a, n)) for i in p.as_coeff_Add()])
++                #
++                # The coefficient part may be non-zero (e.g. the leading
++                # term of the numerator is a sum), in which case the
++                # product is not the sum of the products of the summands
++                # and it must be left unevaluated.
++                coeff, rest = p.as_coeff_Add()
++                if coeff != 0:
++                    return None
++                p = self._eval_product(rest, (k, a, n))
+             else:
+                 p = self._eval_product(p, (k, a, n))
++
++            if p is None:
++                return None
+             return p / q
+ 
+         elif term.is_Mul:
+diff --git a/sympy/concrete/tests/test_products.py b/sympy/concrete/tests/test_products.py
+index 311d5153e..b73c61954 100755
+--- a/sympy/concrete/tests/test_products.py
++++ b/sympy/concrete/tests/test_products.py
+@@ -234,6 +234,11 @@ def test__eval_product():
+     assert product(2*a(i), (i, 1, n)) == 2**n * Product(a(i), (i, 1, n))
+     # issue 4810
+     assert product(2**i, (i, 1, n)) == 2**(n/2 + n**2/2)
++    # issue 11626
++    assert product(n + 1 / 2**k, (k, 0, n - 1)) == \
++        Product(n + 1 / 2**k, (k, 0, n - 1))
++    assert product(k**(S(2)/3) + 1, (k, 0, n - 1)) == \
++        Product(k**(S(2)/3) + 1, (k, 0, n - 1))
+ 
+ 
+ def test_product_pow():
+2026-10-04 19:42:13,866 - INFO - Eval script for sympy__sympy-13551 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13551/eval.sh; copying to container...
+2026-10-04 19:42:32,313 - INFO - Test runtime: 18.39 seconds
+2026-10-04 19:42:32,314 - INFO - Test output for sympy__sympy-13551 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13551/test_output.txt
+2026-10-04 19:42:32,364 - INFO - Git diff after:
+diff --git a/sympy/concrete/products.py b/sympy/concrete/products.py
+index 66aafde2d..c9a289d4b 100755
+--- a/sympy/concrete/products.py
++++ b/sympy/concrete/products.py
+@@ -278,14 +278,23 @@ def _eval_product(self, term, limits):
+             p, q = term.as_numer_denom()
+             q = self._eval_product(q, (k, a, n))
+             if q.is_Number:
+-
+                 # There is expression, which couldn't change by
+                 # as_numer_denom(). E.g. n**(2/3) + 1 --> (n**(2/3) + 1, 1).
+                 # We have to catch this case.
+-
+-                p = sum([self._eval_product(i, (k, a, n)) for i in p.as_coeff_Add()])
++                #
++                # The coefficient part may be non-zero (e.g. the leading
++                # term of the numerator is a sum), in which case the
++                # product is not the sum of the products of the summands
++                # and it must be left unevaluated.
++                coeff, rest = p.as_coeff_Add()
++                if coeff != 0:
++                    return None
++                p = self._eval_product(rest, (k, a, n))
+             else:
+                 p = self._eval_product(p, (k, a, n))
++
++            if p is None:
++                return None
+             return p / q
+ 
+         elif term.is_Mul:
+2026-10-04 19:42:32,364 - INFO - Git diff changed after running eval script
+2026-10-04 19:42:32,364 - INFO - Grading answer for sympy__sympy-13551...
+2026-10-04 19:42:32,365 - INFO - report: {'sympy__sympy-13551': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_issue_13546'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_karr_convention', 'test_karr_proposition_2a', 'test_karr_proposition_2b', 'test_simple_products', 'test_multiple_products', 'test_rational_products', 'test_special_products', 'test__eval_product', 'test_product_pow', 'test_infinite_product', 'test_conjugate_transpose', 'test_simplify', 'test_change_index', 'test_reorder', 'test_Product_is_convergent', 'test_reverse_order', 'test_issue_9983'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-13551: resolved: True
+2026-10-04 19:42:32,365 - INFO - Attempting to stop container sweb.eval.sympy__sympy-13551.wescode-v3...
+2026-10-04 19:42:47,493 - INFO - Container sweb.eval.sympy__sympy-13551.wescode-v3 stopped successfully.
+2026-10-04 19:42:47,494 - INFO - Attempting to remove container sweb.eval.sympy__sympy-13551.wescode-v3...
+2026-10-04 19:42:47,519 - INFO - Container sweb.eval.sympy__sympy-13551.wescode-v3 removed successfully.

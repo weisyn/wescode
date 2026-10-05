@@ -1,0 +1,95 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index bef93d36a2..edab854490 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -335,6 +335,14 @@ class BaseExpression:
+     def copy(self):
+         return copy.copy(self)
+ 
++    def prefix_references(self, prefix):
++        clone = self.copy()
++        clone.set_source_expressions([
++            F(f'{prefix}__{expr.name}') if isinstance(expr, F) else expr
++            for expr in self.get_source_expressions()
++        ])
++        return clone
++
+     def get_group_by_cols(self, alias=None):
+         if not self.contains_aggregate:
+             return [self]
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index eaccc96d7d..aea873201d 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -722,6 +722,11 @@ class SQLCompiler:
+ 
+             results = []
+             for item in opts.ordering:
++                if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):
++                    item = item.desc() if descending else item.asc()
++                if isinstance(item, OrderBy):
++                    results.append((item.prefix_references(name), False))
++                    continue
+                 results.extend(self.find_ordering_name(item, opts, alias,
+                                                        order, already_seen))
+             return results
+diff --git a/tests/ordering/models.py b/tests/ordering/models.py
+index 8b71983c44..65f96b6538 100644
+--- a/tests/ordering/models.py
++++ b/tests/ordering/models.py
+@@ -59,3 +59,16 @@ class Reference(models.Model):
+ 
+     class Meta:
+         ordering = ('article',)
++
++
++class OrderedByExpressionArticle(Article):
++    class Meta:
++        proxy = True
++        ordering = (models.F('author__name').asc(),)
++
++
++class OrderedByExpressionReference(models.Model):
++    article = models.ForeignKey(OrderedByExpressionArticle, models.CASCADE)
++
++    class Meta:
++        ordering = ('article',)
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index 18c32d6d5f..6075986bc2 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -9,7 +9,10 @@ from django.db.models.functions import Upper
+ from django.test import TestCase
+ from django.utils.deprecation import RemovedInDjango31Warning
+ 
+-from .models import Article, Author, OrderedByFArticle, Reference
++from .models import (
++    Article, Author, OrderedByExpressionArticle, OrderedByExpressionReference,
++    OrderedByFArticle, Reference,
++)
+ 
+ 
+ class OrderingTests(TestCase):
+@@ -452,6 +455,22 @@ class OrderingTests(TestCase):
+         r2 = Reference.objects.create(article_id=self.a2.pk)
+         self.assertSequenceEqual(Reference.objects.all(), [r2, r1])
+ 
++    def test_related_ordering_by_expression(self):
++        """
++        Ordering by a relation to a model whose Meta.ordering contains
++        expressions doesn't crash (#30229).
++        """
++        self.a1.author = self.author_1
++        self.a1.save()
++        self.a2.author = self.author_2
++        self.a2.save()
++        r1 = OrderedByExpressionReference.objects.create(article_id=self.a1.pk)
++        r2 = OrderedByExpressionReference.objects.create(article_id=self.a2.pk)
++        # author_1.name == 'Name 1' sorts before author_2.name == 'Name 2'.
++        self.assertSequenceEqual(
++            OrderedByExpressionReference.objects.all(), [r1, r2],
++        )
++
+     def test_default_ordering_by_f_expression(self):
+         """F expressions can be used in Meta.ordering."""
+         articles = OrderedByFArticle.objects.all()

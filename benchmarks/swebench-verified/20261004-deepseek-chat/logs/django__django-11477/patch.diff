@@ -1,0 +1,26 @@
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index af0508f94e..696ada8c45 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -610,6 +610,21 @@ class URLResolver:
+ 
+         possibilities = self.reverse_dict.getlist(lookup_view)
+ 
++        # Keyword arguments whose value is None correspond to optional named
++        # groups that didn't participate in the match when the URL was
++        # resolved (resolve() returns None for them). Keeping them here would
++        # cause str(None) == 'None' to be substituted into the URL, producing
++        # an incorrect result (e.g. from translate_url()). They are discarded
++        # below, but only when they name a parameter of the pattern so that
++        # reverse() still raises NoReverseMatch for unknown arguments.
++        none_keys = {key for key, value in kwargs.items() if value is None}
++        known_params = set()
++        for possibility, _, _, _ in possibilities:
++            for _, params in possibility:
++                known_params.update(params)
++        for key in none_keys & known_params:
++            del kwargs[key]
++
+         for possibility, pattern, defaults, converters in possibilities:
+             for result, params in possibility:
+                 if args:

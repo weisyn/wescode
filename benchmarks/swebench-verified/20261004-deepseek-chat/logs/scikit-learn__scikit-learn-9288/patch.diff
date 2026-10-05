@@ -1,0 +1,89 @@
+diff --git a/doc/whats_new/v0.22.rst b/doc/whats_new/v0.22.rst
+index 7be27894a..175c775b5 100644
+--- a/doc/whats_new/v0.22.rst
++++ b/doc/whats_new/v0.22.rst
+@@ -283,6 +283,10 @@ Changelog
+   match `spectral_clustering`.
+   :pr:`13726` by :user:`Shuzhe Xiao <fdas3213>`.
+ 
++- |Fix| :class:`cluster.KMeans` now gives the same results for a given
++  ``random_state`` regardless of the value of ``n_jobs``.
++  :pr:`9288` by :user:`Bruno P. Kinoshita <kinow>`.
++
+ :mod:`sklearn.feature_selection`
+ ................................
+ 
+diff --git a/sklearn/cluster/k_means_.py b/sklearn/cluster/k_means_.py
+index b7fbdf7da..a486a5158 100644
+--- a/sklearn/cluster/k_means_.py
++++ b/sklearn/cluster/k_means_.py
+@@ -360,16 +360,20 @@ def k_means(X, n_clusters, sample_weight=None, init='k-means++',
+     else:
+         raise ValueError("Algorithm must be 'auto', 'full' or 'elkan', got"
+                          " %s" % str(algorithm))
++    # We need to generate the seeds for the different initializations upfront
++    # so that the results do not depend on the value of n_jobs.
++    seeds = random_state.randint(np.iinfo(np.int32).max, size=n_init)
++
+     if effective_n_jobs(n_jobs) == 1:
+         # For a single thread, less memory is needed if we just store one set
+         # of the best results (as opposed to one set per run per thread).
+-        for it in range(n_init):
++        for seed in seeds:
+             # run a k-means once
+             labels, inertia, centers, n_iter_ = kmeans_single(
+                 X, sample_weight, n_clusters, max_iter=max_iter, init=init,
+                 verbose=verbose, precompute_distances=precompute_distances,
+                 tol=tol, x_squared_norms=x_squared_norms,
+-                random_state=random_state)
++                random_state=seed)
+             # determine if these results are the best so far
+             if best_inertia is None or inertia < best_inertia:
+                 best_labels = labels.copy()
+@@ -378,7 +382,6 @@ def k_means(X, n_clusters, sample_weight=None, init='k-means++',
+                 best_n_iter = n_iter_
+     else:
+         # parallelisation of k-means runs
+-        seeds = random_state.randint(np.iinfo(np.int32).max, size=n_init)
+         results = Parallel(n_jobs=n_jobs, verbose=0)(
+             delayed(kmeans_single)(X, sample_weight, n_clusters,
+                                    max_iter=max_iter, init=init,
+diff --git a/sklearn/cluster/tests/test_k_means.py b/sklearn/cluster/tests/test_k_means.py
+index 362b0a914..b187043c2 100644
+--- a/sklearn/cluster/tests/test_k_means.py
++++ b/sklearn/cluster/tests/test_k_means.py
+@@ -239,6 +239,34 @@ def test_k_means_plus_plus_init_2_jobs():
+     _check_fitted_model(km)
+ 
+ 
++@pytest.mark.parametrize(
++    "init",
++    ["random", "k-means++"],
++)
++@pytest.mark.parametrize(
++    "params",
++    [
++        {"n_init": 1, "max_iter": 1},
++        {"n_init": 10, "max_iter": 100},
++    ],
++)
++def test_kmeans_same_seed(init, params):
++    # Non-regression test for:
++    # https://github.com/scikit-learn/scikit-learn/issues/9287
++    # The results should be the same, regardless of the value of n_jobs.
++    rng = np.random.RandomState(42)
++    X = rng.rand(100, 2)
++
++    km_1 = KMeans(init=init, random_state=3, n_jobs=1, **params)
++    km_1.fit(X)
++
++    km_2 = KMeans(init=init, random_state=3, n_jobs=2, **params)
++    km_2.fit(X)
++
++    assert_array_almost_equal(km_1.cluster_centers_, km_2.cluster_centers_)
++    assert_allclose(km_1.inertia_, km_2.inertia_)
++
++
+ def test_k_means_precompute_distances_flag():
+     # check that a warning is raised if the precompute_distances flag is not
+     # supported

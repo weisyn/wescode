@@ -1,0 +1,158 @@
+2026-10-04 17:35:55,704 - INFO - Creating container for django__django-11555...
+2026-10-04 17:35:55,762 - INFO - Container for django__django-11555 created: 970ae5ea6b54ace1b711f6659ef304f13b7f612b5963ed0fdcbacbcb3eb2f929
+2026-10-04 17:35:55,955 - INFO - Container for django__django-11555 started: 970ae5ea6b54ace1b711f6659ef304f13b7f612b5963ed0fdcbacbcb3eb2f929
+2026-10-04 17:35:55,955 - INFO - Intermediate patch for django__django-11555 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11555/patch.diff, now applying to container...
+2026-10-04 17:35:56,069 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:35:56,564 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:35:56,745 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:35:56,928 - INFO - >>>>> Applied Patch:
+patching file django/db/models/expressions.py
+patching file django/db/models/sql/compiler.py
+patching file tests/ordering/models.py
+patching file tests/ordering/tests.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 455 with fuzz 1.
+
+2026-10-04 17:35:57,005 - INFO - Git diff before:
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index bef93d36a2..edab854490 100755
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -335,6 +335,14 @@ class BaseExpression:
+     def copy(self):
+         return copy.copy(self)
+ 
++    def prefix_references(self, prefix):
++        clone = self.copy()
++        clone.set_source_expressions([
++            F(f'{prefix}__{expr.name}') if isinstance(expr, F) else expr
++            for expr in self.get_source_expressions()
++        ])
++        return clone
++
+     def get_group_by_cols(self, alias=None):
+         if not self.contains_aggregate:
+             return [self]
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index eaccc96d7d..aea873201d 100755
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -722,6 +722,11 @@ class SQLCompiler:
+ 
+             results = []
+             for item in opts.ordering:
++                if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):
++                    item = item.desc() if descending else item.asc()
++                if isinstance(item, OrderBy):
++                    results.append((item.prefix_references(name), False))
++                    continue
+                 results.extend(self.find_ordering_name(item, opts, alias,
+                                                        order, already_seen))
+             return results
+diff --git a/tests/ordering/models.py b/tests/ordering/models.py
+index 8b71983c44..65f96b6538 100755
+--- a/tests/ordering/models.py
++++ b/tests/ordering/models.py
+@@ -59,3 +59,16 @@ class Reference(models.Model):
+ 
+     class Meta:
+         ordering = ('article',)
++
++
++class OrderedByExpressionArticle(Article):
++    class Meta:
++        proxy = True
++        ordering = (models.F('author__name').asc(),)
++
++
++class OrderedByExpressionReference(models.Model):
++    article = models.ForeignKey(OrderedByExpressionArticle, models.CASCADE)
++
++    class Meta:
++        ordering = ('article',)
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index 18c32d6d5f..6075986bc2 100755
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -9,7 +9,10 @@ from django.db.models.functions import Upper
+ from django.test import TestCase
+ from django.utils.deprecation import RemovedInDjango31Warning
+ 
+-from .models import Article, Author, OrderedByFArticle, Reference
++from .models import (
++    Article, Author, OrderedByExpressionArticle, OrderedByExpressionReference,
++    OrderedByFArticle, Reference,
++)
+ 
+ 
+ class OrderingTests(TestCase):
+@@ -452,6 +455,22 @@ class OrderingTests(TestCase):
+         r2 = Reference.objects.create(article_id=self.a2.pk)
+         self.assertSequenceEqual(Reference.objects.all(), [r2, r1])
+ 
++    def test_related_ordering_by_expression(self):
++        """
++        Ordering by a relation to a model whose Meta.ordering contains
++        expressions doesn't crash (#30229).
++        """
++        self.a1.author = self.author_1
++        self.a1.save()
++        self.a2.author = self.author_2
++        self.a2.save()
++        r1 = OrderedByExpressionReference.objects.create(article_id=self.a1.pk)
++        r2 = OrderedByExpressionReference.objects.create(article_id=self.a2.pk)
++        # author_1.name == 'Name 1' sorts before author_2.name == 'Name 2'.
++        self.assertSequenceEqual(
++            OrderedByExpressionReference.objects.all(), [r1, r2],
++        )
++
+     def test_default_ordering_by_f_expression(self):
+         """F expressions can be used in Meta.ordering."""
+         articles = OrderedByFArticle.objects.all()
+2026-10-04 17:35:57,005 - INFO - Eval script for django__django-11555 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11555/eval.sh; copying to container...
+2026-10-04 17:36:08,217 - INFO - Test runtime: 11.16 seconds
+2026-10-04 17:36:08,218 - INFO - Test output for django__django-11555 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11555/test_output.txt
+2026-10-04 17:36:08,284 - INFO - Git diff after:
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index bef93d36a2..edab854490 100755
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -335,6 +335,14 @@ class BaseExpression:
+     def copy(self):
+         return copy.copy(self)
+ 
++    def prefix_references(self, prefix):
++        clone = self.copy()
++        clone.set_source_expressions([
++            F(f'{prefix}__{expr.name}') if isinstance(expr, F) else expr
++            for expr in self.get_source_expressions()
++        ])
++        return clone
++
+     def get_group_by_cols(self, alias=None):
+         if not self.contains_aggregate:
+             return [self]
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index eaccc96d7d..aea873201d 100755
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -722,6 +722,11 @@ class SQLCompiler:
+ 
+             results = []
+             for item in opts.ordering:
++                if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):
++                    item = item.desc() if descending else item.asc()
++                if isinstance(item, OrderBy):
++                    results.append((item.prefix_references(name), False))
++                    continue
+                 results.extend(self.find_ordering_name(item, opts, alias,
+                                                        order, already_seen))
+             return results
+2026-10-04 17:36:08,284 - INFO - Git diff changed after running eval script
+2026-10-04 17:36:08,284 - INFO - Grading answer for django__django-11555...
+2026-10-04 17:36:08,290 - INFO - report: {'django__django-11555': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_order_by_ptr_field_with_default_ordering_by_expression (ordering.tests.OrderingTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_default_ordering (ordering.tests.OrderingTests)', 'F expressions can be used in Meta.ordering.', 'test_default_ordering_override (ordering.tests.OrderingTests)', 'test_deprecated_values_annotate (ordering.tests.OrderingTests)', 'test_extra_ordering (ordering.tests.OrderingTests)', 'test_extra_ordering_quoting (ordering.tests.OrderingTests)', 'test_extra_ordering_with_table_name (ordering.tests.OrderingTests)', 'test_no_reordering_after_slicing (ordering.tests.OrderingTests)', 'test_order_by_constant_value (ordering.tests.OrderingTests)', 'test_order_by_constant_value_without_output_field (ordering.tests.OrderingTests)', 'test_order_by_f_expression (ordering.tests.OrderingTests)', 'test_order_by_f_expression_duplicates (ordering.tests.OrderingTests)', 'test_order_by_fk_attname (ordering.tests.OrderingTests)', 'test_order_by_nulls_first (ordering.tests.OrderingTests)', 'test_order_by_nulls_first_and_last (ordering.tests.OrderingTests)', 'test_order_by_nulls_last (ordering.tests.OrderingTests)', 'test_order_by_override (ordering.tests.OrderingTests)', 'test_order_by_pk (ordering.tests.OrderingTests)', 'test_orders_nulls_first_on_filtered_subquery (ordering.tests.OrderingTests)', 'test_random_ordering (ordering.tests.OrderingTests)', 'test_related_ordering_duplicate_table_reference (ordering.tests.OrderingTests)', 'test_reverse_meta_ordering_pure (ordering.tests.OrderingTests)', 'test_reverse_ordering_pure (ordering.tests.OrderingTests)', 'test_reversed_ordering (ordering.tests.OrderingTests)', 'test_stop_slicing (ordering.tests.OrderingTests)', 'test_stop_start_slicing (ordering.tests.OrderingTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11555: resolved: True
+2026-10-04 17:36:08,290 - INFO - Attempting to stop container sweb.eval.django__django-11555.wescode-v3...
+2026-10-04 17:36:23,623 - INFO - Container sweb.eval.django__django-11555.wescode-v3 stopped successfully.
+2026-10-04 17:36:23,623 - INFO - Attempting to remove container sweb.eval.django__django-11555.wescode-v3...
+2026-10-04 17:36:23,654 - INFO - Container sweb.eval.django__django-11555.wescode-v3 removed successfully.

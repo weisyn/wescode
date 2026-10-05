@@ -1,0 +1,205 @@
+2026-10-04 19:12:44,357 - INFO - Creating container for pylint-dev__pylint-4970...
+2026-10-04 19:12:44,402 - INFO - Container for pylint-dev__pylint-4970 created: 38005976e55469b45efc85007b695d435f7bdd52d125b766d97b53b9f1fcbe4a
+2026-10-04 19:12:44,601 - INFO - Container for pylint-dev__pylint-4970 started: 38005976e55469b45efc85007b695d435f7bdd52d125b766d97b53b9f1fcbe4a
+2026-10-04 19:12:44,601 - INFO - Intermediate patch for pylint-dev__pylint-4970 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pylint-dev__pylint-4970/patch.diff, now applying to container...
+2026-10-04 19:12:44,725 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:12:44,888 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:12:44,995 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:12:45,111 - INFO - >>>>> Applied Patch:
+patching file ChangeLog
+patching file pylint/checkers/similar.py
+patching file tests/checkers/unittest_similar.py
+patching file tests/test_self.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1112 with fuzz 1.
+
+2026-10-04 19:12:45,173 - INFO - Git diff before:
+diff --git a/ChangeLog b/ChangeLog
+index 97af302a..4f9c1e87 100755
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -13,6 +13,11 @@ Release date: TBA
+ * The python3 porting mode checker and it's ``py3k`` option were removed. You can still find it in older pylint
+   versions.
+ 
++* Setting ``min-similarity-lines`` to ``0`` now disables the duplicate code check
++  instead of reporting a similarity for every single line.
++
++  Closes #2143
++
+ * ``raising-bad-type`` is now properly emitted when  raising a string
+ 
+ * Added new extension ``SetMembershipChecker`` with ``use-set-for-membership`` check:
+diff --git a/pylint/checkers/similar.py b/pylint/checkers/similar.py
+index c65b1c89..eba06846 100755
+--- a/pylint/checkers/similar.py
++++ b/pylint/checkers/similar.py
+@@ -362,6 +362,8 @@ class Similar:
+         ignore_signatures: bool = False,
+     ) -> None:
+         self.min_lines = min_lines
++        """Minimum number of successive lines for a similarity to be reported.
++        A value of 0 disables the duplicate code check."""
+         self.ignore_comments = ignore_comments
+         self.ignore_docstrings = ignore_docstrings
+         self.ignore_imports = ignore_imports
+@@ -470,7 +472,16 @@ class Similar:
+         the couple of corresponding starting and ending lines in both files.
+         Last regroups all successive couples in a bigger one. It allows to take into account common chunk of lines that have more
+         than the minimal number of successive lines required.
++
++        :note: ``min_lines`` set to zero disables the duplicate code check entirely.
+         """
++        # Setting the minimum number of similar lines to zero is the documented
++        # way of disabling the duplicate code check. Return early instead of
++        # relying on the hashing step, which cannot compute a hash over zero
++        # consecutive lines.
++        if self.min_lines == 0:
++            return
++
+         hash_to_index_1: HashToIndex_T
+         hash_to_index_2: HashToIndex_T
+         index_to_lines_1: IndexToLines_T
+@@ -739,7 +750,8 @@ class SimilarChecker(BaseChecker, Similar, MapReduceMixin):
+                 "default": DEFAULT_MIN_SIMILARITY_LINE,
+                 "type": "int",
+                 "metavar": "<int>",
+-                "help": "Minimum lines number of a similarity.",
++                "help": "Minimum lines number of a similarity. "
++                "Set to 0 to disable the duplicate code check.",
+             },
+         ),
+         (
+diff --git a/tests/checkers/unittest_similar.py b/tests/checkers/unittest_similar.py
+index 4ddf2029..60b660eb 100755
+--- a/tests/checkers/unittest_similar.py
++++ b/tests/checkers/unittest_similar.py
+@@ -371,6 +371,20 @@ TOTAL lines=50 duplicates=14 percent=28.00
+     )
+ 
+ 
++def test_set_min_similarity_lines_to_zero() -> None:
++    """Setting min-similarity-lines to 0 disables the duplicate code check."""
++    output = StringIO()
++    with redirect_stdout(output), pytest.raises(SystemExit) as ex:
++        similar.Run(["--duplicates=0", SIMILAR1, SIMILAR2])
++    assert ex.value.code == 0
++    assert (
++        output.getvalue().strip()
++        == """
++TOTAL lines=62 duplicates=0 percent=0.00
++""".strip()
++    )
++
++
+ def test_help() -> None:
+     output = StringIO()
+     with redirect_stdout(output):
+diff --git a/tests/test_self.py b/tests/test_self.py
+index 9c044415..02e55fd6 100755
+--- a/tests/test_self.py
++++ b/tests/test_self.py
+@@ -1112,6 +1112,15 @@ class TestRunTC:
+             expected_output=expected_output,
+         )
+ 
++    def test_duplicate_code_disabled_with_zero_similarity_lines(self) -> None:
++        # Setting min-similarity-lines to 0 disables the duplicate code check
++        # instead of reporting a similarity for every single line.
++        path = join(HERE, "regrtest_data", "duplicate_data_raw_strings")
++        self._test_output(
++            [path, "--disable=all", "--enable=duplicate-code", "--min-similarity-lines=0"],
++            expected_output="",
++        )
++
+     def test_regression_parallel_mode_without_filepath(self) -> None:
+         # Test that parallel mode properly passes filepath
+         # https://github.com/PyCQA/pylint/issues/3564
+2026-10-04 19:12:45,173 - INFO - Eval script for pylint-dev__pylint-4970 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pylint-dev__pylint-4970/eval.sh; copying to container...
+2026-10-04 19:12:50,178 - INFO - Test runtime: 4.95 seconds
+2026-10-04 19:12:50,178 - INFO - Test output for pylint-dev__pylint-4970 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pylint-dev__pylint-4970/test_output.txt
+2026-10-04 19:12:50,236 - INFO - Git diff after:
+diff --git a/ChangeLog b/ChangeLog
+index 97af302a..4f9c1e87 100755
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -13,6 +13,11 @@ Release date: TBA
+ * The python3 porting mode checker and it's ``py3k`` option were removed. You can still find it in older pylint
+   versions.
+ 
++* Setting ``min-similarity-lines`` to ``0`` now disables the duplicate code check
++  instead of reporting a similarity for every single line.
++
++  Closes #2143
++
+ * ``raising-bad-type`` is now properly emitted when  raising a string
+ 
+ * Added new extension ``SetMembershipChecker`` with ``use-set-for-membership`` check:
+diff --git a/pylint/checkers/similar.py b/pylint/checkers/similar.py
+index c65b1c89..eba06846 100755
+--- a/pylint/checkers/similar.py
++++ b/pylint/checkers/similar.py
+@@ -362,6 +362,8 @@ class Similar:
+         ignore_signatures: bool = False,
+     ) -> None:
+         self.min_lines = min_lines
++        """Minimum number of successive lines for a similarity to be reported.
++        A value of 0 disables the duplicate code check."""
+         self.ignore_comments = ignore_comments
+         self.ignore_docstrings = ignore_docstrings
+         self.ignore_imports = ignore_imports
+@@ -470,7 +472,16 @@ class Similar:
+         the couple of corresponding starting and ending lines in both files.
+         Last regroups all successive couples in a bigger one. It allows to take into account common chunk of lines that have more
+         than the minimal number of successive lines required.
++
++        :note: ``min_lines`` set to zero disables the duplicate code check entirely.
+         """
++        # Setting the minimum number of similar lines to zero is the documented
++        # way of disabling the duplicate code check. Return early instead of
++        # relying on the hashing step, which cannot compute a hash over zero
++        # consecutive lines.
++        if self.min_lines == 0:
++            return
++
+         hash_to_index_1: HashToIndex_T
+         hash_to_index_2: HashToIndex_T
+         index_to_lines_1: IndexToLines_T
+@@ -739,7 +750,8 @@ class SimilarChecker(BaseChecker, Similar, MapReduceMixin):
+                 "default": DEFAULT_MIN_SIMILARITY_LINE,
+                 "type": "int",
+                 "metavar": "<int>",
+-                "help": "Minimum lines number of a similarity.",
++                "help": "Minimum lines number of a similarity. "
++                "Set to 0 to disable the duplicate code check.",
+             },
+         ),
+         (
+diff --git a/tests/test_self.py b/tests/test_self.py
+index 9c044415..02e55fd6 100755
+--- a/tests/test_self.py
++++ b/tests/test_self.py
+@@ -1112,6 +1112,15 @@ class TestRunTC:
+             expected_output=expected_output,
+         )
+ 
++    def test_duplicate_code_disabled_with_zero_similarity_lines(self) -> None:
++        # Setting min-similarity-lines to 0 disables the duplicate code check
++        # instead of reporting a similarity for every single line.
++        path = join(HERE, "regrtest_data", "duplicate_data_raw_strings")
++        self._test_output(
++            [path, "--disable=all", "--enable=duplicate-code", "--min-similarity-lines=0"],
++            expected_output="",
++        )
++
+     def test_regression_parallel_mode_without_filepath(self) -> None:
+         # Test that parallel mode properly passes filepath
+         # https://github.com/PyCQA/pylint/issues/3564
+2026-10-04 19:12:50,236 - INFO - Git diff changed after running eval script
+2026-10-04 19:12:50,236 - INFO - Grading answer for pylint-dev__pylint-4970...
+2026-10-04 19:12:50,239 - INFO - report: {'pylint-dev__pylint-4970': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['tests/checkers/unittest_similar.py::test_set_duplicate_lines_to_zero']}, 'PASS_TO_PASS': {'success': ['tests/checkers/unittest_similar.py::test_ignore_comments', 'tests/checkers/unittest_similar.py::test_ignore_docstrings', 'tests/checkers/unittest_similar.py::test_ignore_imports', 'tests/checkers/unittest_similar.py::test_multiline_imports', 'tests/checkers/unittest_similar.py::test_ignore_multiline_imports', 'tests/checkers/unittest_similar.py::test_ignore_signatures_fail', 'tests/checkers/unittest_similar.py::test_ignore_signatures_pass', 'tests/checkers/unittest_similar.py::test_ignore_signatures_class_methods_fail', 'tests/checkers/unittest_similar.py::test_ignore_signatures_class_methods_pass', 'tests/checkers/unittest_similar.py::test_ignore_signatures_empty_functions_fail', 'tests/checkers/unittest_similar.py::test_ignore_signatures_empty_functions_pass', 'tests/checkers/unittest_similar.py::test_no_hide_code_with_imports', 'tests/checkers/unittest_similar.py::test_ignore_nothing', 'tests/checkers/unittest_similar.py::test_lines_without_meaningful_content_do_not_trigger_similarity', 'tests/checkers/unittest_similar.py::test_help', 'tests/checkers/unittest_similar.py::test_no_args', 'tests/checkers/unittest_similar.py::test_get_map_data'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pylint-dev__pylint-4970: resolved: False
+2026-10-04 19:12:50,239 - INFO - Attempting to stop container sweb.eval.pylint-dev__pylint-4970.wescode-v3...
+2026-10-04 19:13:05,374 - INFO - Container sweb.eval.pylint-dev__pylint-4970.wescode-v3 stopped successfully.
+2026-10-04 19:13:05,374 - INFO - Attempting to remove container sweb.eval.pylint-dev__pylint-4970.wescode-v3...
+2026-10-04 19:13:05,396 - INFO - Container sweb.eval.pylint-dev__pylint-4970.wescode-v3 removed successfully.

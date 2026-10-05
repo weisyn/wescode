@@ -1,0 +1,413 @@
+2026-10-04 19:35:40,688 - INFO - Creating container for sphinx-doc__sphinx-8548...
+2026-10-04 19:35:40,736 - INFO - Container for sphinx-doc__sphinx-8548 created: 87c33fbd35dce8f8a1407692d1a39af4a4df0d9198e4dd0b31c4b145c2a9c4f1
+2026-10-04 19:35:40,936 - INFO - Container for sphinx-doc__sphinx-8548 started: 87c33fbd35dce8f8a1407692d1a39af4a4df0d9198e4dd0b31c4b145c2a9c4f1
+2026-10-04 19:35:40,937 - INFO - Intermediate patch for sphinx-doc__sphinx-8548 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8548/patch.diff, now applying to container...
+2026-10-04 19:35:41,058 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:35:41,330 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:35:41,447 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:35:41,602 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/ext/autodoc/__init__.py
+patching file sphinx/ext/autodoc/importer.py
+patching file tests/test_ext_autodoc_autoclass.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 51 with fuzz 1.
+
+2026-10-04 19:35:41,691 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index b4dbf1ef7..327dc5e43 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -80,6 +80,8 @@ Bugs fixed
+ * #8067: autodoc: A typehint for the instance variable having type_comment on
+   super class is not displayed
+ * #8545: autodoc: a __slots__ attribute is not documented even having docstring
++* #741: autodoc: inherited-members doesn't work for instance attributes on super
++  class
+ * #8477: autosummary: non utf-8 reST files are generated when template contains
+   multibyte characters
+ * #8501: autosummary: summary extraction splits text after "el at." unexpectedly
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index ddfd2b365..a23547a61 100755
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1584,7 +1584,7 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+                 self.add_line('   ' + _('Bases: %s') % ', '.join(bases), sourcename)
+ 
+     def get_object_members(self, want_all: bool) -> Tuple[bool, ObjectMembers]:
+-        members = get_class_members(self.object, self.objpath, self.get_attr, self.analyzer)
++        members = get_class_members(self.object, self.objpath, self.get_attr)
+         if not want_all:
+             if not self.options.members:
+                 return False, []  # type: ignore
+diff --git a/sphinx/ext/autodoc/importer.py b/sphinx/ext/autodoc/importer.py
+index d6e73d36a..1c5ea979e 100755
+--- a/sphinx/ext/autodoc/importer.py
++++ b/sphinx/ext/autodoc/importer.py
+@@ -14,7 +14,7 @@ import warnings
+ from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple
+ 
+ from sphinx.deprecation import RemovedInSphinx40Warning, deprecated_alias
+-from sphinx.pycode import ModuleAnalyzer
++from sphinx.pycode import ModuleAnalyzer, PycodeError
+ from sphinx.util import logging
+ from sphinx.util.inspect import (getannotations, getmro, getslots, isclass, isenumclass,
+                                  safe_getattr)
+@@ -251,8 +251,8 @@ class ClassAttribute:
+         self.docstring = docstring
+ 
+ 
+-def get_class_members(subject: Any, objpath: List[str], attrgetter: Callable,
+-                      analyzer: ModuleAnalyzer = None) -> Dict[str, ClassAttribute]:
++def get_class_members(subject: Any, objpath: List[str], attrgetter: Callable
++                      ) -> Dict[str, ClassAttribute]:
+     """Get members and attributes of target class."""
+     from sphinx.ext.autodoc import INSTANCEATTR
+ 
+@@ -297,23 +297,31 @@ def get_class_members(subject: Any, objpath: List[str], attrgetter: Callable,
+         except AttributeError:
+             continue
+ 
+-    # annotation only member (ex. attr: int)
+-    for cls in getmro(subject):
+-        try:
+-            for name in getannotations(cls):
+-                name = unmangle(cls, name)
+-                if name and name not in members:
+-                    members[name] = ClassAttribute(cls, name, INSTANCEATTR)
+-        except AttributeError:
+-            pass
+-
+-    if analyzer:
+-        # append instance attributes (cf. self.attr1) if analyzer knows
+-        namespace = '.'.join(objpath)
+-        for (ns, name), docstring in analyzer.attr_docs.items():
+-            if namespace == ns and name not in members:
+-                members[name] = ClassAttribute(subject, name, INSTANCEATTR,
+-                                               '\n'.join(docstring))
++    try:
++        for cls in getmro(subject):
++            # annotation only member (ex. attr: int)
++            try:
++                for name in getannotations(cls):
++                    name = unmangle(cls, name)
++                    if name and name not in members:
++                        members[name] = ClassAttribute(cls, name, INSTANCEATTR)
++            except AttributeError:
++                pass
++
++            # append instance attributes (cf. self.attr1) if analyzer knows
++            try:
++                modname = safe_getattr(cls, '__module__')
++                qualname = safe_getattr(cls, '__qualname__')
++                analyzer = ModuleAnalyzer.for_module(modname)
++                analyzer.analyze()
++                for (ns, name), docstring in analyzer.attr_docs.items():
++                    if ns == qualname and name not in members:
++                        members[name] = ClassAttribute(cls, name, INSTANCEATTR,
++                                                       '\n'.join(docstring))
++            except (AttributeError, PycodeError):
++                pass
++    except AttributeError:
++        pass
+ 
+     return members
+ 
+diff --git a/tests/test_ext_autodoc_autoclass.py b/tests/test_ext_autodoc_autoclass.py
+index c36305de3..6130f233a 100755
+--- a/tests/test_ext_autodoc_autoclass.py
++++ b/tests/test_ext_autodoc_autoclass.py
+@@ -51,6 +51,61 @@ def test_classes(app):
+     ]
+ 
+ 
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_instance_variable(app):
++    options = {'members': True}
++    actual = do_autodoc(app, 'class', 'target.instance_variable.Bar', options)
++    assert list(actual) == [
++        '',
++        '.. py:class:: Bar()',
++        '   :module: target.instance_variable',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr2',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr3',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++    ]
++
++
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_inherited_instance_variable(app):
++    options = {'members': True,
++               'inherited-members': True}
++    actual = do_autodoc(app, 'class', 'target.instance_variable.Bar', options)
++    assert list(actual) == [
++        '',
++        '.. py:class:: Bar()',
++        '   :module: target.instance_variable',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr1',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring foo',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr2',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr3',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++    ]
++
++
+ def test_decorators(app):
+     actual = do_autodoc(app, 'class', 'target.decorator.Baz')
+     assert list(actual) == [
+2026-10-04 19:35:41,691 - INFO - Eval script for sphinx-doc__sphinx-8548 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8548/eval.sh; copying to container...
+2026-10-04 19:35:48,949 - INFO - Test runtime: 7.20 seconds
+2026-10-04 19:35:48,950 - INFO - Test output for sphinx-doc__sphinx-8548 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8548/test_output.txt
+2026-10-04 19:35:49,006 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index b4dbf1ef7..327dc5e43 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -80,6 +80,8 @@ Bugs fixed
+ * #8067: autodoc: A typehint for the instance variable having type_comment on
+   super class is not displayed
+ * #8545: autodoc: a __slots__ attribute is not documented even having docstring
++* #741: autodoc: inherited-members doesn't work for instance attributes on super
++  class
+ * #8477: autosummary: non utf-8 reST files are generated when template contains
+   multibyte characters
+ * #8501: autosummary: summary extraction splits text after "el at." unexpectedly
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index ddfd2b365..a23547a61 100755
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1584,7 +1584,7 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+                 self.add_line('   ' + _('Bases: %s') % ', '.join(bases), sourcename)
+ 
+     def get_object_members(self, want_all: bool) -> Tuple[bool, ObjectMembers]:
+-        members = get_class_members(self.object, self.objpath, self.get_attr, self.analyzer)
++        members = get_class_members(self.object, self.objpath, self.get_attr)
+         if not want_all:
+             if not self.options.members:
+                 return False, []  # type: ignore
+diff --git a/sphinx/ext/autodoc/importer.py b/sphinx/ext/autodoc/importer.py
+index d6e73d36a..1c5ea979e 100755
+--- a/sphinx/ext/autodoc/importer.py
++++ b/sphinx/ext/autodoc/importer.py
+@@ -14,7 +14,7 @@ import warnings
+ from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple
+ 
+ from sphinx.deprecation import RemovedInSphinx40Warning, deprecated_alias
+-from sphinx.pycode import ModuleAnalyzer
++from sphinx.pycode import ModuleAnalyzer, PycodeError
+ from sphinx.util import logging
+ from sphinx.util.inspect import (getannotations, getmro, getslots, isclass, isenumclass,
+                                  safe_getattr)
+@@ -251,8 +251,8 @@ class ClassAttribute:
+         self.docstring = docstring
+ 
+ 
+-def get_class_members(subject: Any, objpath: List[str], attrgetter: Callable,
+-                      analyzer: ModuleAnalyzer = None) -> Dict[str, ClassAttribute]:
++def get_class_members(subject: Any, objpath: List[str], attrgetter: Callable
++                      ) -> Dict[str, ClassAttribute]:
+     """Get members and attributes of target class."""
+     from sphinx.ext.autodoc import INSTANCEATTR
+ 
+@@ -297,23 +297,31 @@ def get_class_members(subject: Any, objpath: List[str], attrgetter: Callable,
+         except AttributeError:
+             continue
+ 
+-    # annotation only member (ex. attr: int)
+-    for cls in getmro(subject):
+-        try:
+-            for name in getannotations(cls):
+-                name = unmangle(cls, name)
+-                if name and name not in members:
+-                    members[name] = ClassAttribute(cls, name, INSTANCEATTR)
+-        except AttributeError:
+-            pass
+-
+-    if analyzer:
+-        # append instance attributes (cf. self.attr1) if analyzer knows
+-        namespace = '.'.join(objpath)
+-        for (ns, name), docstring in analyzer.attr_docs.items():
+-            if namespace == ns and name not in members:
+-                members[name] = ClassAttribute(subject, name, INSTANCEATTR,
+-                                               '\n'.join(docstring))
++    try:
++        for cls in getmro(subject):
++            # annotation only member (ex. attr: int)
++            try:
++                for name in getannotations(cls):
++                    name = unmangle(cls, name)
++                    if name and name not in members:
++                        members[name] = ClassAttribute(cls, name, INSTANCEATTR)
++            except AttributeError:
++                pass
++
++            # append instance attributes (cf. self.attr1) if analyzer knows
++            try:
++                modname = safe_getattr(cls, '__module__')
++                qualname = safe_getattr(cls, '__qualname__')
++                analyzer = ModuleAnalyzer.for_module(modname)
++                analyzer.analyze()
++                for (ns, name), docstring in analyzer.attr_docs.items():
++                    if ns == qualname and name not in members:
++                        members[name] = ClassAttribute(cls, name, INSTANCEATTR,
++                                                       '\n'.join(docstring))
++            except (AttributeError, PycodeError):
++                pass
++    except AttributeError:
++        pass
+ 
+     return members
+ 
+diff --git a/tests/test_ext_autodoc_autoclass.py b/tests/test_ext_autodoc_autoclass.py
+index c36305de3..77de04125 100755
+--- a/tests/test_ext_autodoc_autoclass.py
++++ b/tests/test_ext_autodoc_autoclass.py
+@@ -51,6 +51,116 @@ def test_classes(app):
+     ]
+ 
+ 
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_instance_variable(app):
++    options = {'members': True}
++    actual = do_autodoc(app, 'class', 'target.instance_variable.Bar', options)
++    assert list(actual) == [
++        '',
++        '.. py:class:: Bar()',
++        '   :module: target.instance_variable',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr2',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr3',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++    ]
++
++
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_inherited_instance_variable(app):
++    options = {'members': True,
++               'inherited-members': True}
++    actual = do_autodoc(app, 'class', 'target.instance_variable.Bar', options)
++    assert list(actual) == [
++        '',
++        '.. py:class:: Bar()',
++        '   :module: target.instance_variable',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr1',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring foo',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr2',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr3',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++    ]
++
++
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_instance_variable(app):
++    options = {'members': True}
++    actual = do_autodoc(app, 'class', 'target.instance_variable.Bar', options)
++    assert list(actual) == [
++        '',
++        '.. py:class:: Bar()',
++        '   :module: target.instance_variable',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr2',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr3',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++    ]
++
++
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_inherited_instance_variable(app):
++    options = {'members': True,
++               'inherited-members': True}
++    actual = do_autodoc(app, 'class', 'target.instance_variable.Bar', options)
++    assert list(actual) == [
++        '',
++        '.. py:class:: Bar()',
++        '   :module: target.instance_variable',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr1',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring foo',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr2',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++        '',
++        '   .. py:attribute:: Bar.attr3',
++        '      :module: target.instance_variable',
++        '',
++        '      docstring bar',
++        '',
++    ]
++
++
+ def test_decorators(app):
+     actual = do_autodoc(app, 'class', 'target.decorator.Baz')
+     assert list(actual) == [
+2026-10-04 19:35:49,006 - INFO - Git diff changed after running eval script
+2026-10-04 19:35:49,006 - INFO - Grading answer for sphinx-doc__sphinx-8548...
+2026-10-04 19:35:49,009 - INFO - report: {'sphinx-doc__sphinx-8548': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_ext_autodoc_autoclass.py::test_inherited_instance_variable'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_ext_autodoc_autoclass.py::test_classes', 'tests/test_ext_autodoc_autoclass.py::test_instance_variable', 'tests/test_ext_autodoc_autoclass.py::test_decorators', 'tests/test_ext_autodoc_autoclass.py::test_slots_attribute', 'tests/test_ext_autodoc_autoclass.py::test_show_inheritance_for_subclass_of_generic_type'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-8548: resolved: True
+2026-10-04 19:35:49,009 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-8548.wescode-v3...
+2026-10-04 19:36:04,141 - INFO - Container sweb.eval.sphinx-doc__sphinx-8548.wescode-v3 stopped successfully.
+2026-10-04 19:36:04,141 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-8548.wescode-v3...
+2026-10-04 19:36:04,165 - INFO - Container sweb.eval.sphinx-doc__sphinx-8548.wescode-v3 removed successfully.

@@ -1,0 +1,84 @@
+2026-10-04 19:45:18,859 - INFO - Creating container for sympy__sympy-14711...
+2026-10-04 19:45:18,904 - INFO - Container for sympy__sympy-14711 created: d8c6de212d24fc98079e8b9f2fb2cb82b8cd272d91fd700c45df4c1e67eb2fd8
+2026-10-04 19:45:19,098 - INFO - Container for sympy__sympy-14711 started: d8c6de212d24fc98079e8b9f2fb2cb82b8cd272d91fd700c45df4c1e67eb2fd8
+2026-10-04 19:45:19,098 - INFO - Intermediate patch for sympy__sympy-14711 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-14711/patch.diff, now applying to container...
+2026-10-04 19:45:19,213 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:45:19,376 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:45:19,490 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:45:19,602 - INFO - >>>>> Applied Patch:
+patching file sympy/physics/vector/vector.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 342 with fuzz 1.
+
+2026-10-04 19:45:19,664 - INFO - Git diff before:
+diff --git a/sympy/physics/vector/vector.py b/sympy/physics/vector/vector.py
+index a048ee57f..59460b72c 100755
+--- a/sympy/physics/vector/vector.py
++++ b/sympy/physics/vector/vector.py
+@@ -57,8 +57,10 @@ def __hash__(self):
+ 
+     def __add__(self, other):
+         """The add operator for Vector. """
++        if other == 0:
++            return self.__class__(self.args)
+         other = _check_vector(other)
+-        return Vector(self.args + other.args)
++        return self.__class__(self.args + other.args)
+ 
+     def __and__(self, other):
+         """Dot product of two vectors.
+@@ -340,6 +342,13 @@ def __ror__(self, other):
+     def __rsub__(self, other):
+         return (-1 * self) + other
+ 
++    def __radd__(self, other):
++        """The add operator for Vector. """
++        if other == 0:
++            return self.__class__(self.args)
++        other = _check_vector(other)
++        return self.__class__(self.args + other.args)
++
+     def __str__(self, printer=None, order=True):
+         """Printing method. """
+         from sympy.physics.vector.printing import VectorStrPrinter
+2026-10-04 19:45:19,664 - INFO - Eval script for sympy__sympy-14711 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-14711/eval.sh; copying to container...
+2026-10-04 19:45:26,901 - INFO - Test runtime: 7.17 seconds
+2026-10-04 19:45:26,902 - INFO - Test output for sympy__sympy-14711 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-14711/test_output.txt
+2026-10-04 19:45:26,953 - INFO - Git diff after:
+diff --git a/sympy/physics/vector/vector.py b/sympy/physics/vector/vector.py
+index a048ee57f..59460b72c 100755
+--- a/sympy/physics/vector/vector.py
++++ b/sympy/physics/vector/vector.py
+@@ -57,8 +57,10 @@ def __hash__(self):
+ 
+     def __add__(self, other):
+         """The add operator for Vector. """
++        if other == 0:
++            return self.__class__(self.args)
+         other = _check_vector(other)
+-        return Vector(self.args + other.args)
++        return self.__class__(self.args + other.args)
+ 
+     def __and__(self, other):
+         """Dot product of two vectors.
+@@ -340,6 +342,13 @@ def __ror__(self, other):
+     def __rsub__(self, other):
+         return (-1 * self) + other
+ 
++    def __radd__(self, other):
++        """The add operator for Vector. """
++        if other == 0:
++            return self.__class__(self.args)
++        other = _check_vector(other)
++        return self.__class__(self.args + other.args)
++
+     def __str__(self, printer=None, order=True):
+         """Printing method. """
+         from sympy.physics.vector.printing import VectorStrPrinter
+2026-10-04 19:45:26,953 - INFO - Grading answer for sympy__sympy-14711...
+2026-10-04 19:45:26,954 - INFO - report: {'sympy__sympy-14711': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_Vector'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_Vector_diffs', 'test_vector_var_in_dcm'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-14711: resolved: True
+2026-10-04 19:45:26,955 - INFO - Attempting to stop container sweb.eval.sympy__sympy-14711.wescode-v3...
+2026-10-04 19:45:42,096 - INFO - Container sweb.eval.sympy__sympy-14711.wescode-v3 stopped successfully.
+2026-10-04 19:45:42,096 - INFO - Attempting to remove container sweb.eval.sympy__sympy-14711.wescode-v3...
+2026-10-04 19:45:42,123 - INFO - Container sweb.eval.sympy__sympy-14711.wescode-v3 removed successfully.

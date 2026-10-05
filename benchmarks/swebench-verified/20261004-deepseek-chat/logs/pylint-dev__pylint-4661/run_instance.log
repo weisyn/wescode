@@ -1,0 +1,235 @@
+2026-10-04 19:12:21,875 - INFO - Creating container for pylint-dev__pylint-4661...
+2026-10-04 19:12:21,918 - INFO - Container for pylint-dev__pylint-4661 created: 408dfce62211bc487632ef6f8f34dbc6add4dc7399613780cbdad071ad32f391
+2026-10-04 19:12:22,125 - INFO - Container for pylint-dev__pylint-4661 started: 408dfce62211bc487632ef6f8f34dbc6add4dc7399613780cbdad071ad32f391
+2026-10-04 19:12:22,126 - INFO - Intermediate patch for pylint-dev__pylint-4661 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pylint-dev__pylint-4661/patch.diff, now applying to container...
+2026-10-04 19:12:22,245 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:12:22,421 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:12:22,524 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:12:22,638 - INFO - >>>>> Applied Patch:
+patching file doc/faq.rst
+patching file doc/whatsnew/2.10.rst
+patching file pylint/config/__init__.py
+patching file setup.cfg
+patching file tests/lint/unittest_lint.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 632 with fuzz 1.
+
+2026-10-04 19:12:22,692 - INFO - Git diff before:
+diff --git a/doc/faq.rst b/doc/faq.rst
+index c817855f..3d020aa2 100755
+--- a/doc/faq.rst
++++ b/doc/faq.rst
+@@ -93,8 +93,13 @@ localized using the following rules:
+ 
+ * value of the PYLINTHOME environment variable if set
+ 
+-* ".pylint.d" subdirectory of the user's home directory if it is found
+-	(not always findable on Windows platforms)
++* "pylint" subdirectory of the user's XDG_CACHE_HOME if the environment variable is set, otherwise
++
++        - Linux: "~/.cache/pylint"
++
++        - Mac OS X: "~/Library/Caches/pylint"
++
++        - Windows: "C:\Users\<username>\AppData\Local\pylint"
+ 
+ * ".pylint.d" directory in the current directory
+ 
+diff --git a/doc/whatsnew/2.10.rst b/doc/whatsnew/2.10.rst
+index e94530bf..10ab45e4 100755
+--- a/doc/whatsnew/2.10.rst
++++ b/doc/whatsnew/2.10.rst
+@@ -24,3 +24,7 @@ Other Changes
+ * Performance of the Similarity checker has been improved.
+ 
+ * Added ``time.clock`` to deprecated functions/methods for python 3.3
++
++* The default for ``PYLINTHOME`` is now the standard ``XDG_CACHE_HOME``, and pylint now uses ``appdirs``.
++
++  Closes #3878
+diff --git a/pylint/config/__init__.py b/pylint/config/__init__.py
+index 84774d0e..fda95bcd 100755
+--- a/pylint/config/__init__.py
++++ b/pylint/config/__init__.py
+@@ -36,6 +36,8 @@ import os
+ import pickle
+ import sys
+ 
++import appdirs
++
+ from pylint.config.configuration_mixin import ConfigurationMixIn
+ from pylint.config.find_default_config_files import find_default_config_files
+ from pylint.config.man_help_formatter import _ManHelpFormatter
+@@ -63,7 +65,15 @@ if "PYLINTHOME" in os.environ:
+ elif USER_HOME == "~":
+     PYLINT_HOME = ".pylint.d"
+ else:
+-    PYLINT_HOME = os.path.join(USER_HOME, ".pylint.d")
++    PYLINT_HOME = appdirs.user_cache_dir("pylint")
++
++    old_home = os.path.join(USER_HOME, ".pylint.d")
++    if os.path.exists(old_home):
++        print(
++            f"PYLINTHOME is now '{PYLINT_HOME}' but obsolescent '{old_home}' is found; "
++            "you can safely remove the latter",
++            file=sys.stderr,
++        )
+ 
+ 
+ def _get_pdata_path(base_name, recurs):
+diff --git a/setup.cfg b/setup.cfg
+index 62a3fd7a..146f9e69 100755
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -42,6 +42,7 @@ project_urls =
+ [options]
+ packages = find:
+ install_requires =
++    appdirs>=1.4.0
+     astroid>=2.6.5,<2.7 # (You should also upgrade requirements_test_min.txt)
+     isort>=4.2.5,<6
+     mccabe>=0.6,<0.7
+@@ -74,7 +75,7 @@ markers =
+ [isort]
+ multi_line_output = 3
+ line_length = 88
+-known_third_party = astroid, sphinx, isort, pytest, mccabe, six, toml
++known_third_party = appdirs, astroid, sphinx, isort, pytest, mccabe, six, toml
+ include_trailing_comma = True
+ skip_glob = tests/functional/**,tests/input/**,tests/extensions/data/**,tests/regrtest_data/**,tests/data/**,astroid/**,venv/**
+ src_paths = pylint
+@@ -82,6 +83,9 @@ src_paths = pylint
+ [mypy]
+ scripts_are_modules = True
+ 
++[mypy-appdirs]
++ignore_missing_imports = True
++
+ [mypy-astroid.*]
+ ignore_missing_imports = True
+ 
+diff --git a/tests/lint/unittest_lint.py b/tests/lint/unittest_lint.py
+index 004c2928..cd4f5667 100755
+--- a/tests/lint/unittest_lint.py
++++ b/tests/lint/unittest_lint.py
+@@ -46,6 +46,7 @@ from os import chdir, getcwd
+ from os.path import abspath, basename, dirname, isdir, join, sep
+ from shutil import rmtree
+ 
++import appdirs
+ import pytest
+ 
+ from pylint import checkers, config, exceptions, interfaces, lint, testutils
+@@ -631,7 +632,7 @@ def test_pylint_home():
+     if uhome == "~":
+         expected = ".pylint.d"
+     else:
+-        expected = os.path.join(uhome, ".pylint.d")
++        expected = appdirs.user_cache_dir("pylint")
+     assert config.PYLINT_HOME == expected
+ 
+     try:
+2026-10-04 19:12:22,693 - INFO - Eval script for pylint-dev__pylint-4661 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pylint-dev__pylint-4661/eval.sh; copying to container...
+2026-10-04 19:12:29,143 - INFO - Test runtime: 6.39 seconds
+2026-10-04 19:12:29,144 - INFO - Test output for pylint-dev__pylint-4661 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pylint-dev__pylint-4661/test_output.txt
+2026-10-04 19:12:29,195 - INFO - Git diff after:
+diff --git a/doc/faq.rst b/doc/faq.rst
+index c817855f..3d020aa2 100755
+--- a/doc/faq.rst
++++ b/doc/faq.rst
+@@ -93,8 +93,13 @@ localized using the following rules:
+ 
+ * value of the PYLINTHOME environment variable if set
+ 
+-* ".pylint.d" subdirectory of the user's home directory if it is found
+-	(not always findable on Windows platforms)
++* "pylint" subdirectory of the user's XDG_CACHE_HOME if the environment variable is set, otherwise
++
++        - Linux: "~/.cache/pylint"
++
++        - Mac OS X: "~/Library/Caches/pylint"
++
++        - Windows: "C:\Users\<username>\AppData\Local\pylint"
+ 
+ * ".pylint.d" directory in the current directory
+ 
+diff --git a/doc/whatsnew/2.10.rst b/doc/whatsnew/2.10.rst
+index e94530bf..10ab45e4 100755
+--- a/doc/whatsnew/2.10.rst
++++ b/doc/whatsnew/2.10.rst
+@@ -24,3 +24,7 @@ Other Changes
+ * Performance of the Similarity checker has been improved.
+ 
+ * Added ``time.clock`` to deprecated functions/methods for python 3.3
++
++* The default for ``PYLINTHOME`` is now the standard ``XDG_CACHE_HOME``, and pylint now uses ``appdirs``.
++
++  Closes #3878
+diff --git a/pylint/config/__init__.py b/pylint/config/__init__.py
+index 84774d0e..fda95bcd 100755
+--- a/pylint/config/__init__.py
++++ b/pylint/config/__init__.py
+@@ -36,6 +36,8 @@ import os
+ import pickle
+ import sys
+ 
++import appdirs
++
+ from pylint.config.configuration_mixin import ConfigurationMixIn
+ from pylint.config.find_default_config_files import find_default_config_files
+ from pylint.config.man_help_formatter import _ManHelpFormatter
+@@ -63,7 +65,15 @@ if "PYLINTHOME" in os.environ:
+ elif USER_HOME == "~":
+     PYLINT_HOME = ".pylint.d"
+ else:
+-    PYLINT_HOME = os.path.join(USER_HOME, ".pylint.d")
++    PYLINT_HOME = appdirs.user_cache_dir("pylint")
++
++    old_home = os.path.join(USER_HOME, ".pylint.d")
++    if os.path.exists(old_home):
++        print(
++            f"PYLINTHOME is now '{PYLINT_HOME}' but obsolescent '{old_home}' is found; "
++            "you can safely remove the latter",
++            file=sys.stderr,
++        )
+ 
+ 
+ def _get_pdata_path(base_name, recurs):
+diff --git a/setup.cfg b/setup.cfg
+index 62a3fd7a..146f9e69 100755
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -42,6 +42,7 @@ project_urls =
+ [options]
+ packages = find:
+ install_requires =
++    appdirs>=1.4.0
+     astroid>=2.6.5,<2.7 # (You should also upgrade requirements_test_min.txt)
+     isort>=4.2.5,<6
+     mccabe>=0.6,<0.7
+@@ -74,7 +75,7 @@ markers =
+ [isort]
+ multi_line_output = 3
+ line_length = 88
+-known_third_party = astroid, sphinx, isort, pytest, mccabe, six, toml
++known_third_party = appdirs, astroid, sphinx, isort, pytest, mccabe, six, toml
+ include_trailing_comma = True
+ skip_glob = tests/functional/**,tests/input/**,tests/extensions/data/**,tests/regrtest_data/**,tests/data/**,astroid/**,venv/**
+ src_paths = pylint
+@@ -82,6 +83,9 @@ src_paths = pylint
+ [mypy]
+ scripts_are_modules = True
+ 
++[mypy-appdirs]
++ignore_missing_imports = True
++
+ [mypy-astroid.*]
+ ignore_missing_imports = True
+2026-10-04 19:12:29,195 - INFO - Git diff changed after running eval script
+2026-10-04 19:12:29,195 - INFO - Grading answer for pylint-dev__pylint-4661...
+2026-10-04 19:12:29,198 - INFO - report: {'pylint-dev__pylint-4661': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/lint/unittest_lint.py::test_pylint_home'], 'failure': []}, 'PASS_TO_PASS': {'success': [], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pylint-dev__pylint-4661: resolved: True
+2026-10-04 19:12:29,198 - INFO - Attempting to stop container sweb.eval.pylint-dev__pylint-4661.wescode-v3...
+2026-10-04 19:12:44,332 - INFO - Container sweb.eval.pylint-dev__pylint-4661.wescode-v3 stopped successfully.
+2026-10-04 19:12:44,332 - INFO - Attempting to remove container sweb.eval.pylint-dev__pylint-4661.wescode-v3...
+2026-10-04 19:12:44,353 - INFO - Container sweb.eval.pylint-dev__pylint-4661.wescode-v3 removed successfully.

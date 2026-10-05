@@ -1,0 +1,126 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 3a506543a..a30918580 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -143,7 +143,9 @@ def _get_aligned_offsets(hd_list, height, align="baseline"):
+         Intended total height. If None, the maximum of the heights in *hd_list*
+         is used.
+     align : {'baseline', 'left', 'top', 'right', 'bottom', 'center'}
+-        The alignment anchor of the boxes.
++        The alignment anchor of the boxes.  For the vertical alignment of
++        horizontally packed boxes ('top', 'bottom', 'baseline' and 'center'),
++        see `~matplotlib.offsetbox.HPacker`.
+ 
+     Returns
+     -------
+@@ -166,10 +168,10 @@ def _get_aligned_offsets(hd_list, height, align="baseline"):
+         descent = max(d for h, d in hd_list)
+         height = height_descent + descent
+         offsets = [0. for h, d in hd_list]
+-    elif align in ["left", "top"]:
++    elif align in ["left", "bottom"]:
+         descent = 0.
+         offsets = [d for h, d in hd_list]
+-    elif align in ["right", "bottom"]:
++    elif align in ["right", "top"]:
+         descent = 0.
+         offsets = [height - h + d for h, d in hd_list]
+     elif align == "center":
+@@ -388,6 +390,16 @@ class PackerBase(OffsetBox):
+ default: 'baseline'
+             Alignment of boxes.
+ 
++            - For `.HPacker`, the horizontal alignment ('left', 'right' or
++              'center') determines how the packed children are positioned with
++              respect to the packing width, whereas the vertical alignment
++              ('top' or 'bottom') determines how each child is offset with
++              respect to the packing height (or to each other for
++              'baseline').
++            - For `.VPacker`, the roles are swapped: 'left' and 'right' are the
++              per-child horizontal offsets, and 'top', 'bottom' and 'baseline'
++              set the packing anchor.
++
+         mode : {'fixed', 'expand', 'equal'}, default: 'fixed'
+             The packing mode.
+ 
+@@ -419,6 +431,10 @@ class VPacker(PackerBase):
+     """
+     VPacker packs its children vertically, automatically adjusting their
+     relative positions at draw time.
++
++    The *align* parameter sets both the horizontal alignment of each child
++    with respect to the packing width ('left', 'right' or 'center') and the
++    vertical anchor of the packing itself ('top', 'bottom' or 'baseline').
+     """
+ 
+     def get_extent_offsets(self, renderer):
+@@ -460,6 +476,18 @@ class HPacker(PackerBase):
+     """
+     HPacker packs its children horizontally, automatically adjusting their
+     relative positions at draw time.
++
++    The *align* parameter sets the vertical alignment of each child with
++    respect to the packing height:
++
++    - ``'top'``: the top of each child is aligned with the top of the packing.
++    - ``'bottom'``: the bottom of each child is aligned with the bottom of the
++      packing.
++    - ``'baseline'``: the baselines of the children are aligned.
++    - ``'center'``: the children are centered vertically.
++
++    The horizontal values ('left', 'right' and 'center') instead select the
++    horizontal anchor of the packed children within the packing width.
+     """
+ 
+     def get_extent_offsets(self, renderer):
+diff --git a/lib/matplotlib/tests/test_offsetbox.py b/lib/matplotlib/tests/test_offsetbox.py
+index 02756ff55..8d03242ae 100644
+--- a/lib/matplotlib/tests/test_offsetbox.py
++++ b/lib/matplotlib/tests/test_offsetbox.py
+@@ -12,8 +12,8 @@ import matplotlib.lines as mlines
+ from matplotlib.backend_bases import MouseButton, MouseEvent
+ 
+ from matplotlib.offsetbox import (
+-    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DrawingArea, OffsetBox,
+-    OffsetImage, TextArea, _get_packed_offsets)
++    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DrawingArea, HPacker,
++    OffsetBox, OffsetImage, TextArea, _get_packed_offsets)
+ 
+ 
+ @image_comparison(['offsetbox_clipping'], remove_text=True)
+@@ -187,6 +187,35 @@ def test_get_packed_offsets_equal_total_none_sep_none():
+         _get_packed_offsets([1, 1, 1], total=None, sep=None, mode='equal')
+ 
+ 
++def test_hpacker_align():
++    # The vertical alignment of an HPacker must follow the *artist* coordinate
++    # convention: 'top' anchors the children at the top of the pack, while
++    # 'bottom' aligns them at the bottom, regardless of their sizes.
++    fig, ax = plt.subplots()
++    da1, da2 = DrawingArea(1, 1), DrawingArea(1, 2)
++    packer = HPacker(children=[da1, da2], pad=0, sep=0, align='top')
++    ax.add_artist(AnchoredOffsetbox(child=packer, loc="center"))
++    fig.canvas.draw()
++
++    # 'top': the top edges of all children coincide with the top of the pack.
++    bbox = packer.get_window_extent()
++    assert_allclose(da1.get_window_extent().y1, da2.get_window_extent().y1)
++    assert_allclose([da1.get_window_extent().y1, da2.get_window_extent().y1],
++                    [bbox.y1, bbox.y1])
++    # ... and the shorter child's bottom edge sits above the taller one's.
++    assert da2.get_window_extent().y0 < da1.get_window_extent().y0
++
++    # 'bottom': the bottom edges of all children coincide with the bottom of
++    # the pack, and the shorter child's top edge is the lower one.
++    packer.align = 'bottom'
++    fig.canvas.draw()
++    bbox = packer.get_window_extent()
++    assert_allclose(da1.get_window_extent().y0, da2.get_window_extent().y0)
++    assert_allclose([da1.get_window_extent().y0, da2.get_window_extent().y0],
++                    [bbox.y0, bbox.y0])
++    assert da1.get_window_extent().y1 < da2.get_window_extent().y1
++
++
+ @pytest.mark.parametrize('child_type', ['draw', 'image', 'text'])
+ @pytest.mark.parametrize('boxcoords',
+                          ['axes fraction', 'axes pixels', 'axes points',

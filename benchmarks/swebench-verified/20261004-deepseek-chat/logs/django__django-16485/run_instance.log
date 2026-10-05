@@ -1,0 +1,83 @@
+2026-10-04 18:15:31,674 - INFO - Creating container for django__django-16485...
+2026-10-04 18:15:31,738 - INFO - Container for django__django-16485 created: f934f4b316c355e904dcc3d7e5cd7eb4265b7da4dcb5b0ff81dd37e64eec41d2
+2026-10-04 18:15:31,939 - INFO - Container for django__django-16485 started: f934f4b316c355e904dcc3d7e5cd7eb4265b7da4dcb5b0ff81dd37e64eec41d2
+2026-10-04 18:15:31,939 - INFO - Intermediate patch for django__django-16485 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16485/patch.diff, now applying to container...
+2026-10-04 18:15:32,067 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:15:33,366 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:15:33,739 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:15:34,092 - INFO - >>>>> Applied Patch:
+patching file django/template/defaultfilters.py
+patching file tests/template_tests/filter_tests/test_floatformat.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 111 with fuzz 1.
+
+2026-10-04 18:15:34,226 - INFO - Git diff before:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 23c3a08c67..a4e35db6f4 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -3,7 +3,7 @@ import random as random_module
+ import re
+ import types
+ import warnings
+-from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation
++from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation, getcontext
+ from functools import wraps
+ from inspect import unwrap
+ from operator import itemgetter
+@@ -184,6 +184,7 @@ def floatformat(text, arg=-1):
+     units = len(tupl[1])
+     units += -tupl[2] if m else tupl[2]
+     prec = abs(p) + units + 1
++    prec = max(getcontext().prec, prec)
+ 
+     # Avoid conversion to scientific notation by accessing `sign`, `digits`,
+     # and `exponent` from Decimal.as_tuple() directly.
+diff --git a/tests/template_tests/filter_tests/test_floatformat.py b/tests/template_tests/filter_tests/test_floatformat.py
+index 361a888ce3..db573bef76 100644
+--- a/tests/template_tests/filter_tests/test_floatformat.py
++++ b/tests/template_tests/filter_tests/test_floatformat.py
+@@ -111,6 +111,10 @@ class FunctionTests(SimpleTestCase):
+         self.assertEqual(
+             floatformat(0.000000000000000000015, 20), "0.00000000000000000002"
+         )
++        self.assertEqual(floatformat("0.0000", 2), "0.00")
++        self.assertEqual(floatformat(Decimal("0.0000"), 2), "0.00")
++        self.assertEqual(floatformat("0.000000", 4), "0.0000")
++        self.assertEqual(floatformat(Decimal("0.000000"), 4), "0.0000")
+ 
+     def test_negative_zero_values(self):
+         tests = [
+2026-10-04 18:15:34,226 - INFO - Eval script for django__django-16485 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16485/eval.sh; copying to container...
+2026-10-04 18:15:40,811 - INFO - Test runtime: 6.52 seconds
+2026-10-04 18:15:40,811 - INFO - Test output for django__django-16485 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16485/test_output.txt
+2026-10-04 18:15:40,869 - INFO - Git diff after:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 23c3a08c67..a4e35db6f4 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -3,7 +3,7 @@ import random as random_module
+ import re
+ import types
+ import warnings
+-from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation
++from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation, getcontext
+ from functools import wraps
+ from inspect import unwrap
+ from operator import itemgetter
+@@ -184,6 +184,7 @@ def floatformat(text, arg=-1):
+     units = len(tupl[1])
+     units += -tupl[2] if m else tupl[2]
+     prec = abs(p) + units + 1
++    prec = max(getcontext().prec, prec)
+ 
+     # Avoid conversion to scientific notation by accessing `sign`, `digits`,
+     # and `exponent` from Decimal.as_tuple() directly.
+2026-10-04 18:15:40,869 - INFO - Git diff changed after running eval script
+2026-10-04 18:15:40,869 - INFO - Grading answer for django__django-16485...
+2026-10-04 18:15:40,869 - INFO - report: {'django__django-16485': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_zero_values (template_tests.filter_tests.test_floatformat.FunctionTests.test_zero_values)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_floatformat01 (template_tests.filter_tests.test_floatformat.FloatformatTests.test_floatformat01)', 'test_floatformat02 (template_tests.filter_tests.test_floatformat.FloatformatTests.test_floatformat02)', 'test_float_dunder_method (template_tests.filter_tests.test_floatformat.FunctionTests.test_float_dunder_method)', 'test_force_grouping (template_tests.filter_tests.test_floatformat.FunctionTests.test_force_grouping)', 'test_infinity (template_tests.filter_tests.test_floatformat.FunctionTests.test_infinity)', 'test_inputs (template_tests.filter_tests.test_floatformat.FunctionTests.test_inputs)', '#15789', 'test_negative_zero_values (template_tests.filter_tests.test_floatformat.FunctionTests.test_negative_zero_values)', 'test_unlocalize (template_tests.filter_tests.test_floatformat.FunctionTests.test_unlocalize)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-16485: resolved: True
+2026-10-04 18:15:40,869 - INFO - Attempting to stop container sweb.eval.django__django-16485.wescode-v3...
+2026-10-04 18:15:56,159 - INFO - Container sweb.eval.django__django-16485.wescode-v3 stopped successfully.
+2026-10-04 18:15:56,159 - INFO - Attempting to remove container sweb.eval.django__django-16485.wescode-v3...
+2026-10-04 18:15:56,400 - INFO - Container sweb.eval.django__django-16485.wescode-v3 removed successfully.

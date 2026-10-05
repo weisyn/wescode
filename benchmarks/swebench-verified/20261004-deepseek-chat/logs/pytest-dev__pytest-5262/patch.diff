@@ -1,0 +1,29 @@
+diff --git a/src/_pytest/capture.py b/src/_pytest/capture.py
+index 25eab7fdf..560171134 100644
+--- a/src/_pytest/capture.py
++++ b/src/_pytest/capture.py
+@@ -447,6 +447,10 @@ class EncodedFile(object):
+         """Ensure that file.name is a string."""
+         return repr(self.buffer)
+ 
++    @property
++    def mode(self):
++        return self.buffer.mode.replace("b", "")
++
+     def __getattr__(self, name):
+         return getattr(object.__getattribute__(self, "buffer"), name)
+ 
+diff --git a/testing/test_capture.py b/testing/test_capture.py
+index 5d80eb63d..f1802cc16 100644
+--- a/testing/test_capture.py
++++ b/testing/test_capture.py
+@@ -1051,6 +1051,9 @@ class TestFDCapture(object):
+             cap.done()
+             pytest.raises(AttributeError, cap.suspend)
+ 
++    def test_capfd_sys_stdout_mode(self, capfd):
++        assert "b" not in sys.stdout.mode
++
+ 
+ @contextlib.contextmanager
+ def saved_fd(fd):

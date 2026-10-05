@@ -1,0 +1,92 @@
+2026-10-04 17:39:58,810 - INFO - Creating container for django__django-12193...
+2026-10-04 17:39:58,864 - INFO - Container for django__django-12193 created: ba66a0beb4f71c078f7d950432431e50a96cc16509632a57835732271b67823a
+2026-10-04 17:39:59,071 - INFO - Container for django__django-12193 started: ba66a0beb4f71c078f7d950432431e50a96cc16509632a57835732271b67823a
+2026-10-04 17:39:59,071 - INFO - Intermediate patch for django__django-12193 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12193/patch.diff, now applying to container...
+2026-10-04 17:39:59,191 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:40:00,160 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:40:00,391 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:40:00,620 - INFO - >>>>> Applied Patch:
+patching file django/forms/widgets.py
+patching file tests/forms_tests/widget_tests/test_checkboxinput.py
+patching file tests/postgres_tests/test_array.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1103 with fuzz 1.
+
+2026-10-04 17:40:00,686 - INFO - Git diff before:
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 6fe220bea7..d83d63c169 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -522,9 +522,7 @@ class CheckboxInput(Input):
+ 
+     def get_context(self, name, value, attrs):
+         if self.check_test(value):
+-            if attrs is None:
+-                attrs = {}
+-            attrs['checked'] = True
++            attrs = {**(attrs or {}), 'checked': True}
+         return super().get_context(name, value, attrs)
+ 
+     def value_from_datadict(self, data, files, name):
+diff --git a/tests/forms_tests/widget_tests/test_checkboxinput.py b/tests/forms_tests/widget_tests/test_checkboxinput.py
+index 6483b7f211..8dba2178c9 100644
+--- a/tests/forms_tests/widget_tests/test_checkboxinput.py
++++ b/tests/forms_tests/widget_tests/test_checkboxinput.py
+@@ -89,3 +89,8 @@ class CheckboxInputTest(WidgetTest):
+     def test_value_omitted_from_data(self):
+         self.assertIs(self.widget.value_omitted_from_data({'field': 'value'}, {}, 'field'), False)
+         self.assertIs(self.widget.value_omitted_from_data({}, {}, 'field'), False)
++
++    def test_get_context_does_not_mutate_attrs(self):
++        attrs = {'checked': False}
++        self.widget.get_context('name', True, attrs)
++        self.assertIs(attrs['checked'], False)
+diff --git a/tests/postgres_tests/test_array.py b/tests/postgres_tests/test_array.py
+index 481d93f830..ee66fbcd60 100644
+--- a/tests/postgres_tests/test_array.py
++++ b/tests/postgres_tests/test_array.py
+@@ -1103,6 +1103,17 @@ class TestSplitFormWidget(PostgreSQLWidgetTestCase):
+             }
+         )
+ 
++    def test_checkbox_get_context_attrs(self):
++        context = SplitArrayWidget(
++            forms.CheckboxInput(),
++            size=2,
++        ).get_context('name', [True, False])
++        self.assertEqual(context['widget']['value'], '[True, False]')
++        self.assertEqual(
++            [subwidget['attrs'] for subwidget in context['widget']['subwidgets']],
++            [{'checked': True}, {}]
++        )
++
+     def test_render(self):
+         self.check_html(
+             SplitArrayWidget(forms.TextInput(), size=2), 'array', None,
+2026-10-04 17:40:00,687 - INFO - Eval script for django__django-12193 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12193/eval.sh; copying to container...
+2026-10-04 17:40:07,259 - INFO - Test runtime: 6.50 seconds
+2026-10-04 17:40:07,259 - INFO - Test output for django__django-12193 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12193/test_output.txt
+2026-10-04 17:40:07,325 - INFO - Git diff after:
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 6fe220bea7..d83d63c169 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -522,9 +522,7 @@ class CheckboxInput(Input):
+ 
+     def get_context(self, name, value, attrs):
+         if self.check_test(value):
+-            if attrs is None:
+-                attrs = {}
+-            attrs['checked'] = True
++            attrs = {**(attrs or {}), 'checked': True}
+         return super().get_context(name, value, attrs)
+ 
+     def value_from_datadict(self, data, files, name):
+2026-10-04 17:40:07,325 - INFO - Git diff changed after running eval script
+2026-10-04 17:40:07,325 - INFO - Grading answer for django__django-12193...
+2026-10-04 17:40:07,327 - INFO - report: {'django__django-12193': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_get_context_does_not_mutate_attrs (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_render_check_exception (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_render_check_test (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_render_empty (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_render_false (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_render_int (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_render_none (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_render_true (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_render_value (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_value_from_datadict (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_value_from_datadict_string_int (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)', 'test_value_omitted_from_data (forms_tests.widget_tests.test_checkboxinput.CheckboxInputTest)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12193: resolved: True
+2026-10-04 17:40:07,328 - INFO - Attempting to stop container sweb.eval.django__django-12193.wescode-v3...
+2026-10-04 17:40:22,510 - INFO - Container sweb.eval.django__django-12193.wescode-v3 stopped successfully.
+2026-10-04 17:40:22,510 - INFO - Attempting to remove container sweb.eval.django__django-12193.wescode-v3...
+2026-10-04 17:40:22,709 - INFO - Container sweb.eval.django__django-12193.wescode-v3 removed successfully.

@@ -1,0 +1,72 @@
+diff --git a/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py b/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py
+index ad6a5a8ca..b23e3cac1 100644
+--- a/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py
++++ b/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py
+@@ -426,11 +426,14 @@ class BaseHistGradientBoosting(BaseEstimator, ABC):
+ 
+         Scores are computed on validation data or on training data.
+         """
++        y_small_train = self._inverse_encode_y(y_small_train)
++
+         self.train_score_.append(
+             self.scorer_(self, X_binned_small_train, y_small_train)
+         )
+ 
+         if self._use_validation_data:
++            y_val = self._inverse_encode_y(y_val)
+             self.validation_score_.append(
+                 self.scorer_(self, X_binned_val, y_val)
+             )
+@@ -810,6 +813,11 @@ class HistGradientBoostingRegressor(BaseHistGradientBoosting, RegressorMixin):
+     def _get_loss(self):
+         return _LOSSES[self.loss]()
+ 
++    def _inverse_encode_y(self, y):
++        # Return the original class labels. For regressors, y is already the
++        # original target.
++        return y
++
+ 
+ class HistGradientBoostingClassifier(BaseHistGradientBoosting,
+                                      ClassifierMixin):
+@@ -1034,6 +1042,12 @@ class HistGradientBoostingClassifier(BaseHistGradientBoosting,
+         encoded_y = encoded_y.astype(Y_DTYPE, copy=False)
+         return encoded_y
+ 
++    def _inverse_encode_y(self, y):
++        # The scorer expects the original class labels, while y is encoded in
++        # 0 ... n_classes - 1 (see _encode_y). See issue #14708.
++        y = y.astype(np.intp)
++        return self.classes_[y]
++
+     def _get_loss(self):
+         if self.loss == 'auto':
+             if self.n_trees_per_iteration_ == 1:
+diff --git a/sklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py b/sklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py
+index 1eebdefd5..32fc47a4a 100644
+--- a/sklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py
++++ b/sklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py
+@@ -253,6 +253,23 @@ def test_zero_division_hessians(data):
+     gb.fit(X, y)
+ 
+ 
++def test_early_stopping_classification_with_string_target():
++    # Non-regression test for issue #14708: early stopping used to fail with a
++    # string target because the scorer received the internally encoded y while
++    # the predictions were the original string classes.
++    X, y = make_classification(n_samples=100, random_state=0)
++    y = y.astype(str)
++    gb = HistGradientBoostingClassifier(
++        min_samples_leaf=5,
++        max_iter=10,
++        n_iter_no_change=5,
++        random_state=0
++    )
++    gb.fit(X, y)
++
++    assert set(gb.classes_) == set(np.unique(y))
++
++
+ def test_small_trainset():
+     # Make sure that the small trainset is stratified and has the expected
+     # length (10k samples)

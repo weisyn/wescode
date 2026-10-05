@@ -1,0 +1,66 @@
+2026-10-04 18:52:25,567 - INFO - Creating container for psf__requests-1142...
+2026-10-04 18:52:25,612 - INFO - Container for psf__requests-1142 created: 16696e714174d24fd21f713f2694d3a782094bbe24ce5fbae5ed4f71a2ebc1e0
+2026-10-04 18:52:25,818 - INFO - Container for psf__requests-1142 started: 16696e714174d24fd21f713f2694d3a782094bbe24ce5fbae5ed4f71a2ebc1e0
+2026-10-04 18:52:25,818 - INFO - Intermediate patch for psf__requests-1142 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/psf__requests-1142/patch.diff, now applying to container...
+2026-10-04 18:52:25,943 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:52:26,099 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:52:26,213 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:52:26,335 - INFO - >>>>> Applied Patch:
+patching file requests/models.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 386 with fuzz 1.
+
+2026-10-04 18:52:26,388 - INFO - Git diff before:
+diff --git a/requests/models.py b/requests/models.py
+index 9926045..bb1a026 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -386,13 +386,15 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+         self.body = body
+ 
+     def prepare_content_length(self, body):
+-        self.headers['Content-Length'] = '0'
+         if hasattr(body, 'seek') and hasattr(body, 'tell'):
+             body.seek(0, 2)
+             self.headers['Content-Length'] = str(body.tell())
+             body.seek(0, 0)
+         elif body is not None:
+             self.headers['Content-Length'] = str(len(body))
++        elif self.headers.get('Content-Length', '').strip() == '':
++            # Remove any stale Content-Length when there's no body to report.
++            self.headers.pop('Content-Length', None)
+ 
+     def prepare_auth(self, auth):
+         """Prepares the given HTTP auth data."""
+2026-10-04 18:52:26,389 - INFO - Eval script for psf__requests-1142 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/psf__requests-1142/eval.sh; copying to container...
+2026-10-04 18:52:30,333 - INFO - Test runtime: 3.89 seconds
+2026-10-04 18:52:30,334 - INFO - Test output for psf__requests-1142 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/psf__requests-1142/test_output.txt
+2026-10-04 18:52:30,383 - INFO - Git diff after:
+diff --git a/requests/models.py b/requests/models.py
+index 9926045..bb1a026 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -386,13 +386,15 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+         self.body = body
+ 
+     def prepare_content_length(self, body):
+-        self.headers['Content-Length'] = '0'
+         if hasattr(body, 'seek') and hasattr(body, 'tell'):
+             body.seek(0, 2)
+             self.headers['Content-Length'] = str(body.tell())
+             body.seek(0, 0)
+         elif body is not None:
+             self.headers['Content-Length'] = str(len(body))
++        elif self.headers.get('Content-Length', '').strip() == '':
++            # Remove any stale Content-Length when there's no body to report.
++            self.headers.pop('Content-Length', None)
+ 
+     def prepare_auth(self, auth):
+         """Prepares the given HTTP auth data."""
+2026-10-04 18:52:30,383 - INFO - Grading answer for psf__requests-1142...
+2026-10-04 18:52:30,386 - INFO - report: {'psf__requests-1142': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_requests.py::RequestsTestCase::test_no_content_length'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_requests.py::RequestsTestCase::test_basic_building', 'test_requests.py::RequestsTestCase::test_entry_points', 'test_requests.py::RequestsTestCase::test_invalid_url', 'test_requests.py::RequestsTestCase::test_params_are_added_before_fragment', 'test_requests.py::RequestsTestCase::test_path_is_not_double_encoded'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for psf__requests-1142: resolved: True
+2026-10-04 18:52:30,386 - INFO - Attempting to stop container sweb.eval.psf__requests-1142.wescode-v3...
+2026-10-04 18:52:45,515 - INFO - Container sweb.eval.psf__requests-1142.wescode-v3 stopped successfully.
+2026-10-04 18:52:45,515 - INFO - Attempting to remove container sweb.eval.psf__requests-1142.wescode-v3...
+2026-10-04 18:52:45,541 - INFO - Container sweb.eval.psf__requests-1142.wescode-v3 removed successfully.

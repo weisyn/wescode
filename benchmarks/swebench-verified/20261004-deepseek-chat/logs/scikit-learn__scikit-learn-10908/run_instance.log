@@ -1,0 +1,93 @@
+2026-10-04 19:18:26,827 - INFO - Creating container for scikit-learn__scikit-learn-10908...
+2026-10-04 19:18:26,869 - INFO - Container for scikit-learn__scikit-learn-10908 created: 9f79bd8e1f4642f9c2a1d3cb9c24552cdcb8b7bdaa7db9ab3d2cd18b5cfbf2d5
+2026-10-04 19:18:27,068 - INFO - Container for scikit-learn__scikit-learn-10908 started: 9f79bd8e1f4642f9c2a1d3cb9c24552cdcb8b7bdaa7db9ab3d2cd18b5cfbf2d5
+2026-10-04 19:18:27,068 - INFO - Intermediate patch for scikit-learn__scikit-learn-10908 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-10908/patch.diff, now applying to container...
+2026-10-04 19:18:27,189 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:18:27,364 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:18:27,479 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:18:27,624 - INFO - >>>>> Applied Patch:
+patching file sklearn/feature_extraction/tests/test_text.py
+patching file sklearn/feature_extraction/text.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 993 with fuzz 1.
+
+2026-10-04 19:18:27,685 - INFO - Git diff before:
+diff --git a/sklearn/feature_extraction/tests/test_text.py b/sklearn/feature_extraction/tests/test_text.py
+index 22fbd3f17..f581cd8e7 100755
+--- a/sklearn/feature_extraction/tests/test_text.py
++++ b/sklearn/feature_extraction/tests/test_text.py
+@@ -19,6 +19,7 @@ from sklearn.pipeline import Pipeline
+ from sklearn.svm import LinearSVC
+ 
+ from sklearn.base import clone
++from sklearn.exceptions import NotFittedError
+ 
+ import numpy as np
+ from numpy.testing import assert_array_almost_equal
+@@ -559,6 +560,26 @@ def test_feature_names():
+         assert_equal(idx, cv.vocabulary_.get(name))
+ 
+ 
++def test_feature_names_with_vocabulary_no_fit():
++    # get_feature_names should work when the vocabulary is provided to the
++    # constructor, even if the vectorizer has not been fitted yet.
++    vocabulary = ['and', 'document', 'first', 'is', 'one', 'second', 'the',
++                  'third', 'this']
++    cv = CountVectorizer(vocabulary=vocabulary)
++    assert_false(hasattr(cv, 'vocabulary_'))
++    assert_array_equal(vocabulary, cv.get_feature_names())
++    assert_equal(vocabulary, sorted(cv.vocabulary_,
++                                    key=cv.vocabulary_.__getitem__))
++
++    # a duplicate term in the provided vocabulary is still detected
++    cv = CountVectorizer(vocabulary=['a', 'a', 'b'])
++    assert_raises(ValueError, cv.get_feature_names)
++
++    # without any vocabulary, an unfitted vectorizer still raises
++    cv = CountVectorizer()
++    assert_raises(NotFittedError, cv.get_feature_names)
++
++
+ def test_vectorizer_max_features():
+     vec_factories = (
+         CountVectorizer,
+diff --git a/sklearn/feature_extraction/text.py b/sklearn/feature_extraction/text.py
+index 9b1ebd632..789e101cc 100755
+--- a/sklearn/feature_extraction/text.py
++++ b/sklearn/feature_extraction/text.py
+@@ -993,6 +993,9 @@ class CountVectorizer(BaseEstimator, VectorizerMixin):
+ 
+     def get_feature_names(self):
+         """Array mapping from feature integer indices to feature name"""
++        if not hasattr(self, 'vocabulary_'):
++            self._validate_vocabulary()
++
+         self._check_vocabulary()
+ 
+         return [t for t, i in sorted(six.iteritems(self.vocabulary_),
+2026-10-04 19:18:27,686 - INFO - Eval script for scikit-learn__scikit-learn-10908 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-10908/eval.sh; copying to container...
+2026-10-04 19:18:33,592 - INFO - Test runtime: 5.85 seconds
+2026-10-04 19:18:33,593 - INFO - Test output for scikit-learn__scikit-learn-10908 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-10908/test_output.txt
+2026-10-04 19:18:33,648 - INFO - Git diff after:
+diff --git a/sklearn/feature_extraction/text.py b/sklearn/feature_extraction/text.py
+index 9b1ebd632..789e101cc 100755
+--- a/sklearn/feature_extraction/text.py
++++ b/sklearn/feature_extraction/text.py
+@@ -993,6 +993,9 @@ class CountVectorizer(BaseEstimator, VectorizerMixin):
+ 
+     def get_feature_names(self):
+         """Array mapping from feature integer indices to feature name"""
++        if not hasattr(self, 'vocabulary_'):
++            self._validate_vocabulary()
++
+         self._check_vocabulary()
+ 
+         return [t for t, i in sorted(six.iteritems(self.vocabulary_),
+2026-10-04 19:18:33,648 - INFO - Git diff changed after running eval script
+2026-10-04 19:18:33,648 - INFO - Grading answer for scikit-learn__scikit-learn-10908...
+2026-10-04 19:18:33,650 - INFO - report: {'scikit-learn__scikit-learn-10908': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/feature_extraction/tests/test_text.py::test_feature_names'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/feature_extraction/tests/test_text.py::test_strip_accents', 'sklearn/feature_extraction/tests/test_text.py::test_to_ascii', 'sklearn/feature_extraction/tests/test_text.py::test_word_analyzer_unigrams', 'sklearn/feature_extraction/tests/test_text.py::test_word_analyzer_unigrams_and_bigrams', 'sklearn/feature_extraction/tests/test_text.py::test_unicode_decode_error', 'sklearn/feature_extraction/tests/test_text.py::test_char_ngram_analyzer', 'sklearn/feature_extraction/tests/test_text.py::test_char_wb_ngram_analyzer', 'sklearn/feature_extraction/tests/test_text.py::test_word_ngram_analyzer', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_custom_vocabulary', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_custom_vocabulary_pipeline', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_custom_vocabulary_repeated_indices', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_custom_vocabulary_gap_index', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_stop_words', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_empty_vocabulary', 'sklearn/feature_extraction/tests/test_text.py::test_fit_countvectorizer_twice', 'sklearn/feature_extraction/tests/test_text.py::test_tf_idf_smoothing', 'sklearn/feature_extraction/tests/test_text.py::test_tfidf_no_smoothing', 'sklearn/feature_extraction/tests/test_text.py::test_sublinear_tf', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer', 'sklearn/feature_extraction/tests/test_text.py::test_tfidf_vectorizer_setters', 'sklearn/feature_extraction/tests/test_text.py::test_hashing_vectorizer', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_max_features', 'sklearn/feature_extraction/tests/test_text.py::test_count_vectorizer_max_features', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_max_df', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_min_df', 'sklearn/feature_extraction/tests/test_text.py::test_count_binary_occurrences', 'sklearn/feature_extraction/tests/test_text.py::test_hashed_binary_occurrences', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_inverse_transform', 'sklearn/feature_extraction/tests/test_text.py::test_count_vectorizer_pipeline_grid_selection', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_pipeline_grid_selection', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_pipeline_cross_validation', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_unicode', 'sklearn/feature_extraction/tests/test_text.py::test_tfidf_vectorizer_with_fixed_vocabulary', 'sklearn/feature_extraction/tests/test_text.py::test_pickling_vectorizer', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_vocab_sets_when_pickling', 'sklearn/feature_extraction/tests/test_text.py::test_countvectorizer_vocab_dicts_when_pickling', 'sklearn/feature_extraction/tests/test_text.py::test_stop_words_removal', 'sklearn/feature_extraction/tests/test_text.py::test_pickling_transformer', 'sklearn/feature_extraction/tests/test_text.py::test_non_unique_vocab', 'sklearn/feature_extraction/tests/test_text.py::test_hashingvectorizer_nan_in_docs', 'sklearn/feature_extraction/tests/test_text.py::test_tfidfvectorizer_binary', 'sklearn/feature_extraction/tests/test_text.py::test_tfidfvectorizer_export_idf', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_vocab_clone', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizer_string_object_as_input', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizers_invalid_ngram_range[vec0]', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizers_invalid_ngram_range[vec1]', 'sklearn/feature_extraction/tests/test_text.py::test_vectorizers_invalid_ngram_range[vec2]'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-10908: resolved: True
+2026-10-04 19:18:33,650 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-10908.wescode-v3...
+2026-10-04 19:18:48,789 - INFO - Container sweb.eval.scikit-learn__scikit-learn-10908.wescode-v3 stopped successfully.
+2026-10-04 19:18:48,790 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-10908.wescode-v3...
+2026-10-04 19:18:48,812 - INFO - Container sweb.eval.scikit-learn__scikit-learn-10908.wescode-v3 removed successfully.

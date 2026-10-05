@@ -1,0 +1,46 @@
+diff --git a/doc/whats_new/v0.21.rst b/doc/whats_new/v0.21.rst
+index e3e3ec9f8..ed5f270d4 100644
+--- a/doc/whats_new/v0.21.rst
++++ b/doc/whats_new/v0.21.rst
+@@ -234,6 +234,11 @@ Support for Python 3.4 and below has been officially dropped.
+   now supports fitting the intercept (i.e. ``fit_intercept=True``) when
+   inputs are sparse . :issue:`13336` by :user:`Bartosz Telenczuk <btel>`
+ 
++- |Fix| Fixed a bug in :class:`linear_model.HuberRegressor` that was
++  broken when X was of dtype bool.
++  :issue:`13328` by `Alexandre Gramfort`_.
++
++
+ :mod:`sklearn.manifold`
+ ............................
+ 
+diff --git a/sklearn/linear_model/huber.py b/sklearn/linear_model/huber.py
+index 65c686400..285913684 100644
+--- a/sklearn/linear_model/huber.py
++++ b/sklearn/linear_model/huber.py
+@@ -251,7 +251,8 @@ class HuberRegressor(LinearModel, RegressorMixin, BaseEstimator):
+         self : object
+         """
+         X, y = check_X_y(
+-            X, y, copy=False, accept_sparse=['csr'], y_numeric=True)
++            X, y, copy=False, accept_sparse=['csr'], y_numeric=True,
++            dtype=[np.float64, np.float32])
+         if sample_weight is not None:
+             sample_weight = np.array(sample_weight)
+             check_consistent_length(y, sample_weight)
+diff --git a/sklearn/linear_model/tests/test_huber.py b/sklearn/linear_model/tests/test_huber.py
+index 6a8b26133..c8606c590 100644
+--- a/sklearn/linear_model/tests/test_huber.py
++++ b/sklearn/linear_model/tests/test_huber.py
+@@ -199,3 +199,11 @@ def test_huber_better_r2_score():
+ 
+     # The huber model should also fit poorly on the outliers.
+     assert_greater(ridge_outlier_score, huber_outlier_score)
++
++
++def test_huber_bool():
++    # Test that it does not crash with bool data
++    X, y = make_regression(n_samples=200, n_features=2, noise=4.0,
++                           random_state=0)
++    X_bool = X > 0
++    HuberRegressor().fit(X_bool, y)

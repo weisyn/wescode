@@ -1,0 +1,58 @@
+diff --git a/CHANGES b/CHANGES
+index 6c2761c53..d50886516 100644
+--- a/CHANGES
++++ b/CHANGES
+@@ -103,6 +103,7 @@ Bugs fixed
+   specified
+ * #7650: autodoc: undecorated signature is shown for decorated functions
+ * #7676: autodoc: typo in the default value of autodoc_member_order
++* #7757: autodoc: The default value for positional only argument is not shown
+ * #7676: autodoc: wrong value for :member-order: option is ignored silently
+ * #7676: autodoc: member-order="bysource" does not work for C module
+ * #3673: autodoc: member-order="bysource" does not work for a module having
+diff --git a/sphinx/util/inspect.py b/sphinx/util/inspect.py
+index 15f0d66e2..76d2b60ac 100644
+--- a/sphinx/util/inspect.py
++++ b/sphinx/util/inspect.py
+@@ -521,10 +521,16 @@ def signature_from_str(signature: str) -> inspect.Signature:
+     params = []
+ 
+     if hasattr(args, "posonlyargs"):
+-        for arg in args.posonlyargs:  # type: ignore
++        posonlyargs = len(args.posonlyargs)  # type: ignore
++        positionals = posonlyargs + len(args.args)
++        for i, arg in enumerate(args.posonlyargs):  # type: ignore
++            if len(args.defaults) - positionals + i >= 0:
++                default = ast_unparse(args.defaults[i - positionals])
++            else:
++                default = Parameter.empty
+             annotation = ast_unparse(arg.annotation) or Parameter.empty
+             params.append(Parameter(arg.arg, Parameter.POSITIONAL_ONLY,
+-                                    annotation=annotation))
++                                    default=default, annotation=annotation))
+ 
+     for i, arg in enumerate(args.args):
+         if len(args.args) - i <= len(args.defaults):
+diff --git a/tests/test_util_inspect.py b/tests/test_util_inspect.py
+index f16feb698..68a552eaa 100644
+--- a/tests/test_util_inspect.py
++++ b/tests/test_util_inspect.py
+@@ -338,7 +338,18 @@ def test_signature_from_str_positionaly_only_args():
+     sig = inspect.signature_from_str('(a, /, b)')
+     assert list(sig.parameters.keys()) == ['a', 'b']
+     assert sig.parameters['a'].kind == Parameter.POSITIONAL_ONLY
++    assert sig.parameters['a'].default == Parameter.empty
+     assert sig.parameters['b'].kind == Parameter.POSITIONAL_OR_KEYWORD
++    assert sig.parameters['b'].default == Parameter.empty
++
++    sig = inspect.signature_from_str('(a, b=0, /, c=1)')
++    assert list(sig.parameters.keys()) == ['a', 'b', 'c']
++    assert sig.parameters['a'].kind == Parameter.POSITIONAL_ONLY
++    assert sig.parameters['a'].default == Parameter.empty
++    assert sig.parameters['b'].kind == Parameter.POSITIONAL_ONLY
++    assert sig.parameters['b'].default == '0'
++    assert sig.parameters['c'].kind == Parameter.POSITIONAL_OR_KEYWORD
++    assert sig.parameters['c'].default == '1'
+ 
+ 
+ def test_signature_from_str_invalid():

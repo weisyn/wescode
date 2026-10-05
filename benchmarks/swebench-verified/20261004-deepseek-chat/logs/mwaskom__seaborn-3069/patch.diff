@@ -1,0 +1,126 @@
+diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py
+index 4f0290a..69298f4 100644
+--- a/seaborn/_core/plot.py
++++ b/seaborn/_core/plot.py
+@@ -1631,6 +1631,7 @@ class Plotter:
+             ax = sub["ax"]
+             for axis in "xy":
+                 axis_key = sub[axis]
++                axis_obj = getattr(ax, f"{axis}axis")
+ 
+                 # Axis limits
+                 if axis_key in p._limits:
+@@ -1644,6 +1645,20 @@ class Plotter:
+                         hi = cast(float, hi) + 0.5
+                     ax.set(**{f"{axis}lim": (lo, hi)})
+ 
++                # Nominal scale axes are drawn to match categorical plots:
++                # the ticks are padded by 0.5, no grid is shown, and the axis
++                # is inverted if it's on the y dimension.
++                else:
++                    mpl_scale = getattr(axis_obj, "_scale", None)
++                    range_ = getattr(mpl_scale, "_range", None)
++                    if range_ is not None:
++                        ax.set(**{f"{axis}lim": range_})
++                        ax.margins(**{axis: 0})
++                        if not p._theme.get("axes.grid", False):
++                            axis_obj.grid(False)
++                        if axis == "y":
++                            ax.invert_yaxis()
++
+         engine_default = None if p._target is not None else "tight"
+         layout_engine = p._layout_spec.get("engine", engine_default)
+         set_layout_engine(self._figure, layout_engine)
+diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py
+index bbd71ec..5670914 100644
+--- a/seaborn/_core/scales.py
++++ b/seaborn/_core/scales.py
+@@ -60,12 +60,14 @@ class Scale:
+     _matplotlib_scale: ScaleBase
+     _spacer: staticmethod
+     _legend: tuple[list[str], list[Any]] | None
++    _range: tuple[float, float] | None
+ 
+     def __post_init__(self):
+ 
+         self._tick_params = None
+         self._label_params = None
+         self._legend = None
++        self._range = None
+ 
+     def tick(self):
+         raise NotImplementedError()
+@@ -145,6 +147,7 @@ class Nominal(Scale):
+     order: list | None = None
+ 
+     _priority: ClassVar[int] = 3
++    _range: tuple[float, float] | None = None
+ 
+     def _setup(
+         self, data: Series, prop: Property, axis: Axis | None = None,
+@@ -161,6 +164,11 @@ class Nominal(Scale):
+ 
+         units_seed = categorical_order(data, new.order)
+ 
++        # Record the range of the data in categorical units. This is used to
++        # set the axis limits with the same padding as in categorical plots.
++        if len(units_seed):
++            new._range = (-0.5, len(units_seed) - 0.5)
++
+         # TODO move to Nominal._get_scale?
+         # TODO this needs some more complicated rethinking about how to pass
+         # a unit dictionary down to these methods, along with how much we want
+@@ -192,6 +200,10 @@ class Nominal(Scale):
+             # and (B) allow the values parameter for a Coordinate to set xlim/ylim
+             axis.set_view_interval(0, len(units_seed) - 1)
+ 
++        # Stash the categorical range on the matplotlib scale object so that
++        # the plotting machinery can draw the axis with categorical padding.
++        mpl_scale._range = new._range
++
+         new._matplotlib_scale = mpl_scale
+ 
+         # TODO array cast necessary to handle float/int mixture, which we need
+diff --git a/tests/_core/test_plot.py b/tests/_core/test_plot.py
+index 03a6491..c5f5bf6 100644
+--- a/tests/_core/test_plot.py
++++ b/tests/_core/test_plot.py
+@@ -1159,6 +1159,38 @@ class TestPlotting:
+         ax = p._figure.axes[0]
+         assert ax.get_xlim() == (0.5, 2.5)
+ 
++    def test_categorical_limits(self, long_df):
++
++        p = Plot(long_df, x="a", y="y").plot()
++        ax = p._figure.axes[0]
++        n = long_df["a"].nunique()
++        assert ax.get_xlim() == (-.5, n - .5)
++
++    def test_categorical_inverted_y(self, long_df):
++
++        p = Plot(long_df, x="y", y="a").plot()
++        ax = p._figure.axes[0]
++        n = long_df["a"].nunique()
++        assert ax.get_ylim() == (n - .5, -.5)
++
++    def test_categorical_grid_disabled(self, long_df):
++
++        p = Plot(long_df, x="a", y="y").plot()
++        ax = p._figure.axes[0]
++        assert not ax.xaxis.get_gridlines()[0].get_visible()
++
++    def test_categorical_grid_enabled_by_theme(self, long_df):
++
++        p = Plot(long_df, x="a", y="y").theme({"axes.grid": True}).plot()
++        ax = p._figure.axes[0]
++        assert ax.xaxis.get_gridlines()[0].get_visible()
++
++    def test_categorical_limits_defer_to_limit(self):
++
++        p = Plot(x=["a", "b", "c", "d"], y=[1, 2, 3, 4]).limit(x=("b", "c")).plot()
++        ax = p._figure.axes[0]
++        assert ax.get_xlim() == (0.5, 2.5)
++
+     def test_labels_axis(self, long_df):
+ 
+         label = "Y axis"

@@ -1,0 +1,62 @@
+diff --git a/lib/matplotlib/dates.py b/lib/matplotlib/dates.py
+index 0766156d6..00b8feb3c 100644
+--- a/lib/matplotlib/dates.py
++++ b/lib/matplotlib/dates.py
+@@ -595,8 +595,9 @@ def _wrap_in_tex(text):
+     p = r'([a-zA-Z]+)'
+     ret_text = re.sub(p, r'}$\1$\\mathdefault{', text)
+ 
+-    # Braces ensure dashes are not spaced like binary operators.
+-    ret_text = '$\\mathdefault{'+ret_text.replace('-', '{-}')+'}$'
++    # Braces ensure symbols are not spaced like binary operators.
++    ret_text = ret_text.replace('-', '{-}').replace(':', '{:}')
++    ret_text = '$\\mathdefault{' + ret_text + '}$'
+     ret_text = ret_text.replace('$\\mathdefault{}$', '')
+     return ret_text
+ 
+@@ -847,6 +848,10 @@ class ConciseDateFormatter(ticker.Formatter):
+         else:
+             return labels
+ 
++    @property
++    def formatter(self):
++        return self._formatter
++
+     def get_offset(self):
+         return self.offset_string
+ 
+diff --git a/lib/matplotlib/tests/test_dates.py b/lib/matplotlib/tests/test_dates.py
+index 96a3db173..137b67b8e 100644
+--- a/lib/matplotlib/tests/test_dates.py
++++ b/lib/matplotlib/tests/test_dates.py
+@@ -327,7 +327,7 @@ def test_date_formatter_callable():
+     (datetime.timedelta(days=30),
+      [r'Jan$\mathdefault{ %02d 1990}$' % (day,) for day in range(1, 32, 3)]),
+     (datetime.timedelta(hours=20),
+-     [r'$\mathdefault{%02d:00:00}$' % (hour,) for hour in range(0, 21, 2)]),
++     [r'$\mathdefault{%02d{:}00{:}00}$' % (hour,) for hour in range(0, 21, 2)]),
+ ])
+ def test_date_formatter_usetex(delta, expected):
+     d1 = datetime.datetime(1990, 1, 1)
+@@ -609,14 +609,14 @@ def test_concise_formatter_show_offset(t_delta, expected):
+       '$\\mathdefault{25}$', '$\\mathdefault{29}$', 'Feb',
+       '$\\mathdefault{05}$', '$\\mathdefault{09}$']),
+     (datetime.timedelta(hours=40),
+-     ['Jan$\\mathdefault{{-}01}$', '$\\mathdefault{04:00}$',
+-      '$\\mathdefault{08:00}$', '$\\mathdefault{12:00}$',
+-      '$\\mathdefault{16:00}$', '$\\mathdefault{20:00}$',
+-      'Jan$\\mathdefault{{-}02}$', '$\\mathdefault{04:00}$',
+-      '$\\mathdefault{08:00}$', '$\\mathdefault{12:00}$',
+-      '$\\mathdefault{16:00}$']),
++     ['Jan$\\mathdefault{{-}01}$', '$\\mathdefault{04{:}00}$',
++      '$\\mathdefault{08{:}00}$', '$\\mathdefault{12{:}00}$',
++      '$\\mathdefault{16{:}00}$', '$\\mathdefault{20{:}00}$',
++      'Jan$\\mathdefault{{-}02}$', '$\\mathdefault{04{:}00}$',
++      '$\\mathdefault{08{:}00}$', '$\\mathdefault{12{:}00}$',
++      '$\\mathdefault{16{:}00}$']),
+     (datetime.timedelta(seconds=2),
+-     ['$\\mathdefault{59.5}$', '$\\mathdefault{00:00}$',
++     ['$\\mathdefault{59.5}$', '$\\mathdefault{00{:}00}$',
+       '$\\mathdefault{00.5}$', '$\\mathdefault{01.0}$',
+       '$\\mathdefault{01.5}$', '$\\mathdefault{02.0}$',
+       '$\\mathdefault{02.5}$']),

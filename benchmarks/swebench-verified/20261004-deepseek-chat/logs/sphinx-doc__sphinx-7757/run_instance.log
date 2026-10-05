@@ -1,0 +1,120 @@
+2026-10-04 19:28:22,310 - INFO - Creating container for sphinx-doc__sphinx-7757...
+2026-10-04 19:28:22,354 - INFO - Container for sphinx-doc__sphinx-7757 created: 6353eb9b0c0aebc336f55ef33e3054ec70cf31fa4d05ed86a08d3abcfc6a51b0
+2026-10-04 19:28:22,556 - INFO - Container for sphinx-doc__sphinx-7757 started: 6353eb9b0c0aebc336f55ef33e3054ec70cf31fa4d05ed86a08d3abcfc6a51b0
+2026-10-04 19:28:22,557 - INFO - Intermediate patch for sphinx-doc__sphinx-7757 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7757/patch.diff, now applying to container...
+2026-10-04 19:28:22,670 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:28:22,927 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:28:23,037 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:28:23,156 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/util/inspect.py
+patching file tests/test_util_inspect.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 338 with fuzz 1.
+
+2026-10-04 19:28:23,226 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index 6c2761c53..d50886516 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -103,6 +103,7 @@ Bugs fixed
+   specified
+ * #7650: autodoc: undecorated signature is shown for decorated functions
+ * #7676: autodoc: typo in the default value of autodoc_member_order
++* #7757: autodoc: The default value for positional only argument is not shown
+ * #7676: autodoc: wrong value for :member-order: option is ignored silently
+ * #7676: autodoc: member-order="bysource" does not work for C module
+ * #3673: autodoc: member-order="bysource" does not work for a module having
+diff --git a/sphinx/util/inspect.py b/sphinx/util/inspect.py
+index 15f0d66e2..76d2b60ac 100755
+--- a/sphinx/util/inspect.py
++++ b/sphinx/util/inspect.py
+@@ -521,10 +521,16 @@ def signature_from_str(signature: str) -> inspect.Signature:
+     params = []
+ 
+     if hasattr(args, "posonlyargs"):
+-        for arg in args.posonlyargs:  # type: ignore
++        posonlyargs = len(args.posonlyargs)  # type: ignore
++        positionals = posonlyargs + len(args.args)
++        for i, arg in enumerate(args.posonlyargs):  # type: ignore
++            if len(args.defaults) - positionals + i >= 0:
++                default = ast_unparse(args.defaults[i - positionals])
++            else:
++                default = Parameter.empty
+             annotation = ast_unparse(arg.annotation) or Parameter.empty
+             params.append(Parameter(arg.arg, Parameter.POSITIONAL_ONLY,
+-                                    annotation=annotation))
++                                    default=default, annotation=annotation))
+ 
+     for i, arg in enumerate(args.args):
+         if len(args.args) - i <= len(args.defaults):
+diff --git a/tests/test_util_inspect.py b/tests/test_util_inspect.py
+index f16feb698..68a552eaa 100755
+--- a/tests/test_util_inspect.py
++++ b/tests/test_util_inspect.py
+@@ -338,7 +338,18 @@ def test_signature_from_str_positionaly_only_args():
+     sig = inspect.signature_from_str('(a, /, b)')
+     assert list(sig.parameters.keys()) == ['a', 'b']
+     assert sig.parameters['a'].kind == Parameter.POSITIONAL_ONLY
++    assert sig.parameters['a'].default == Parameter.empty
+     assert sig.parameters['b'].kind == Parameter.POSITIONAL_OR_KEYWORD
++    assert sig.parameters['b'].default == Parameter.empty
++
++    sig = inspect.signature_from_str('(a, b=0, /, c=1)')
++    assert list(sig.parameters.keys()) == ['a', 'b', 'c']
++    assert sig.parameters['a'].kind == Parameter.POSITIONAL_ONLY
++    assert sig.parameters['a'].default == Parameter.empty
++    assert sig.parameters['b'].kind == Parameter.POSITIONAL_ONLY
++    assert sig.parameters['b'].default == '0'
++    assert sig.parameters['c'].kind == Parameter.POSITIONAL_OR_KEYWORD
++    assert sig.parameters['c'].default == '1'
+ 
+ 
+ def test_signature_from_str_invalid():
+2026-10-04 19:28:23,226 - INFO - Eval script for sphinx-doc__sphinx-7757 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7757/eval.sh; copying to container...
+2026-10-04 19:28:28,480 - INFO - Test runtime: 5.20 seconds
+2026-10-04 19:28:28,480 - INFO - Test output for sphinx-doc__sphinx-7757 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7757/test_output.txt
+2026-10-04 19:28:28,537 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index 6c2761c53..d50886516 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -103,6 +103,7 @@ Bugs fixed
+   specified
+ * #7650: autodoc: undecorated signature is shown for decorated functions
+ * #7676: autodoc: typo in the default value of autodoc_member_order
++* #7757: autodoc: The default value for positional only argument is not shown
+ * #7676: autodoc: wrong value for :member-order: option is ignored silently
+ * #7676: autodoc: member-order="bysource" does not work for C module
+ * #3673: autodoc: member-order="bysource" does not work for a module having
+diff --git a/sphinx/util/inspect.py b/sphinx/util/inspect.py
+index 15f0d66e2..76d2b60ac 100755
+--- a/sphinx/util/inspect.py
++++ b/sphinx/util/inspect.py
+@@ -521,10 +521,16 @@ def signature_from_str(signature: str) -> inspect.Signature:
+     params = []
+ 
+     if hasattr(args, "posonlyargs"):
+-        for arg in args.posonlyargs:  # type: ignore
++        posonlyargs = len(args.posonlyargs)  # type: ignore
++        positionals = posonlyargs + len(args.args)
++        for i, arg in enumerate(args.posonlyargs):  # type: ignore
++            if len(args.defaults) - positionals + i >= 0:
++                default = ast_unparse(args.defaults[i - positionals])
++            else:
++                default = Parameter.empty
+             annotation = ast_unparse(arg.annotation) or Parameter.empty
+             params.append(Parameter(arg.arg, Parameter.POSITIONAL_ONLY,
+-                                    annotation=annotation))
++                                    default=default, annotation=annotation))
+ 
+     for i, arg in enumerate(args.args):
+         if len(args.args) - i <= len(args.defaults):
+2026-10-04 19:28:28,537 - INFO - Git diff changed after running eval script
+2026-10-04 19:28:28,537 - INFO - Grading answer for sphinx-doc__sphinx-7757...
+2026-10-04 19:28:28,540 - INFO - report: {'sphinx-doc__sphinx-7757': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_util_inspect.py::test_signature_from_str_positionaly_only_args'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_util_inspect.py::test_signature', 'tests/test_util_inspect.py::test_signature_partial', 'tests/test_util_inspect.py::test_signature_methods', 'tests/test_util_inspect.py::test_signature_partialmethod', 'tests/test_util_inspect.py::test_signature_annotations', 'tests/test_util_inspect.py::test_signature_annotations_py38', 'tests/test_util_inspect.py::test_signature_from_str_basic', 'tests/test_util_inspect.py::test_signature_from_str_default_values', 'tests/test_util_inspect.py::test_signature_from_str_annotations', 'tests/test_util_inspect.py::test_signature_from_str_complex_annotations', 'tests/test_util_inspect.py::test_signature_from_str_kwonly_args', 'tests/test_util_inspect.py::test_signature_from_str_invalid', 'tests/test_util_inspect.py::test_safe_getattr_with_default', 'tests/test_util_inspect.py::test_safe_getattr_with_exception', 'tests/test_util_inspect.py::test_safe_getattr_with_property_exception', 'tests/test_util_inspect.py::test_safe_getattr_with___dict___override', 'tests/test_util_inspect.py::test_dictionary_sorting', 'tests/test_util_inspect.py::test_set_sorting', 'tests/test_util_inspect.py::test_set_sorting_fallback', 'tests/test_util_inspect.py::test_frozenset_sorting', 'tests/test_util_inspect.py::test_frozenset_sorting_fallback', 'tests/test_util_inspect.py::test_dict_customtype', 'tests/test_util_inspect.py::test_isclassmethod', 'tests/test_util_inspect.py::test_isstaticmethod', 'tests/test_util_inspect.py::test_iscoroutinefunction', 'tests/test_util_inspect.py::test_isfunction', 'tests/test_util_inspect.py::test_isbuiltin', 'tests/test_util_inspect.py::test_isdescriptor', 'tests/test_util_inspect.py::test_isattributedescriptor', 'tests/test_util_inspect.py::test_isproperty', 'tests/test_util_inspect.py::test_unpartial', 'tests/test_util_inspect.py::test_getdoc_inherited_decorated_method', 'tests/test_util_inspect.py::test_is_builtin_class_method'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-7757: resolved: True
+2026-10-04 19:28:28,540 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-7757.wescode-v3...
+2026-10-04 19:28:43,674 - INFO - Container sweb.eval.sphinx-doc__sphinx-7757.wescode-v3 stopped successfully.
+2026-10-04 19:28:43,674 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-7757.wescode-v3...
+2026-10-04 19:28:43,698 - INFO - Container sweb.eval.sphinx-doc__sphinx-7757.wescode-v3 removed successfully.

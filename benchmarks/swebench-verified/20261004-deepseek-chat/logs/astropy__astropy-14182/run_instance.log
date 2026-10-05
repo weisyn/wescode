@@ -1,0 +1,239 @@
+2026-10-04 17:15:14,428 - INFO - Creating container for astropy__astropy-14182...
+2026-10-04 17:15:14,467 - INFO - Container for astropy__astropy-14182 created: b89b32492c3ff733a4ec94fb601841b036bbfe6426ac970d9b5de74166f33df7
+2026-10-04 17:15:14,670 - INFO - Container for astropy__astropy-14182 started: b89b32492c3ff733a4ec94fb601841b036bbfe6426ac970d9b5de74166f33df7
+2026-10-04 17:15:14,670 - INFO - Intermediate patch for astropy__astropy-14182 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-14182/patch.diff, now applying to container...
+2026-10-04 17:15:14,780 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:15:15,235 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:15:15,533 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:15:15,819 - INFO - >>>>> Applied Patch:
+patching file astropy/io/ascii/rst.py
+patching file astropy/io/ascii/tests/test_rst.py
+patching file docs/io/ascii/fixed_width_gallery.rst
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 463 with fuzz 1.
+
+2026-10-04 17:15:15,959 - INFO - Git diff before:
+diff --git a/astropy/io/ascii/rst.py b/astropy/io/ascii/rst.py
+index abdeba8ef..d765e369e 100755
+--- a/astropy/io/ascii/rst.py
++++ b/astropy/io/ascii/rst.py
+@@ -27,7 +27,6 @@ class SimpleRSTHeader(FixedWidthHeader):
+ 
+ 
+ class SimpleRSTData(FixedWidthData):
+-    start_line = 3
+     end_line = -1
+     splitter_class = FixedWidthTwoLineDataSplitter
+ 
+@@ -39,12 +38,29 @@ class RST(FixedWidth):
+ 
+     Example::
+ 
+-        ==== ===== ======
+-        Col1  Col2  Col3
+-        ==== ===== ======
+-          1    2.3  Hello
+-          2    4.5  Worlds
+-        ==== ===== ======
++      >>> from astropy.table import QTable
++      >>> import astropy.units as u
++      >>> import sys
++      >>> tbl = QTable({"wave": [350, 950] * u.nm, "response": [0.7, 1.2] * u.count})
++      >>> tbl.write(sys.stdout,  format="ascii.rst")
++      ===== ========
++       wave response
++      ===== ========
++      350.0      0.7
++      950.0      1.2
++      ===== ========
++
++    Like other fixed-width formats, when writing a table you can provide ``header_rows``
++    to specify a list of table rows to output as the header.  For example::
++
++      >>> tbl.write(sys.stdout,  format="ascii.rst", header_rows=['name', 'unit'])
++      ===== ========
++       wave response
++         nm       ct
++      ===== ========
++      350.0      0.7
++      950.0      1.2
++      ===== ========
+ 
+     Currently there is no support for reading tables which utilize continuation lines,
+     or for ones which define column spans through the use of an additional
+@@ -57,10 +73,15 @@ class RST(FixedWidth):
+     data_class = SimpleRSTData
+     header_class = SimpleRSTHeader
+ 
+-    def __init__(self):
+-        super().__init__(delimiter_pad=None, bookend=False)
++    def __init__(self, header_rows=None):
++        super().__init__(delimiter_pad=None, bookend=False, header_rows=header_rows)
+ 
+     def write(self, lines):
+         lines = super().write(lines)
+-        lines = [lines[1]] + lines + [lines[1]]
++        idx = len(self.header.header_rows)
++        lines = [lines[idx]] + lines + [lines[idx]]
+         return lines
++
++    def read(self, table):
++        self.data.start_line = 2 + len(self.header.header_rows)
++        return super().read(table)
+diff --git a/astropy/io/ascii/tests/test_rst.py b/astropy/io/ascii/tests/test_rst.py
+index 84d6fed40..852316ee3 100755
+--- a/astropy/io/ascii/tests/test_rst.py
++++ b/astropy/io/ascii/tests/test_rst.py
+@@ -2,7 +2,10 @@
+ 
+ from io import StringIO
+ 
++import astropy.units as u
++import numpy as np
+ from astropy.io import ascii
++from astropy.table import QTable
+ 
+ from .common import assert_almost_equal, assert_equal
+ 
+@@ -185,3 +188,28 @@ Col1      Col2 Col3 Col4
+ ==== ========= ==== ====
+ """,
+     )
++
++
++def test_rst_with_header_rows():
++    """Round-trip a table with header_rows specified"""
++    lines = [
++        "======= ======== ====",
++        "   wave response ints",
++        "     nm       ct     ",
++        "float64  float32 int8",
++        "======= ======== ====",
++        "  350.0      1.0    1",
++        "  950.0      2.0    2",
++        "======= ======== ====",
++    ]
++    tbl = QTable.read(lines, format="ascii.rst", header_rows=["name", "unit", "dtype"])
++    assert tbl['wave'].unit == u.nm
++    assert tbl['response'].unit == u.ct
++    assert tbl['wave'].dtype == np.float64
++    assert tbl['response'].dtype == np.float32
++    assert tbl['ints'].dtype == np.int8
++
++    out = StringIO()
++    tbl.write(out, format="ascii.rst", header_rows=["name", "unit", "dtype"])
++    assert out.getvalue().splitlines() == lines
++
+diff --git a/docs/io/ascii/fixed_width_gallery.rst b/docs/io/ascii/fixed_width_gallery.rst
+index b0e266cdd..c6b3375bd 100755
+--- a/docs/io/ascii/fixed_width_gallery.rst
++++ b/docs/io/ascii/fixed_width_gallery.rst
+@@ -463,9 +463,9 @@ Fixed Width Two Line
+ Custom Header Rows
+ ==================
+ 
+-The ``fixed_width`` and ``fixed_width_two_line`` formats normally include a
+-single initial row with the column names in the header.  However, it is possible
+-to customize the column attributes which appear as header rows. The available
++The ``fixed_width``, ``fixed_width_two_line``, and ``rst`` formats normally include a
++single row with the column names in the header.  However, for these formats you can
++customize the column attributes which appear as header rows. The available
+ column attributes are ``name``, ``dtype``, ``format``, ``description`` and
+ ``unit``.  This is done by listing the desired the header rows using the
+ ``header_rows`` keyword argument.
+2026-10-04 17:15:15,959 - INFO - Eval script for astropy__astropy-14182 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-14182/eval.sh; copying to container...
+2026-10-04 17:17:00,775 - INFO - Test runtime: 104.76 seconds
+2026-10-04 17:17:00,777 - INFO - Test output for astropy__astropy-14182 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-14182/test_output.txt
+2026-10-04 17:17:00,836 - INFO - Git diff after:
+diff --git a/astropy/io/ascii/rst.py b/astropy/io/ascii/rst.py
+index abdeba8ef..d765e369e 100755
+--- a/astropy/io/ascii/rst.py
++++ b/astropy/io/ascii/rst.py
+@@ -27,7 +27,6 @@ class SimpleRSTHeader(FixedWidthHeader):
+ 
+ 
+ class SimpleRSTData(FixedWidthData):
+-    start_line = 3
+     end_line = -1
+     splitter_class = FixedWidthTwoLineDataSplitter
+ 
+@@ -39,12 +38,29 @@ class RST(FixedWidth):
+ 
+     Example::
+ 
+-        ==== ===== ======
+-        Col1  Col2  Col3
+-        ==== ===== ======
+-          1    2.3  Hello
+-          2    4.5  Worlds
+-        ==== ===== ======
++      >>> from astropy.table import QTable
++      >>> import astropy.units as u
++      >>> import sys
++      >>> tbl = QTable({"wave": [350, 950] * u.nm, "response": [0.7, 1.2] * u.count})
++      >>> tbl.write(sys.stdout,  format="ascii.rst")
++      ===== ========
++       wave response
++      ===== ========
++      350.0      0.7
++      950.0      1.2
++      ===== ========
++
++    Like other fixed-width formats, when writing a table you can provide ``header_rows``
++    to specify a list of table rows to output as the header.  For example::
++
++      >>> tbl.write(sys.stdout,  format="ascii.rst", header_rows=['name', 'unit'])
++      ===== ========
++       wave response
++         nm       ct
++      ===== ========
++      350.0      0.7
++      950.0      1.2
++      ===== ========
+ 
+     Currently there is no support for reading tables which utilize continuation lines,
+     or for ones which define column spans through the use of an additional
+@@ -57,10 +73,15 @@ class RST(FixedWidth):
+     data_class = SimpleRSTData
+     header_class = SimpleRSTHeader
+ 
+-    def __init__(self):
+-        super().__init__(delimiter_pad=None, bookend=False)
++    def __init__(self, header_rows=None):
++        super().__init__(delimiter_pad=None, bookend=False, header_rows=header_rows)
+ 
+     def write(self, lines):
+         lines = super().write(lines)
+-        lines = [lines[1]] + lines + [lines[1]]
++        idx = len(self.header.header_rows)
++        lines = [lines[idx]] + lines + [lines[idx]]
+         return lines
++
++    def read(self, table):
++        self.data.start_line = 2 + len(self.header.header_rows)
++        return super().read(table)
+diff --git a/docs/io/ascii/fixed_width_gallery.rst b/docs/io/ascii/fixed_width_gallery.rst
+index b0e266cdd..c6b3375bd 100755
+--- a/docs/io/ascii/fixed_width_gallery.rst
++++ b/docs/io/ascii/fixed_width_gallery.rst
+@@ -463,9 +463,9 @@ Fixed Width Two Line
+ Custom Header Rows
+ ==================
+ 
+-The ``fixed_width`` and ``fixed_width_two_line`` formats normally include a
+-single initial row with the column names in the header.  However, it is possible
+-to customize the column attributes which appear as header rows. The available
++The ``fixed_width``, ``fixed_width_two_line``, and ``rst`` formats normally include a
++single row with the column names in the header.  However, for these formats you can
++customize the column attributes which appear as header rows. The available
+ column attributes are ``name``, ``dtype``, ``format``, ``description`` and
+ ``unit``.  This is done by listing the desired the header rows using the
+ ``header_rows`` keyword argument.
+2026-10-04 17:17:00,836 - INFO - Git diff changed after running eval script
+2026-10-04 17:17:00,836 - INFO - Grading answer for astropy__astropy-14182...
+2026-10-04 17:17:00,842 - INFO - report: {'astropy__astropy-14182': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/io/ascii/tests/test_rst.py::test_rst_with_header_rows'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/io/ascii/tests/test_rst.py::test_read_normal', 'astropy/io/ascii/tests/test_rst.py::test_read_normal_names', 'astropy/io/ascii/tests/test_rst.py::test_read_normal_names_include', 'astropy/io/ascii/tests/test_rst.py::test_read_normal_exclude', 'astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column', 'astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column_header', 'astropy/io/ascii/tests/test_rst.py::test_read_right_indented_table', 'astropy/io/ascii/tests/test_rst.py::test_trailing_spaces_in_row_definition', 'astropy/io/ascii/tests/test_rst.py::test_write_normal'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-14182: resolved: True
+2026-10-04 17:17:00,842 - INFO - Attempting to stop container sweb.eval.astropy__astropy-14182.wescode-v3...
+2026-10-04 17:17:16,093 - INFO - Container sweb.eval.astropy__astropy-14182.wescode-v3 stopped successfully.
+2026-10-04 17:17:16,093 - INFO - Attempting to remove container sweb.eval.astropy__astropy-14182.wescode-v3...
+2026-10-04 17:17:16,158 - INFO - Container sweb.eval.astropy__astropy-14182.wescode-v3 removed successfully.

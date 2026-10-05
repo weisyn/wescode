@@ -1,0 +1,97 @@
+2026-10-04 17:41:03,286 - INFO - Creating container for django__django-12304...
+2026-10-04 17:41:03,332 - INFO - Container for django__django-12304 created: 6b28b55553d8af00bae763c3098f99e61c36966ca0e14ce658825bd03cba5c54
+2026-10-04 17:41:03,522 - INFO - Container for django__django-12304 started: 6b28b55553d8af00bae763c3098f99e61c36966ca0e14ce658825bd03cba5c54
+2026-10-04 17:41:03,522 - INFO - Intermediate patch for django__django-12304 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12304/patch.diff, now applying to container...
+2026-10-04 17:41:03,630 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:41:04,557 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:41:05,004 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:41:05,435 - INFO - >>>>> Applied Patch:
+patching file django/db/models/enums.py
+patching file docs/releases/3.0.3.txt
+patching file tests/model_enums/tests.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 150 with fuzz 1.
+
+2026-10-04 17:41:05,494 - INFO - Git diff before:
+diff --git a/django/db/models/enums.py b/django/db/models/enums.py
+index f48143ddaf..51821a2b45 100644
+--- a/django/db/models/enums.py
++++ b/django/db/models/enums.py
+@@ -31,6 +31,7 @@ class ChoicesMeta(enum.EnumMeta):
+         # that is passed in as "self" as the value to use when looking up the
+         # label in the choices.
+         cls.label = property(lambda self: cls._value2label_map_.get(self.value))
++        cls.do_not_call_in_templates = True
+         return enum.unique(cls)
+ 
+     def __contains__(cls, member):
+diff --git a/docs/releases/3.0.3.txt b/docs/releases/3.0.3.txt
+index 27ace475d1..ab5a2fd84b 100644
+--- a/docs/releases/3.0.3.txt
++++ b/docs/releases/3.0.3.txt
+@@ -20,3 +20,6 @@ Bugfixes
+ * Relaxed the system check added in Django 3.0 to reallow use of a sublanguage
+   in the :setting:`LANGUAGE_CODE` setting, when a base language is available in
+   Django but the sublanguage is not (:ticket:`31141`).
++
++* Added support for using enumeration types ``TextChoices``,
++  ``IntegerChoices``, and ``Choices`` in templates (:ticket:`31154`).
+diff --git a/tests/model_enums/tests.py b/tests/model_enums/tests.py
+index b9356479de..ffc199ce42 100644
+--- a/tests/model_enums/tests.py
++++ b/tests/model_enums/tests.py
+@@ -4,6 +4,7 @@ import ipaddress
+ import uuid
+ 
+ from django.db import models
++from django.template import Context, Template
+ from django.test import SimpleTestCase
+ from django.utils.functional import Promise
+ from django.utils.translation import gettext_lazy as _
+@@ -149,6 +150,11 @@ class ChoicesTests(SimpleTestCase):
+                 with self.subTest(member=member):
+                     self.assertEqual(str(test[member.name]), str(member.value))
+ 
++    def test_templates(self):
++        template = Template('{{ Suit.DIAMOND.label }}|{{ Suit.DIAMOND.value }}')
++        output = template.render(Context({'Suit': Suit}))
++        self.assertEqual(output, 'Diamond|1')
++
+ 
+ class Separator(bytes, models.Choices):
+     FS = b'\x1c', 'File Separator'
+2026-10-04 17:41:05,494 - INFO - Eval script for django__django-12304 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12304/eval.sh; copying to container...
+2026-10-04 17:41:11,991 - INFO - Test runtime: 6.44 seconds
+2026-10-04 17:41:11,991 - INFO - Test output for django__django-12304 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12304/test_output.txt
+2026-10-04 17:41:12,054 - INFO - Git diff after:
+diff --git a/django/db/models/enums.py b/django/db/models/enums.py
+index f48143ddaf..51821a2b45 100644
+--- a/django/db/models/enums.py
++++ b/django/db/models/enums.py
+@@ -31,6 +31,7 @@ class ChoicesMeta(enum.EnumMeta):
+         # that is passed in as "self" as the value to use when looking up the
+         # label in the choices.
+         cls.label = property(lambda self: cls._value2label_map_.get(self.value))
++        cls.do_not_call_in_templates = True
+         return enum.unique(cls)
+ 
+     def __contains__(cls, member):
+diff --git a/docs/releases/3.0.3.txt b/docs/releases/3.0.3.txt
+index 27ace475d1..ab5a2fd84b 100644
+--- a/docs/releases/3.0.3.txt
++++ b/docs/releases/3.0.3.txt
+@@ -20,3 +20,6 @@ Bugfixes
+ * Relaxed the system check added in Django 3.0 to reallow use of a sublanguage
+   in the :setting:`LANGUAGE_CODE` setting, when a base language is available in
+   Django but the sublanguage is not (:ticket:`31141`).
++
++* Added support for using enumeration types ``TextChoices``,
++  ``IntegerChoices``, and ``Choices`` in templates (:ticket:`31154`).
+2026-10-04 17:41:12,054 - INFO - Git diff changed after running eval script
+2026-10-04 17:41:12,054 - INFO - Grading answer for django__django-12304...
+2026-10-04 17:41:12,055 - INFO - report: {'django__django-12304': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_templates (model_enums.tests.ChoicesTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_integerchoices (model_enums.tests.ChoicesTests)', 'test_integerchoices_auto_label (model_enums.tests.ChoicesTests)', 'test_integerchoices_containment (model_enums.tests.ChoicesTests)', 'test_integerchoices_empty_label (model_enums.tests.ChoicesTests)', 'test_integerchoices_functional_api (model_enums.tests.ChoicesTests)', 'test_invalid_definition (model_enums.tests.ChoicesTests)', 'test_str (model_enums.tests.ChoicesTests)', 'test_textchoices (model_enums.tests.ChoicesTests)', 'test_textchoices_auto_label (model_enums.tests.ChoicesTests)', 'test_textchoices_blank_value (model_enums.tests.ChoicesTests)', 'test_textchoices_containment (model_enums.tests.ChoicesTests)', 'test_textchoices_empty_label (model_enums.tests.ChoicesTests)', 'test_textchoices_functional_api (model_enums.tests.ChoicesTests)', 'test_bool_unsupported (model_enums.tests.CustomChoicesTests)', 'test_labels_valid (model_enums.tests.CustomChoicesTests)', 'test_timezone_unsupported (model_enums.tests.CustomChoicesTests)', 'test_uuid_unsupported (model_enums.tests.CustomChoicesTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12304: resolved: True
+2026-10-04 17:41:12,055 - INFO - Attempting to stop container sweb.eval.django__django-12304.wescode-v3...
+2026-10-04 17:41:27,334 - INFO - Container sweb.eval.django__django-12304.wescode-v3 stopped successfully.
+2026-10-04 17:41:27,334 - INFO - Attempting to remove container sweb.eval.django__django-12304.wescode-v3...
+2026-10-04 17:41:27,509 - INFO - Container sweb.eval.django__django-12304.wescode-v3 removed successfully.

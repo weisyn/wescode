@@ -1,0 +1,39 @@
+diff --git a/astropy/units/decorators.py b/astropy/units/decorators.py
+index 8bece5a85..2835a9ede 100644
+--- a/astropy/units/decorators.py
++++ b/astropy/units/decorators.py
+@@ -220,7 +220,10 @@ class QuantityInput:
+             # Call the original function with any equivalencies in force.
+             with add_enabled_equivalencies(self.equivalencies):
+                 return_ = wrapped_function(*func_args, **func_kwargs)
+-            if wrapped_signature.return_annotation is not inspect.Signature.empty:
++            if (wrapped_signature.return_annotation is not
++                    inspect.Signature.empty):
++                if wrapped_signature.return_annotation is None:
++                    return return_
+                 return return_.to(wrapped_signature.return_annotation)
+             else:
+                 return return_
+diff --git a/astropy/units/tests/py3_test_quantity_annotations.py b/astropy/units/tests/py3_test_quantity_annotations.py
+index 4956b0ec1..728489eee 100644
+--- a/astropy/units/tests/py3_test_quantity_annotations.py
++++ b/astropy/units/tests/py3_test_quantity_annotations.py
+@@ -285,3 +285,18 @@ def test_return_annotation():
+     assert solarx.unit is u.deg
+     """
+     return src
++
++
++@py3only
++def test_return_annotation_none():
++    src = """
++    class PoC(object):
++
++        @u.quantity_input
++        def __init__(self, voltage: u.V) -> None:
++            pass
++
++    poc = PoC(1.*u.V)
++    assert poc is not None
++    """
++    return src

@@ -1,0 +1,56 @@
+diff --git a/CHANGES b/CHANGES
+index d1058ed3b..e545516e2 100644
+--- a/CHANGES
++++ b/CHANGES
+@@ -16,6 +16,8 @@ Features added
+ Bugs fixed
+ ----------
+ 
++* #7462: py domain: fails to parse an empty tuple type annotation (ex. ``Tuple[()]``)
++
+ Testing
+ --------
+ 
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 3ca730e30..b698996ad 100644
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -114,11 +114,15 @@ def _parse_annotation(annotation: str) -> List[Node]:
+             result.append(addnodes.desc_sig_punctuation('', ']'))
+             return result
+         elif isinstance(node, ast.Tuple):
+-            result = []
+-            for elem in node.elts:
+-                result.extend(unparse(elem))
+-                result.append(addnodes.desc_sig_punctuation('', ', '))
+-            result.pop()
++            if node.elts:
++                result = []
++                for elem in node.elts:
++                    result.extend(unparse(elem))
++                    result.append(addnodes.desc_sig_punctuation('', ', '))
++                result.pop()
++            else:
++                result = [addnodes.desc_sig_punctuation('', '('),
++                          addnodes.desc_sig_punctuation('', ')')]
+             return result
+         else:
+             raise SyntaxError  # unsupported syntax
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index cc3d3cf53..c49bdbfa0 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -267,6 +267,13 @@ def test_parse_annotation():
+                           [pending_xref, "int"],
+                           [desc_sig_punctuation, "]"]))
+ 
++    doctree = _parse_annotation("Tuple[()]")
++    assert_node(doctree, ([pending_xref, "Tuple"],
++                          [desc_sig_punctuation, "["],
++                          [desc_sig_punctuation, "("],
++                          [desc_sig_punctuation, ")"],
++                          [desc_sig_punctuation, "]"]))
++
+     # None type makes an object-reference (not a class reference)
+     doctree = _parse_annotation("None")
+     assert_node(doctree, ([pending_xref, "None"],))

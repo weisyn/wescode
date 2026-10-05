@@ -1,0 +1,42 @@
+diff --git a/django/db/migrations/serializer.py b/django/db/migrations/serializer.py
+index e19c881cda..6e78462e95 100644
+--- a/django/db/migrations/serializer.py
++++ b/django/db/migrations/serializer.py
+@@ -273,7 +273,7 @@ class TupleSerializer(BaseSequenceSerializer):
+ class TypeSerializer(BaseSerializer):
+     def serialize(self):
+         special_cases = [
+-            (models.Model, "models.Model", []),
++            (models.Model, "models.Model", ['from django.db import models']),
+             (type(None), 'type(None)', []),
+         ]
+         for case, string, imports in special_cases:
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index a590ff4398..2ddaf1649c 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -726,6 +726,24 @@ class WriterTests(SimpleTestCase):
+             result['custom_migration_operations'].more_operations.TestOperation
+         )
+ 
++    def test_serialize_models_import(self):
++        """
++        Migration generated for models with custom bases contains imports of
++        the base classes (#32937).
++        """
++        model = type(
++            "MyModel",
++            (models.Model,),
++            {
++                "Meta": type("Meta", (), {"app_label": "testapp"}),
++                "__module__": "testapp.models",
++            },
++        )
++        self.assertEqual(
++            MigrationWriter.serialize(model.__bases__[0]),
++            ("models.Model", {"from django.db import models"}),
++        )
++
+     def test_sorted_imports(self):
+         """
+         #24155 - Tests ordering of imports.

@@ -1,0 +1,58 @@
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 9b00e24509..ba3d567613 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -31,9 +31,19 @@ from .utils import get_callable
+ 
+ class ResolverMatch:
+     def __init__(self, func, args, kwargs, url_name=None, app_names=None, namespaces=None, route=None, tried=None):
+-        self.func = func
+         self.args = args
+         self.kwargs = kwargs
++        # If the view is a functools.partial(), unwrap it and merge the bound
++        # arguments so that they are accessible in __repr__().
++        if isinstance(func, functools.partial):
++            func, args = func, []
++            self.args = list(args)
++            self.kwargs = dict(kwargs)
++            while isinstance(func, functools.partial):
++                self.args.extend(func.args)
++                self.kwargs.update(func.keywords)
++                func = func.func
++        self.func = func
+         self.url_name = url_name
+         self.route = route
+         self.tried = tried
+diff --git a/tests/urlpatterns_reverse/tests.py b/tests/urlpatterns_reverse/tests.py
+index 09028be795..7164f84aa5 100644
+--- a/tests/urlpatterns_reverse/tests.py
++++ b/tests/urlpatterns_reverse/tests.py
+@@ -1145,6 +1145,28 @@ class ResolverMatchTests(SimpleTestCase):
+             "namespaces=[], route=^no_kwargs/([0-9]+)/([0-9]+)/$)",
+         )
+ 
++    def test_repr_partial(self):
++        match = ResolverMatch(views.empty_view_partial, (), {})
++        self.assertEqual(
++            repr(match),
++            "ResolverMatch(func=urlpatterns_reverse.views.empty_view, args=[], "
++            "kwargs={'template_name': 'template.html'}, url_name=None, "
++            "app_names=[], namespaces=[], route=None)",
++        )
++        self.assertIs(match.func, views.empty_view)
++
++    def test_repr_partial_nested(self):
++        match = ResolverMatch(views.empty_view_nested_partial, (), {})
++        self.assertIs(match.func, views.empty_view)
++        self.assertEqual(match.kwargs, {'template_name': 'nested_partial.html'})
++
++    def test_repr_partial_wrapped(self):
++        # update_wrapper() sets __wrapped__ on the partial, but it's still
++        # unwrapped exactly once.
++        match = ResolverMatch(views.empty_view_wrapped, (), {})
++        self.assertIs(match.func, views.empty_view)
++        self.assertEqual(match.kwargs, {'template_name': 'template.html'})
++
+ 
+ @override_settings(ROOT_URLCONF='urlpatterns_reverse.erroneous_urls')
+ class ErroneousViewTests(SimpleTestCase):

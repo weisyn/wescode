@@ -1,0 +1,40 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index c55864243..15a3175c6 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -3023,6 +3023,10 @@ class Figure(FigureBase):
+         # Set cached renderer to None -- it can't be pickled.
+         state["_cachedRenderer"] = None
+ 
++        # The canvas may have scaled up the dpi (e.g. for a HiDPI screen);
++        # discard that scaling so that unpickling does not scale it again.
++        state["_dpi"] = state.get('_original_dpi', state['_dpi'])
++
+         # add version information to the state
+         state['__mpl_version__'] = mpl.__version__
+ 
+diff --git a/lib/matplotlib/tests/test_pickle.py b/lib/matplotlib/tests/test_pickle.py
+index 0d0a5e597..ae697d40e 100644
+--- a/lib/matplotlib/tests/test_pickle.py
++++ b/lib/matplotlib/tests/test_pickle.py
+@@ -217,6 +217,20 @@ def test_unpickle_canvas():
+     assert fig2.canvas is not None
+ 
+ 
++def test_unpickle_dpi_is_preserved():
++    # A figure whose dpi was scaled up (e.g. for a HiDPI screen) must not
++    # keep doubling its dpi each time it is pickled and unpickled.
++    fig = mfigure.Figure(dpi=100)
++    # Simulate a canvas that has scaled the dpi up for a HiDPI display.
++    fig._original_dpi = 100
++    fig.canvas._set_device_pixel_ratio(2)
++    assert fig.dpi == 200
++    # The scaled dpi must not be re-scaled on unpickling: dpi stays bounded.
++    for _ in range(3):
++        fig = pickle.loads(pickle.dumps(fig))
++        assert fig.dpi == 100
++
++
+ def test_mpl_toolkits():
+     ax = parasite_axes.host_axes([0, 0, 1, 1])
+     assert type(pickle.loads(pickle.dumps(ax))) == parasite_axes.HostAxes

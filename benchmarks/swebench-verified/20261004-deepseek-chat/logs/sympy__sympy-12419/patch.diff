@@ -1,0 +1,111 @@
+diff --git a/sympy/concrete/delta.py b/sympy/concrete/delta.py
+index 014d5b577d..a219d4844f 100644
+--- a/sympy/concrete/delta.py
++++ b/sympy/concrete/delta.py
+@@ -310,6 +310,11 @@ def deltasummation(f, limit, no_piecewise=False):
+     # try to extract a simple KroneckerDelta term
+     delta, expr = _extract_delta(g, x)
+ 
++    if (delta is not None) and (delta.delta_range is not None):
++        dinf, dsup = delta.delta_range
++        if (limit[1] - dinf <= 0) == True and (limit[2] - dsup >= 0) == True:
++            no_piecewise = True
++
+     if not delta:
+         return summation(f, limit)
+ 
+diff --git a/sympy/functions/special/tensor_functions.py b/sympy/functions/special/tensor_functions.py
+index 547f1b7f4a..da06d820fc 100644
+--- a/sympy/functions/special/tensor_functions.py
++++ b/sympy/functions/special/tensor_functions.py
+@@ -94,6 +94,10 @@ class KroneckerDelta(Function):
+         The first index of the delta function.
+     j : Number, Symbol
+         The second index of the delta function.
++    delta_range : tuple, optional
++        The range within which the delta can be nonzero, given as
++        ``(inf, sup)``.  Index values outside of this range make the
++        delta evaluate to zero.
+ 
+     Examples
+     ========
+@@ -118,6 +122,15 @@ class KroneckerDelta(Function):
+         >>> KroneckerDelta(i, i + 1 + k)
+         KroneckerDelta(i, i + k + 1)
+ 
++    A range can be supplied, restricting where the delta can be nonzero::
++
++        >>> KroneckerDelta(i, j, (0, 3))
++        KroneckerDelta(i, j, (0, 3))
++        >>> KroneckerDelta(4, j, (0, 3))
++        0
++        >>> KroneckerDelta(2, 2, (0, 3))
++        1
++
+     See Also
+     ========
+ 
+@@ -133,7 +146,7 @@ class KroneckerDelta(Function):
+     is_integer = True
+ 
+     @classmethod
+-    def eval(cls, i, j):
++    def eval(cls, i, j, delta_range=None):
+         """
+         Evaluates the discrete delta function.
+ 
+@@ -155,6 +168,17 @@ def eval(cls, i, j):
+         # indirect doctest
+ 
+         """
++        if delta_range is not None:
++            dinf, dsup = delta_range
++            if (dinf - i > 0) == True:
++                return S.Zero
++            if (dinf - j > 0) == True:
++                return S.Zero
++            if (dsup - i < 0) == True:
++                return S.Zero
++            if (dsup - j < 0) == True:
++                return S.Zero
++
+         diff = i - j
+         if diff.is_zero:
+             return S.One
+@@ -171,7 +195,15 @@ def eval(cls, i, j):
+         # following lines will check if inputs are in order
+         # if not, will return KroneckerDelta with correct order
+         if i is not min(i, j, key=default_sort_key):
+-            return cls(j, i)
++            if delta_range:
++                return cls(j, i, delta_range)
++            else:
++                return cls(j, i)
++
++    @property
++    def delta_range(self):
++        if len(self.args) > 2:
++            return self.args[2]
+ 
+     def _eval_power(self, expt):
+         if expt.is_positive:
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index b4d759836e..4ddf7ea547 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -476,10 +476,13 @@ def conjugate(self):
+         return self
+ 
+     def _entry(self, i, j):
+-        if i == j:
++        from sympy import Eq, KroneckerDelta
++        eq = Eq(i, j)
++        if eq is S.true:
+             return S.One
+-        else:
++        elif eq is S.false:
+             return S.Zero
++        return KroneckerDelta(i, j, (0, self.cols-1))
+ 
+     def _eval_determinant(self):
+         return S.One

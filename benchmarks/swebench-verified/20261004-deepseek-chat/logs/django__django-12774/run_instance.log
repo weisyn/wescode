@@ -1,0 +1,156 @@
+2026-10-04 17:43:08,564 - INFO - Creating container for django__django-12774...
+2026-10-04 17:43:08,611 - INFO - Container for django__django-12774 created: f301acc4ad018f516d7f927f64515336c833be9e0b6e22b26055984808b9d12e
+2026-10-04 17:43:08,810 - INFO - Container for django__django-12774 started: f301acc4ad018f516d7f927f64515336c833be9e0b6e22b26055984808b9d12e
+2026-10-04 17:43:08,810 - INFO - Intermediate patch for django__django-12774 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12774/patch.diff, now applying to container...
+2026-10-04 17:43:08,937 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:43:09,894 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:43:10,479 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:43:10,681 - INFO - >>>>> Applied Patch:
+patching file django/db/models/query.py
+patching file tests/lookup/models.py
+patching file tests/lookup/tests.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 190 with fuzz 1.
+
+2026-10-04 17:43:10,737 - INFO - Git diff before:
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index d9c9b0db04..c1aa352701 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -689,7 +689,17 @@ class QuerySet:
+         """
+         assert not self.query.is_sliced, \
+             "Cannot use 'limit' or 'offset' with in_bulk"
+-        if field_name != 'pk' and not self.model._meta.get_field(field_name).unique:
++        opts = self.model._meta
++        unique_fields = [
++            constraint.fields[0]
++            for constraint in opts.total_unique_constraints
++            if len(constraint.fields) == 1
++        ]
++        if (
++            field_name != 'pk' and
++            not opts.get_field(field_name).unique and
++            field_name not in unique_fields
++        ):
+             raise ValueError("in_bulk()'s field_name must be a unique field but %r isn't." % field_name)
+         if id_list is not None:
+             if not id_list:
+diff --git a/tests/lookup/models.py b/tests/lookup/models.py
+index fbc9fa606f..9fd3f14ed3 100644
+--- a/tests/lookup/models.py
++++ b/tests/lookup/models.py
+@@ -67,6 +67,11 @@ class Season(models.Model):
+     gt = models.IntegerField(null=True, blank=True)
+     nulled_text_field = NulledTextField(null=True)
+ 
++    class Meta:
++        constraints = [
++            models.UniqueConstraint(fields=['year'], name='season_year_unique'),
++        ]
++
+     def __str__(self):
+         return str(self.year)
+ 
+diff --git a/tests/lookup/tests.py b/tests/lookup/tests.py
+index baefdf9701..9ed91a6ee0 100644
+--- a/tests/lookup/tests.py
++++ b/tests/lookup/tests.py
+@@ -4,10 +4,11 @@ from math import ceil
+ from operator import attrgetter
+ 
+ from django.core.exceptions import FieldError
+-from django.db import connection
++from django.db import connection, models
+ from django.db.models import Exists, Max, OuterRef
+ from django.db.models.functions import Substr
+ from django.test import TestCase, skipUnlessDBFeature
++from django.test.utils import isolate_apps
+ from django.utils.deprecation import RemovedInDjango40Warning
+ 
+ from .models import (
+@@ -189,11 +190,49 @@ class LookupTests(TestCase):
+             }
+         )
+ 
++    def test_in_bulk_meta_constraint(self):
++        season_2011 = Season.objects.create(year=2011)
++        season_2012 = Season.objects.create(year=2012)
++        Season.objects.create(year=2013)
++        self.assertEqual(
++            Season.objects.in_bulk(
++                [season_2011.year, season_2012.year],
++                field_name='year',
++            ),
++            {season_2011.year: season_2011, season_2012.year: season_2012},
++        )
++
+     def test_in_bulk_non_unique_field(self):
+         msg = "in_bulk()'s field_name must be a unique field but 'author' isn't."
+         with self.assertRaisesMessage(ValueError, msg):
+             Article.objects.in_bulk([self.au1], field_name='author')
+ 
++    @isolate_apps('lookup')
++    def test_in_bulk_non_unique_meta_constaint(self):
++        class Model(models.Model):
++            ean = models.CharField(max_length=100)
++            brand = models.CharField(max_length=100)
++            name = models.CharField(max_length=80)
++
++            class Meta:
++                constraints = [
++                    models.UniqueConstraint(
++                        fields=['ean'],
++                        name='partial_ean_unique',
++                        condition=models.Q(is_active=True)
++                    ),
++                    models.UniqueConstraint(
++                        fields=['brand', 'name'],
++                        name='together_brand_name_unique',
++                    ),
++                ]
++
++        msg = "in_bulk()'s field_name must be a unique field but '%s' isn't."
++        for field_name in ['brand', 'ean']:
++            with self.subTest(field_name=field_name):
++                with self.assertRaisesMessage(ValueError, msg % field_name):
++                    Model.objects.in_bulk(field_name=field_name)
++
+     def test_values(self):
+         # values() returns a list of dictionaries instead of object instances --
+         # and you can specify which fields you want to retrieve.
+2026-10-04 17:43:10,738 - INFO - Eval script for django__django-12774 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12774/eval.sh; copying to container...
+2026-10-04 17:43:17,199 - INFO - Test runtime: 6.41 seconds
+2026-10-04 17:43:17,200 - INFO - Test output for django__django-12774 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12774/test_output.txt
+2026-10-04 17:43:17,281 - INFO - Git diff after:
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index d9c9b0db04..c1aa352701 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -689,7 +689,17 @@ class QuerySet:
+         """
+         assert not self.query.is_sliced, \
+             "Cannot use 'limit' or 'offset' with in_bulk"
+-        if field_name != 'pk' and not self.model._meta.get_field(field_name).unique:
++        opts = self.model._meta
++        unique_fields = [
++            constraint.fields[0]
++            for constraint in opts.total_unique_constraints
++            if len(constraint.fields) == 1
++        ]
++        if (
++            field_name != 'pk' and
++            not opts.get_field(field_name).unique and
++            field_name not in unique_fields
++        ):
+             raise ValueError("in_bulk()'s field_name must be a unique field but %r isn't." % field_name)
+         if id_list is not None:
+             if not id_list:
+2026-10-04 17:43:17,281 - INFO - Git diff changed after running eval script
+2026-10-04 17:43:17,281 - INFO - Grading answer for django__django-12774...
+2026-10-04 17:43:17,281 - INFO - report: {'django__django-12774': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_in_bulk_meta_constraint (lookup.tests.LookupTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_chain_date_time_lookups (lookup.tests.LookupTests)', 'test_count (lookup.tests.LookupTests)', 'test_custom_field_none_rhs (lookup.tests.LookupTests)', 'Lookup.can_use_none_as_rhs=True allows None as a lookup value.', 'test_error_messages (lookup.tests.LookupTests)', 'test_escaping (lookup.tests.LookupTests)', 'test_exact_exists (lookup.tests.LookupTests)', 'Transforms are used for __exact=None.', 'test_exact_query_rhs_with_selected_columns (lookup.tests.LookupTests)', 'test_exact_sliced_queryset_limit_one (lookup.tests.LookupTests)', 'test_exact_sliced_queryset_limit_one_offset (lookup.tests.LookupTests)', 'test_exact_sliced_queryset_not_limited_to_one (lookup.tests.LookupTests)', 'test_exclude (lookup.tests.LookupTests)', 'test_exists (lookup.tests.LookupTests)', 'test_get_next_previous_by (lookup.tests.LookupTests)', 'test_in (lookup.tests.LookupTests)', 'test_in_bulk (lookup.tests.LookupTests)', 'test_in_bulk_lots_of_ids (lookup.tests.LookupTests)', 'test_in_bulk_non_unique_field (lookup.tests.LookupTests)', 'test_in_bulk_non_unique_meta_constaint (lookup.tests.LookupTests)', 'test_in_bulk_with_field (lookup.tests.LookupTests)', 'test_in_different_database (lookup.tests.LookupTests)', 'test_in_keeps_value_ordering (lookup.tests.LookupTests)', 'test_isnull_non_boolean_value (lookup.tests.LookupTests)', 'test_iterator (lookup.tests.LookupTests)', 'test_lookup_collision (lookup.tests.LookupTests)', 'test_lookup_date_as_str (lookup.tests.LookupTests)', 'test_lookup_int_as_str (lookup.tests.LookupTests)', 'test_nested_outerref_lhs (lookup.tests.LookupTests)', 'test_none (lookup.tests.LookupTests)', 'test_nonfield_lookups (lookup.tests.LookupTests)', 'test_pattern_lookups_with_substr (lookup.tests.LookupTests)', 'test_regex (lookup.tests.LookupTests)', 'test_regex_backreferencing (lookup.tests.LookupTests)', 'test_regex_non_ascii (lookup.tests.LookupTests)', 'test_regex_non_string (lookup.tests.LookupTests)', 'test_regex_null (lookup.tests.LookupTests)', 'test_relation_nested_lookup_error (lookup.tests.LookupTests)', 'test_unsupported_lookups (lookup.tests.LookupTests)', 'test_values (lookup.tests.LookupTests)', 'test_values_list (lookup.tests.LookupTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12774: resolved: True
+2026-10-04 17:43:17,282 - INFO - Attempting to stop container sweb.eval.django__django-12774.wescode-v3...
+2026-10-04 17:43:32,593 - INFO - Container sweb.eval.django__django-12774.wescode-v3 stopped successfully.
+2026-10-04 17:43:32,593 - INFO - Attempting to remove container sweb.eval.django__django-12774.wescode-v3...
+2026-10-04 17:43:32,770 - INFO - Container sweb.eval.django__django-12774.wescode-v3 removed successfully.

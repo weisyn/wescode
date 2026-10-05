@@ -1,0 +1,84 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index c0e706e2b..b42c3b948 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -2249,13 +2249,18 @@ class XAxis(Axis):
+         )
+         self.label_position = 'bottom'
+ 
++        labelcolor = mpl.rcParams['xtick.labelcolor']
++        if labelcolor == 'inherit':
++            # inherit from tick color
++            labelcolor = mpl.rcParams['xtick.color']
++
+         self.offsetText.set(
+             x=1, y=0,
+             verticalalignment='top', horizontalalignment='right',
+             transform=mtransforms.blended_transform_factory(
+                 self.axes.transAxes, mtransforms.IdentityTransform()),
+             fontsize=mpl.rcParams['xtick.labelsize'],
+-            color=mpl.rcParams['xtick.color'],
++            color=labelcolor,
+         )
+         self.offset_text_position = 'bottom'
+ 
+@@ -2509,13 +2514,18 @@ class YAxis(Axis):
+         )
+         self.label_position = 'left'
+         # x in axes coords, y in display coords(!).
++        labelcolor = mpl.rcParams['ytick.labelcolor']
++        if labelcolor == 'inherit':
++            # inherit from tick color
++            labelcolor = mpl.rcParams['ytick.color']
++
+         self.offsetText.set(
+             x=0, y=0.5,
+             verticalalignment='baseline', horizontalalignment='left',
+             transform=mtransforms.blended_transform_factory(
+                 self.axes.transAxes, mtransforms.IdentityTransform()),
+             fontsize=mpl.rcParams['ytick.labelsize'],
+-            color=mpl.rcParams['ytick.color'],
++            color=labelcolor,
+         )
+         self.offset_text_position = 'left'
+ 
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index 8483ed077..35a659544 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -6572,6 +6572,35 @@ def test_axis_set_tick_params_labelsize_labelcolor():
+     assert axis_1.yaxis.majorTicks[0].label1.get_color() == 'red'
+ 
+ 
++def test_axis_offset_text_color():
++    # Tests fix for issue 25022: offsetText must follow tick.labelcolor, and
++    # fall back to tick.color when tick.labelcolor is 'inherit'.
++    fig, ax = plt.subplots()
++    # Values large enough to produce an offset text on both axes.
++    ax.plot([1.01e9, 1.02e9, 1.03e9], [1.01e9, 1.02e9, 1.03e9])
++    fig.canvas.draw()
++
++    with mpl.rc_context({'xtick.labelcolor': 'red',
++                         'ytick.labelcolor': 'green',
++                         'xtick.color': 'black',
++                         'ytick.color': 'black'}):
++        ax.clear()
++        ax.plot([1.01e9, 1.02e9, 1.03e9], [1.01e9, 1.02e9, 1.03e9])
++        fig.canvas.draw()
++        assert ax.xaxis.offsetText.get_color() == 'red'
++        assert ax.yaxis.offsetText.get_color() == 'green'
++
++    with mpl.rc_context({'xtick.labelcolor': 'inherit',
++                         'ytick.labelcolor': 'inherit',
++                         'xtick.color': 'blue',
++                         'ytick.color': 'yellow'}):
++        ax.clear()
++        ax.plot([1.01e9, 1.02e9, 1.03e9], [1.01e9, 1.02e9, 1.03e9])
++        fig.canvas.draw()
++        assert ax.xaxis.offsetText.get_color() == 'blue'
++        assert ax.yaxis.offsetText.get_color() == 'yellow'
++
++
+ def test_axes_tick_params_gridlines():
+     # Now treating grid params like other Tick params
+     ax = plt.subplot()

@@ -1,0 +1,61 @@
+diff --git a/lib/matplotlib/mlab.py b/lib/matplotlib/mlab.py
+index 3552904c3..3956194e9 100644
+--- a/lib/matplotlib/mlab.py
++++ b/lib/matplotlib/mlab.py
+@@ -395,7 +395,7 @@ def _spectral_helper(x, y=None, NFFT=None, Fs=None, detrend_func=None,
+     elif mode == 'psd':
+         result = np.conj(result) * result
+     elif mode == 'magnitude':
+-        result = np.abs(result) / np.abs(window).sum()
++        result = np.abs(result) / window.sum()
+     elif mode == 'angle' or mode == 'phase':
+         # we unwrap the phase later to handle the onesided vs. twosided case
+         result = np.angle(result)
+@@ -427,7 +427,7 @@ def _spectral_helper(x, y=None, NFFT=None, Fs=None, detrend_func=None,
+             result /= (np.abs(window)**2).sum()
+         else:
+             # In this case, preserve power in the segment, not amplitude
+-            result /= np.abs(window).sum()**2
++            result /= window.sum()**2
+ 
+     t = np.arange(NFFT/2, len(x) - NFFT/2 + 1, NFFT - noverlap)/Fs
+ 
+diff --git a/lib/matplotlib/tests/test_mlab.py b/lib/matplotlib/tests/test_mlab.py
+index 86beb5c8c..87e7d98b0 100644
+--- a/lib/matplotlib/tests/test_mlab.py
++++ b/lib/matplotlib/tests/test_mlab.py
+@@ -715,6 +715,34 @@ class TestSpectral:
+                         spec_n/self.Fs*win.sum()**2,
+                         atol=1e-08)
+ 
++        # The scaling for `scale_by_freq=False` must use the signed sum of
++        # the window, not its absolute value; otherwise windows with negative
++        # coefficients (e.g. flattop) are scaled incorrectly (gh-25113).
++        win_neg = mlab.window_hanning(np.ones(self.NFFT_density_real))
++        win_neg[:self.NFFT_density_real // 2] *= -1
++        spec_neg, _ = mlab.psd(x=self.y,
++                               NFFT=self.NFFT_density,
++                               Fs=self.Fs,
++                               noverlap=self.nover_density,
++                               pad_to=self.pad_to_density,
++                               sides=self.sides,
++                               window=win_neg,
++                               scale_by_freq=False)
++        spec_neg_s, _ = mlab.psd(x=self.y,
++                                 NFFT=self.NFFT_density,
++                                 Fs=self.Fs,
++                                 noverlap=self.nover_density,
++                                 pad_to=self.pad_to_density,
++                                 sides=self.sides,
++                                 window=win_neg,
++                                 scale_by_freq=True)
++        # Relate the two scalings through the (signed) window sums.  This is
++        # only consistent when the signed sum is used; the old code used
++        # `np.abs(window).sum()` and would fail this check.
++        assert_allclose(spec_neg_s * (win_neg**2).sum(),
++                        spec_neg / self.Fs * win_neg.sum()**2,
++                        atol=1e-08)
++
+     @pytest.mark.parametrize(
+         "kind", ["complex", "magnitude", "angle", "phase"])
+     def test_spectrum(self, kind):

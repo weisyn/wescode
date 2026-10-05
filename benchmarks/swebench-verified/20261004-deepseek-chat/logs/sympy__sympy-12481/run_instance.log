@@ -1,0 +1,84 @@
+2026-10-04 19:40:50,739 - INFO - Creating container for sympy__sympy-12481...
+2026-10-04 19:40:50,792 - INFO - Container for sympy__sympy-12481 created: 020f4d7d70fb70de81e54ab736f654a6f0aa4c2b36760081f314167c203dfdf1
+2026-10-04 19:40:50,991 - INFO - Container for sympy__sympy-12481 started: 020f4d7d70fb70de81e54ab736f654a6f0aa4c2b36760081f314167c203dfdf1
+2026-10-04 19:40:50,991 - INFO - Intermediate patch for sympy__sympy-12481 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-12481/patch.diff, now applying to container...
+2026-10-04 19:40:51,117 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:40:51,316 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:40:51,424 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:40:51,536 - INFO - >>>>> Applied Patch:
+patching file sympy/combinatorics/permutations.py
+patching file sympy/combinatorics/tests/test_permutations.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 349 with fuzz 1.
+
+2026-10-04 19:40:51,601 - INFO - Git diff before:
+diff --git a/sympy/combinatorics/permutations.py b/sympy/combinatorics/permutations.py
+index 136ed5a47..a9da6f3ef 100755
+--- a/sympy/combinatorics/permutations.py
++++ b/sympy/combinatorics/permutations.py
+@@ -897,8 +897,14 @@ def __new__(cls, *args, **kwargs):
+         temp = flatten(args)
+         if has_dups(temp):
+             if is_cycle:
+-                raise ValueError('there were repeated elements; to resolve '
+-                'cycles use Cycle%s.' % ''.join([str(tuple(c)) for c in args]))
++                # allow non-disjoint cycles: they are composed in the
++                # order given, but an element may not be repeated
++                # within a single cycle
++                for c in args:
++                    if has_dups(c):
++                        raise ValueError('there were repeated elements; to '
++                        'resolve cycles use Cycle%s.' % ''.join(
++                            [str(tuple(c)) for c in args]))
+             else:
+                 raise ValueError('there were repeated elements.')
+         temp = set(temp)
+diff --git a/sympy/combinatorics/tests/test_permutations.py b/sympy/combinatorics/tests/test_permutations.py
+index 7f8cd572e..2a2693e33 100755
+--- a/sympy/combinatorics/tests/test_permutations.py
++++ b/sympy/combinatorics/tests/test_permutations.py
+@@ -349,7 +349,10 @@ def test_args():
+     raises(ValueError, lambda: Permutation([[1, 2], 0]))
+            # enclosing brackets needed on 0
+     raises(ValueError, lambda: Permutation([1, 1, 0]))
+-    raises(ValueError, lambda: Permutation([[1], [1, 2]]))
++    # unlike lists, a repeated element across cycles is allowed;
++    # the cycles are composed in the order given
++    assert Permutation([[1], [1, 2]]) == Permutation([0, 2, 1])
++    raises(ValueError, lambda: Permutation([[1, 1, 2]]))  # not within a cycle
+     raises(ValueError, lambda: Permutation([4, 5], size=10))  # where are 0-3?
+     # but this is ok because cycles imply that only those listed moved
+     assert Permutation(4, 5) == Permutation([0, 1, 2, 3, 5, 4])
+2026-10-04 19:40:51,602 - INFO - Eval script for sympy__sympy-12481 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-12481/eval.sh; copying to container...
+2026-10-04 19:40:56,146 - INFO - Test runtime: 4.49 seconds
+2026-10-04 19:40:56,147 - INFO - Test output for sympy__sympy-12481 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-12481/test_output.txt
+2026-10-04 19:40:56,205 - INFO - Git diff after:
+diff --git a/sympy/combinatorics/permutations.py b/sympy/combinatorics/permutations.py
+index 136ed5a47..a9da6f3ef 100755
+--- a/sympy/combinatorics/permutations.py
++++ b/sympy/combinatorics/permutations.py
+@@ -897,8 +897,14 @@ def __new__(cls, *args, **kwargs):
+         temp = flatten(args)
+         if has_dups(temp):
+             if is_cycle:
+-                raise ValueError('there were repeated elements; to resolve '
+-                'cycles use Cycle%s.' % ''.join([str(tuple(c)) for c in args]))
++                # allow non-disjoint cycles: they are composed in the
++                # order given, but an element may not be repeated
++                # within a single cycle
++                for c in args:
++                    if has_dups(c):
++                        raise ValueError('there were repeated elements; to '
++                        'resolve cycles use Cycle%s.' % ''.join(
++                            [str(tuple(c)) for c in args]))
+             else:
+                 raise ValueError('there were repeated elements.')
+         temp = set(temp)
+2026-10-04 19:40:56,205 - INFO - Git diff changed after running eval script
+2026-10-04 19:40:56,205 - INFO - Grading answer for sympy__sympy-12481...
+2026-10-04 19:40:56,207 - INFO - report: {'sympy__sympy-12481': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_args'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_Permutation', 'test_josephus', 'test_ranking', 'test_mul', 'test_Cycle', 'test_from_sequence', 'test_printing_cyclic'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-12481: resolved: True
+2026-10-04 19:40:56,207 - INFO - Attempting to stop container sweb.eval.sympy__sympy-12481.wescode-v3...
+2026-10-04 19:41:11,364 - INFO - Container sweb.eval.sympy__sympy-12481.wescode-v3 stopped successfully.
+2026-10-04 19:41:11,364 - INFO - Attempting to remove container sweb.eval.sympy__sympy-12481.wescode-v3...
+2026-10-04 19:41:11,389 - INFO - Container sweb.eval.sympy__sympy-12481.wescode-v3 removed successfully.

@@ -1,0 +1,52 @@
+diff --git a/django/contrib/staticfiles/storage.py b/django/contrib/staticfiles/storage.py
+index f957a667b2..720767aa9e 100644
+--- a/django/contrib/staticfiles/storage.py
++++ b/django/contrib/staticfiles/storage.py
+@@ -261,6 +261,7 @@ class HashedFilesMixin:
+ 
+         paths = {path: paths[path] for path in adjustable_paths}
+ 
++        substitutions = False
+         for i in range(self.max_post_process_passes):
+             substitutions = False
+             for name, hashed_name, processed, subst in self._post_process(paths, adjustable_paths, hashed_files):
+diff --git a/tests/staticfiles_tests/storage.py b/tests/staticfiles_tests/storage.py
+index 79f406ca6c..6a319f934d 100644
+--- a/tests/staticfiles_tests/storage.py
++++ b/tests/staticfiles_tests/storage.py
+@@ -97,3 +97,7 @@ class ExtraPatternsStorage(ManifestStaticFilesStorage):
+ class NoneHashStorage(ManifestStaticFilesStorage):
+     def file_hash(self, name, content=None):
+         return None
++
++
++class NoPostProcessReplacedPathStorage(ManifestStaticFilesStorage):
++    max_post_process_passes = 0
+diff --git a/tests/staticfiles_tests/test_storage.py b/tests/staticfiles_tests/test_storage.py
+index db655f2453..10d1ce595b 100644
+--- a/tests/staticfiles_tests/test_storage.py
++++ b/tests/staticfiles_tests/test_storage.py
+@@ -454,6 +454,23 @@ class TestCollectionManifestStorage(TestHashedFiles, CollectionTestCase):
+         )
+ 
+ 
++@override_settings(
++    STATICFILES_STORAGE='staticfiles_tests.storage.NoPostProcessReplacedPathStorage',
++)
++class TestCollectionNoPostProcessReplacedPathStorage(CollectionTestCase):
++    hashed_file_path = hashed_file_path
++
++    def test_no_post_process(self):
++        """
++        With max_post_process_passes = 0, collectstatic must not crash and the
++        adjustable files are stored with their hashed name (#32537).
++        """
++        # collectstatic() is already run in setUp(), so reaching here means it
++        # didn't raise UnboundLocalError.
++        relpath = self.hashed_file_path('cached/styles.css')
++        self.assertEqual(relpath, 'cached/styles.5e0040571e1a.css')
++
++
+ @override_settings(STATICFILES_STORAGE='staticfiles_tests.storage.NoneHashStorage')
+ class TestCollectionNoneHashStorage(CollectionTestCase):
+     hashed_file_path = hashed_file_path

@@ -1,0 +1,60 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index a3f0310735..6fdfc133cd 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -269,6 +269,29 @@ def _print_ITE(self, expr):
+         from sympy.functions.elementary.piecewise import Piecewise
+         return self._print(expr.rewrite(Piecewise))
+ 
++    def _print_Indexed(self, expr):
++        # calculate index for 1d array
++        dims = getattr(expr.base, 'shape', [])
++        if not dims:
++            return "%s[%s]" % (
++                self._print(expr.base.label),
++                ', '.join(self._print(ind) for ind in expr.indices))
++        elem = S.Zero
++        offset = S.One
++        for i in reversed(range(expr.rank)):
++            elem += expr.indices[i]*offset
++            offset *= dims[i]
++        return "%s[%s]" % (
++            self._print(expr.base.label),
++            self._print(elem)
++        )
++
++    def _print_Idx(self, expr):
++        return self._print(expr.label)
++
++    def _print_IndexedBase(self, expr):
++        return self._print(expr.label)
++
+     def _print_Sum(self, expr):
+         loops = (
+             'for {i} in range({a}, {b}+1)'.format(
+diff --git a/sympy/printing/tests/test_pycode.py b/sympy/printing/tests/test_pycode.py
+index f1a9a37898..0153d9258a 100644
+--- a/sympy/printing/tests/test_pycode.py
++++ b/sympy/printing/tests/test_pycode.py
+@@ -8,6 +8,7 @@
+ from sympy.functions import acos, Piecewise, sign
+ from sympy.logic import And, Or
+ from sympy.matrices import SparseMatrix, MatrixSymbol
++from sympy.tensor import IndexedBase
+ from sympy.printing.pycode import (
+     MpmathPrinter, NumPyPrinter, PythonCodePrinter, pycode, SciPyPrinter
+ )
+@@ -35,6 +36,13 @@ def test_PythonCodePrinter():
+                                                         ' (3) if (x > 0) else None)'
+     assert prntr.doprint(sign(x)) == '(0.0 if x == 0 else math.copysign(1, x))'
+ 
++    p = IndexedBase("p")
++    assert prntr.doprint(p[0]) == 'p[0]'
++    assert prntr.doprint(p[1, 2]) == 'p[1, 2]'
++    assert prntr.doprint(p[1, 2, 3]) == 'p[1, 2, 3]'
++    A = IndexedBase("A", (2, 3))
++    assert prntr.doprint(A[1, 2]) == 'A[5]'
++
+ 
+ def test_MpmathPrinter():
+     p = MpmathPrinter()

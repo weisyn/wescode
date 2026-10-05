@@ -1,0 +1,135 @@
+2026-10-04 17:49:21,537 - INFO - Creating container for django__django-13410...
+2026-10-04 17:49:21,587 - INFO - Container for django__django-13410 created: dd354ac2dc96af715a392aeab4d35c201b15a8a5f72cd01fbdd6b830b5d4aa27
+2026-10-04 17:49:21,773 - INFO - Container for django__django-13410 started: dd354ac2dc96af715a392aeab4d35c201b15a8a5f72cd01fbdd6b830b5d4aa27
+2026-10-04 17:49:21,774 - INFO - Intermediate patch for django__django-13410 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13410/patch.diff, now applying to container...
+2026-10-04 17:49:21,877 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:49:22,805 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:49:23,446 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:49:23,651 - INFO - >>>>> Applied Patch:
+patching file django/core/files/locks.py
+patching file docs/releases/3.2.txt
+patching file tests/files/tests.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 169 with fuzz 1.
+
+2026-10-04 17:49:23,719 - INFO - Git diff before:
+diff --git a/django/core/files/locks.py b/django/core/files/locks.py
+index c46b00b905..b02faaa181 100644
+--- a/django/core/files/locks.py
++++ b/django/core/files/locks.py
+@@ -107,9 +107,12 @@ else:
+             return True
+     else:
+         def lock(f, flags):
+-            ret = fcntl.flock(_fd(f), flags)
+-            return ret == 0
++            try:
++                fcntl.flock(_fd(f), flags)
++                return True
++            except BlockingIOError:
++                return False
+ 
+         def unlock(f):
+-            ret = fcntl.flock(_fd(f), fcntl.LOCK_UN)
+-            return ret == 0
++            fcntl.flock(_fd(f), fcntl.LOCK_UN)
++            return True
+diff --git a/docs/releases/3.2.txt b/docs/releases/3.2.txt
+index 30cc6a401a..e77785f8e2 100644
+--- a/docs/releases/3.2.txt
++++ b/docs/releases/3.2.txt
+@@ -504,6 +504,10 @@ Miscellaneous
+   distinguishes inherited field instances across models. Additionally, the
+   ordering of such fields is now defined.
+ 
++* The undocumented ``django.core.files.locks.lock()`` function now returns
++  ``False`` if the file cannot be locked, instead of raising
++  :exc:`BlockingIOError`.
++
+ .. _deprecated-features-3.2:
+ 
+ Features deprecated in 3.2
+diff --git a/tests/files/tests.py b/tests/files/tests.py
+index 047c8935b8..dfb007f2fc 100644
+--- a/tests/files/tests.py
++++ b/tests/files/tests.py
+@@ -8,7 +8,7 @@ from io import BytesIO, StringIO, TextIOWrapper
+ from pathlib import Path
+ from unittest import mock
+ 
+-from django.core.files import File
++from django.core.files import File, locks
+ from django.core.files.base import ContentFile
+ from django.core.files.move import file_move_safe
+ from django.core.files.temp import NamedTemporaryFile
+@@ -169,6 +169,22 @@ class FileTests(unittest.TestCase):
+             test_file.seek(0)
+             self.assertEqual(test_file.read(), (content * 2).encode())
+ 
++    def test_exclusive_lock(self):
++        file_path = Path(__file__).parent / 'test.png'
++        with open(file_path) as f1, open(file_path) as f2:
++            self.assertIs(locks.lock(f1, locks.LOCK_EX), True)
++            self.assertIs(locks.lock(f2, locks.LOCK_EX | locks.LOCK_NB), False)
++            self.assertIs(locks.lock(f2, locks.LOCK_SH | locks.LOCK_NB), False)
++            self.assertIs(locks.unlock(f1), True)
++
++    def test_shared_lock(self):
++        file_path = Path(__file__).parent / 'test.png'
++        with open(file_path) as f1, open(file_path) as f2:
++            self.assertIs(locks.lock(f1, locks.LOCK_SH), True)
++            self.assertIs(locks.lock(f2, locks.LOCK_SH | locks.LOCK_NB), True)
++            self.assertIs(locks.unlock(f1), True)
++            self.assertIs(locks.unlock(f2), True)
++
+ 
+ class NoNameFileTestCase(unittest.TestCase):
+     """
+2026-10-04 17:49:23,719 - INFO - Eval script for django__django-13410 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13410/eval.sh; copying to container...
+2026-10-04 17:49:30,057 - INFO - Test runtime: 6.28 seconds
+2026-10-04 17:49:30,057 - INFO - Test output for django__django-13410 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13410/test_output.txt
+2026-10-04 17:49:30,115 - INFO - Git diff after:
+diff --git a/django/core/files/locks.py b/django/core/files/locks.py
+index c46b00b905..b02faaa181 100644
+--- a/django/core/files/locks.py
++++ b/django/core/files/locks.py
+@@ -107,9 +107,12 @@ else:
+             return True
+     else:
+         def lock(f, flags):
+-            ret = fcntl.flock(_fd(f), flags)
+-            return ret == 0
++            try:
++                fcntl.flock(_fd(f), flags)
++                return True
++            except BlockingIOError:
++                return False
+ 
+         def unlock(f):
+-            ret = fcntl.flock(_fd(f), fcntl.LOCK_UN)
+-            return ret == 0
++            fcntl.flock(_fd(f), fcntl.LOCK_UN)
++            return True
+diff --git a/docs/releases/3.2.txt b/docs/releases/3.2.txt
+index 30cc6a401a..e77785f8e2 100644
+--- a/docs/releases/3.2.txt
++++ b/docs/releases/3.2.txt
+@@ -504,6 +504,10 @@ Miscellaneous
+   distinguishes inherited field instances across models. Additionally, the
+   ordering of such fields is now defined.
+ 
++* The undocumented ``django.core.files.locks.lock()`` function now returns
++  ``False`` if the file cannot be locked, instead of raising
++  :exc:`BlockingIOError`.
++
+ .. _deprecated-features-3.2:
+ 
+ Features deprecated in 3.2
+2026-10-04 17:49:30,115 - INFO - Git diff changed after running eval script
+2026-10-04 17:49:30,115 - INFO - Grading answer for django__django-13410...
+2026-10-04 17:49:30,116 - INFO - report: {'django__django-13410': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_exclusive_lock (files.tests.FileTests)', 'test_shared_lock (files.tests.FileTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_open_resets_file_to_start_and_returns_context_manager (files.tests.InMemoryUploadedFileTests)', 'test_content_file_custom_name (files.tests.ContentFileTestCase)', 'test_content_file_default_name (files.tests.ContentFileTestCase)', 'test_content_file_input_type (files.tests.ContentFileTestCase)', 'test_open_resets_file_to_start_and_returns_context_manager (files.tests.ContentFileTestCase)', 'ContentFile.size changes after a write().', 'test_noname_file_default_name (files.tests.NoNameFileTestCase)', 'test_noname_file_get_size (files.tests.NoNameFileTestCase)', 'test_in_memory_spooled_temp (files.tests.SpooledTempTests)', 'test_written_spooled_temp (files.tests.SpooledTempTests)', 'The temporary file name has the same suffix as the original file.', 'test_file_upload_temp_dir_pathlib (files.tests.TemporaryUploadedFileTests)', 'test_file_move_copystat_cifs (files.tests.FileMoveSafeTests)', 'test_file_move_overwrite (files.tests.FileMoveSafeTests)', 'test_context_manager (files.tests.FileTests)', 'test_file_iteration (files.tests.FileTests)', 'test_file_iteration_mac_newlines (files.tests.FileTests)', 'test_file_iteration_mixed_newlines (files.tests.FileTests)', 'test_file_iteration_windows_newlines (files.tests.FileTests)', 'test_file_iteration_with_mac_newline_at_chunk_boundary (files.tests.FileTests)', 'test_file_iteration_with_text (files.tests.FileTests)', 'test_file_iteration_with_unix_newline_at_chunk_boundary (files.tests.FileTests)', 'test_file_iteration_with_windows_newline_at_chunk_boundary (files.tests.FileTests)', 'test_file_mode (files.tests.FileTests)', 'test_io_wrapper (files.tests.FileTests)', 'test_namedtemporaryfile_closes (files.tests.FileTests)', 'test_open_reopens_closed_file_and_returns_context_manager (files.tests.FileTests)', 'test_open_resets_opened_file_to_start_and_returns_context_manager (files.tests.FileTests)', 'test_readable (files.tests.FileTests)', 'test_seekable (files.tests.FileTests)', 'test_unicode_file_name (files.tests.FileTests)', 'test_unicode_uploadedfile_name (files.tests.FileTests)', 'test_writable (files.tests.FileTests)', 'test_closing_of_filenames (files.tests.DimensionClosingBug)', 'test_not_closing_of_files (files.tests.DimensionClosingBug)', 'test_bug_19457 (files.tests.InconsistentGetImageDimensionsBug)', 'test_multiple_calls (files.tests.InconsistentGetImageDimensionsBug)', 'test_invalid_image (files.tests.GetImageDimensionsTests)', 'test_valid_image (files.tests.GetImageDimensionsTests)', 'test_webp (files.tests.GetImageDimensionsTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13410: resolved: True
+2026-10-04 17:49:30,116 - INFO - Attempting to stop container sweb.eval.django__django-13410.wescode-v3...
+2026-10-04 17:49:45,409 - INFO - Container sweb.eval.django__django-13410.wescode-v3 stopped successfully.
+2026-10-04 17:49:45,409 - INFO - Attempting to remove container sweb.eval.django__django-13410.wescode-v3...
+2026-10-04 17:49:45,594 - INFO - Container sweb.eval.django__django-13410.wescode-v3 removed successfully.

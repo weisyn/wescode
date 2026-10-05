@@ -1,0 +1,34 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index d06901425d..0157ab49cb 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -8,7 +8,7 @@
+ from collections import defaultdict
+ from functools import wraps
+ from itertools import chain
+-from sympy.core import sympify, S
++from sympy.core import sympify, S, Integer
+ from .precedence import precedence
+ from .codeprinter import CodePrinter
+ 
+@@ -322,6 +322,20 @@ class MpmathPrinter(PythonCodePrinter):
+         [(k, 'mpmath.' + v) for k, v in _known_functions_mpmath.items()]
+     ))
+ 
++    def _print_Integer(self, e):
++        # Use mpmath.mpf so that rationals are evaluated at the requested
++        # precision instead of falling back to Python's limited int division.
++        return '{func}({arg})'.format(
++            func=self._module_format('mpmath.mpf'), arg=e.p)
++
++    def _print_Rational(self, e):
++        p, q = e.p, e.q
++        if p < 0:
++            return '-({0})/{1}'.format(self._print_Integer(Integer(-p)),
++                                       self._print_Integer(Integer(q)))
++        return '{0}/{1}'.format(self._print_Integer(Integer(p)),
++                                self._print_Integer(Integer(q)))
++
+     def _print_Float(self, e):
+         # XXX: This does not handle setting mpmath.mp.dps. It is assumed that
+         # the caller of the lambdified function will have set it to sufficient

@@ -1,0 +1,92 @@
+2026-10-04 19:45:34,247 - INFO - Creating container for sympy__sympy-14976...
+2026-10-04 19:45:34,293 - INFO - Container for sympy__sympy-14976 created: de310a6a2cffcf14514b559a155f4c16294b82f77c07d3098bb994453f60d325
+2026-10-04 19:45:34,488 - INFO - Container for sympy__sympy-14976 started: de310a6a2cffcf14514b559a155f4c16294b82f77c07d3098bb994453f60d325
+2026-10-04 19:45:34,489 - INFO - Intermediate patch for sympy__sympy-14976 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-14976/patch.diff, now applying to container...
+2026-10-04 19:45:34,612 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:45:34,793 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:45:34,900 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:45:35,022 - INFO - >>>>> Applied Patch:
+patching file sympy/printing/pycode.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 322 with fuzz 1.
+
+2026-10-04 19:45:35,082 - INFO - Git diff before:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index d06901425..0157ab49c 100755
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -8,7 +8,7 @@
+ from collections import defaultdict
+ from functools import wraps
+ from itertools import chain
+-from sympy.core import sympify, S
++from sympy.core import sympify, S, Integer
+ from .precedence import precedence
+ from .codeprinter import CodePrinter
+ 
+@@ -322,6 +322,20 @@ class MpmathPrinter(PythonCodePrinter):
+         [(k, 'mpmath.' + v) for k, v in _known_functions_mpmath.items()]
+     ))
+ 
++    def _print_Integer(self, e):
++        # Use mpmath.mpf so that rationals are evaluated at the requested
++        # precision instead of falling back to Python's limited int division.
++        return '{func}({arg})'.format(
++            func=self._module_format('mpmath.mpf'), arg=e.p)
++
++    def _print_Rational(self, e):
++        p, q = e.p, e.q
++        if p < 0:
++            return '-({0})/{1}'.format(self._print_Integer(Integer(-p)),
++                                       self._print_Integer(Integer(q)))
++        return '{0}/{1}'.format(self._print_Integer(Integer(p)),
++                                self._print_Integer(Integer(q)))
++
+     def _print_Float(self, e):
+         # XXX: This does not handle setting mpmath.mp.dps. It is assumed that
+         # the caller of the lambdified function will have set it to sufficient
+2026-10-04 19:45:35,082 - INFO - Eval script for sympy__sympy-14976 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-14976/eval.sh; copying to container...
+2026-10-04 19:45:40,570 - INFO - Test runtime: 5.43 seconds
+2026-10-04 19:45:40,570 - INFO - Test output for sympy__sympy-14976 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-14976/test_output.txt
+2026-10-04 19:45:40,623 - INFO - Git diff after:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index d06901425..0157ab49c 100755
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -8,7 +8,7 @@
+ from collections import defaultdict
+ from functools import wraps
+ from itertools import chain
+-from sympy.core import sympify, S
++from sympy.core import sympify, S, Integer
+ from .precedence import precedence
+ from .codeprinter import CodePrinter
+ 
+@@ -322,6 +322,20 @@ class MpmathPrinter(PythonCodePrinter):
+         [(k, 'mpmath.' + v) for k, v in _known_functions_mpmath.items()]
+     ))
+ 
++    def _print_Integer(self, e):
++        # Use mpmath.mpf so that rationals are evaluated at the requested
++        # precision instead of falling back to Python's limited int division.
++        return '{func}({arg})'.format(
++            func=self._module_format('mpmath.mpf'), arg=e.p)
++
++    def _print_Rational(self, e):
++        p, q = e.p, e.q
++        if p < 0:
++            return '-({0})/{1}'.format(self._print_Integer(Integer(-p)),
++                                       self._print_Integer(Integer(q)))
++        return '{0}/{1}'.format(self._print_Integer(Integer(p)),
++                                self._print_Integer(Integer(q)))
++
+     def _print_Float(self, e):
+         # XXX: This does not handle setting mpmath.mp.dps. It is assumed that
+         # the caller of the lambdified function will have set it to sufficient
+2026-10-04 19:45:40,623 - INFO - Grading answer for sympy__sympy-14976...
+2026-10-04 19:45:40,624 - INFO - report: {'sympy__sympy-14976': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_MpmathPrinter'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_PythonCodePrinter', 'test_NumPyPrinter', 'test_SciPyPrinter', 'test_pycode_reserved_words', 'test_printmethod', 'test_codegen_ast_nodes', 'test_nsolve_denominator', 'test_nsolve', 'test_issue_6408', 'test_increased_dps', 'test_nsolve_precision', 'test_nsolve_complex', 'test_nsolve_dict_kwarg'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-14976: resolved: True
+2026-10-04 19:45:40,624 - INFO - Attempting to stop container sweb.eval.sympy__sympy-14976.wescode-v3...
+2026-10-04 19:45:55,777 - INFO - Container sweb.eval.sympy__sympy-14976.wescode-v3 stopped successfully.
+2026-10-04 19:45:55,777 - INFO - Attempting to remove container sweb.eval.sympy__sympy-14976.wescode-v3...
+2026-10-04 19:45:55,805 - INFO - Container sweb.eval.sympy__sympy-14976.wescode-v3 removed successfully.

@@ -1,0 +1,152 @@
+2026-10-04 19:27:14,556 - INFO - Creating container for sphinx-doc__sphinx-7440...
+2026-10-04 19:27:14,602 - INFO - Container for sphinx-doc__sphinx-7440 created: d5f282e4a4f6ce6ebd2f0150ca9deb735e2e224abf463b1a669ea849e173daf4
+2026-10-04 19:27:14,799 - INFO - Container for sphinx-doc__sphinx-7440 started: d5f282e4a4f6ce6ebd2f0150ca9deb735e2e224abf463b1a669ea849e173daf4
+2026-10-04 19:27:14,799 - INFO - Intermediate patch for sphinx-doc__sphinx-7440 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7440/patch.diff, now applying to container...
+2026-10-04 19:27:14,920 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:27:15,182 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:27:15,326 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:27:15,440 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/domains/std.py
+patching file tests/test_domain_std.py
+patch unexpectedly ends in middle of line
+Hunk #4 succeeded at 143 with fuzz 2.
+
+2026-10-04 19:27:15,518 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index a7950b8e0..b12cfd398 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -7,6 +7,8 @@ Dependencies
+ Incompatible changes
+ --------------------
+ 
++* #7418: std domain: :rst:dir:`term` role becomes case sensitive
++
+ Deprecated
+ ----------
+ 
+@@ -17,6 +19,7 @@ Bugs fixed
+ ----------
+ 
+ * #7428: py domain: a reference to class ``None`` emits a nitpicky warning
++* #7418: std domain: duplication warning for glossary terms is case insensitive
+ * #7438: C++, fix merging overloaded functions in parallel builds.
+ * #7422: autodoc: fails with ValueError when using autodoc_mock_imports
+ 
+diff --git a/sphinx/domains/std.py b/sphinx/domains/std.py
+index d820cfe5c..52546fb4c 100755
+--- a/sphinx/domains/std.py
++++ b/sphinx/domains/std.py
+@@ -305,7 +305,7 @@ def make_glossary_term(env: "BuildEnvironment", textnodes: Iterable[Node], index
+         term['ids'].append(node_id)
+ 
+     std = cast(StandardDomain, env.get_domain('std'))
+-    std.note_object('term', termtext.lower(), node_id, location=term)
++    std.note_object('term', termtext, node_id, location=term)
+ 
+     # add an index entry too
+     indexnode = addnodes.index()
+@@ -565,7 +565,7 @@ class StandardDomain(Domain):
+         # links to tokens in grammar productions
+         'token':   TokenXRefRole(),
+         # links to terms in glossary
+-        'term':    XRefRole(lowercase=True, innernodeclass=nodes.inline,
++        'term':    XRefRole(innernodeclass=nodes.inline,
+                             warn_dangling=True),
+         # links to headings or arbitrary labels
+         'ref':     XRefRole(lowercase=True, innernodeclass=nodes.inline,
+diff --git a/tests/test_domain_std.py b/tests/test_domain_std.py
+index aa1d29eb1..0032c18ef 100755
+--- a/tests/test_domain_std.py
++++ b/tests/test_domain_std.py
+@@ -99,7 +99,7 @@ def test_glossary(app):
+     text = (".. glossary::\n"
+             "\n"
+             "   term1\n"
+-            "   term2\n"
++            "   TERM2\n"
+             "       description\n"
+             "\n"
+             "   term3 : classifier\n"
+@@ -114,7 +114,7 @@ def test_glossary(app):
+     assert_node(doctree, (
+         [glossary, definition_list, ([definition_list_item, ([term, ("term1",
+                                                                      index)],
+-                                                             [term, ("term2",
++                                                             [term, ("TERM2",
+                                                                      index)],
+                                                              definition)],
+                                      [definition_list_item, ([term, ("term3",
+@@ -127,7 +127,7 @@ def test_glossary(app):
+     assert_node(doctree[0][0][0][0][1],
+                 entries=[("single", "term1", "term-term1", "main", None)])
+     assert_node(doctree[0][0][0][1][1],
+-                entries=[("single", "term2", "term-term2", "main", None)])
++                entries=[("single", "TERM2", "term-TERM2", "main", None)])
+     assert_node(doctree[0][0][0][2],
+                 [definition, nodes.paragraph, "description"])
+     assert_node(doctree[0][0][1][0][1],
+@@ -143,7 +143,7 @@ def test_glossary(app):
+     # index
+     objects = list(app.env.get_domain("std").get_objects())
+     assert ("term1", "term1", "term", "index", "term-term1", -1) in objects
+-    assert ("term2", "term2", "term", "index", "term-term2", -1) in objects
++    assert ("TERM2", "TERM2", "term", "index", "term-TERM2", -1) in objects
+     assert ("term3", "term3", "term", "index", "term-term3", -1) in objects
+     assert ("term4", "term4", "term", "index", "term-term4", -1) in objects
+2026-10-04 19:27:15,518 - INFO - Eval script for sphinx-doc__sphinx-7440 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7440/eval.sh; copying to container...
+2026-10-04 19:27:22,566 - INFO - Test runtime: 6.99 seconds
+2026-10-04 19:27:22,567 - INFO - Test output for sphinx-doc__sphinx-7440 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7440/test_output.txt
+2026-10-04 19:27:22,620 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index a7950b8e0..b12cfd398 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -7,6 +7,8 @@ Dependencies
+ Incompatible changes
+ --------------------
+ 
++* #7418: std domain: :rst:dir:`term` role becomes case sensitive
++
+ Deprecated
+ ----------
+ 
+@@ -17,6 +19,7 @@ Bugs fixed
+ ----------
+ 
+ * #7428: py domain: a reference to class ``None`` emits a nitpicky warning
++* #7418: std domain: duplication warning for glossary terms is case insensitive
+ * #7438: C++, fix merging overloaded functions in parallel builds.
+ * #7422: autodoc: fails with ValueError when using autodoc_mock_imports
+ 
+diff --git a/sphinx/domains/std.py b/sphinx/domains/std.py
+index d820cfe5c..52546fb4c 100755
+--- a/sphinx/domains/std.py
++++ b/sphinx/domains/std.py
+@@ -305,7 +305,7 @@ def make_glossary_term(env: "BuildEnvironment", textnodes: Iterable[Node], index
+         term['ids'].append(node_id)
+ 
+     std = cast(StandardDomain, env.get_domain('std'))
+-    std.note_object('term', termtext.lower(), node_id, location=term)
++    std.note_object('term', termtext, node_id, location=term)
+ 
+     # add an index entry too
+     indexnode = addnodes.index()
+@@ -565,7 +565,7 @@ class StandardDomain(Domain):
+         # links to tokens in grammar productions
+         'token':   TokenXRefRole(),
+         # links to terms in glossary
+-        'term':    XRefRole(lowercase=True, innernodeclass=nodes.inline,
++        'term':    XRefRole(innernodeclass=nodes.inline,
+                             warn_dangling=True),
+         # links to headings or arbitrary labels
+         'ref':     XRefRole(lowercase=True, innernodeclass=nodes.inline,
+2026-10-04 19:27:22,620 - INFO - Git diff changed after running eval script
+2026-10-04 19:27:22,620 - INFO - Grading answer for sphinx-doc__sphinx-7440...
+2026-10-04 19:27:22,626 - INFO - report: {'sphinx-doc__sphinx-7440': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_domain_std.py::test_glossary'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_domain_std.py::test_process_doc_handle_figure_caption', 'tests/test_domain_std.py::test_process_doc_handle_table_title', 'tests/test_domain_std.py::test_get_full_qualified_name', 'tests/test_domain_std.py::test_glossary_warning', 'tests/test_domain_std.py::test_glossary_comment', 'tests/test_domain_std.py::test_glossary_comment2', 'tests/test_domain_std.py::test_glossary_sorted', 'tests/test_domain_std.py::test_glossary_alphanumeric', 'tests/test_domain_std.py::test_glossary_conflicted_labels', 'tests/test_domain_std.py::test_cmdoption', 'tests/test_domain_std.py::test_multiple_cmdoptions', 'tests/test_domain_std.py::test_disabled_docref'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-7440: resolved: True
+2026-10-04 19:27:22,627 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-7440.wescode-v3...
+2026-10-04 19:27:37,782 - INFO - Container sweb.eval.sphinx-doc__sphinx-7440.wescode-v3 stopped successfully.
+2026-10-04 19:27:37,782 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-7440.wescode-v3...
+2026-10-04 19:27:37,807 - INFO - Container sweb.eval.sphinx-doc__sphinx-7440.wescode-v3 removed successfully.

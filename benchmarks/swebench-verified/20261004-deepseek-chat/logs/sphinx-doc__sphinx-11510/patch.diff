@@ -1,0 +1,185 @@
+diff --git a/CHANGES b/CHANGES
+index ce1185c76..35511a09b 100644
+--- a/CHANGES
++++ b/CHANGES
+@@ -72,6 +72,9 @@ Bugs fixed
+   Patch by Bénédikt Tran.
+ * #10930: Highlight all search terms on the search results page.
+   Patch by Dmitry Shachnev.
++* #10380: Emit the ``source-read`` event for files pulled in via the
++  ``include`` directive, so source-level transformations apply to
++  included content.
+ 
+ Testing
+ -------
+diff --git a/doc/extdev/appapi.rst b/doc/extdev/appapi.rst
+index 78e88b063..f425d4d5e 100644
+--- a/doc/extdev/appapi.rst
++++ b/doc/extdev/appapi.rst
+@@ -260,6 +260,11 @@ Here is a more detailed list of these events.
+ 
+    .. versionadded:: 0.5
+ 
++   .. versionchanged:: 7.3
++      The event is now also emitted for files included via the ``include``
++      directive (and other directives that insert reStructuredText content),
++      with *docname* set to the name of the document being read.
++
+ .. event:: object-description-transform (app, domain, objtype, contentnode)
+ 
+    Emitted when an object description directive has run.  The *domain* and
+diff --git a/sphinx/parsers.py b/sphinx/parsers.py
+index 1269884ab..a515426c3 100644
+--- a/sphinx/parsers.py
++++ b/sphinx/parsers.py
+@@ -46,6 +46,96 @@ class Parser(docutils.parsers.Parser):
+         self.env = app.env
+ 
+ 
++def _is_source_read_content(input_lines: Any) -> bool:
++    """Return whether *input_lines* holds real included content.
++
++    docutils appends a synthetic ``.. end of inclusion from "..."`` marker to
++    the lines of an included file, and re-inserts that marker on its own when
++    unwinding.  Emitting ``source-read`` for the bare marker would hand
++    extensions content that does not exist in the file, so skip a block whose
++    only non-blank line is that marker.
++    """
++    if not input_lines:
++        return False
++    stripped = [line for line in input_lines if isinstance(line, str) and line.strip()]
++    if len(stripped) != 1:
++        return True
++    return not stripped[0].startswith(".. end of inclusion from ")
++
++
++def _emit_source_read(env: Any, source: str | None, input_lines: Any) -> Any:
++    """Emit the ``source-read`` event for the given included content.
++
++    The content is passed to the handlers as a single string; the (possibly
++    modified) string is then split back into lines, preserving the source
++    information of the original lines so that error messages stay accurate.
++    """
++    if not _is_source_read_content(input_lines):
++        return input_lines
++
++    content = "\n".join(input_lines)
++    arg = [content]
++    # ``source`` is the path passed to ``StateMachine.insert_input``.  For
++    # data included from another file it may not be a docname known to the
++    # environment, and ``path2doc`` then returns ``None``; fall back to the
++    # path itself so that handlers always receive a usable identifier.
++    docname = source
++    path2doc = getattr(env, "path2doc", None)
++    if source is not None and path2doc is not None:
++        try:
++            docname = path2doc(source) or source
++        except Exception:
++            docname = source
++    env.events.emit("source-read", docname, arg)
++    if arg[0] == content:
++        return input_lines
++
++    # Rebuild the list holding the transformed content.  ``input_lines`` is
++    # usually a docutils ``StringList`` (a ``ViewList``) which does not accept
++    # extending with plain strings, so construct a matching object instead.
++    new_lines = arg[0].splitlines()
++    old_items = list(getattr(input_lines, "items", ()))
++    new_items = [
++        old_items[i] if i < len(old_items) else (source, None)
++        for i in range(len(new_lines))
++    ]
++    if isinstance(input_lines, StringList):
++        new_list = StringList(new_lines, source)
++        new_list.items = new_items
++        return new_list
++    input_lines[:] = new_lines
++    return input_lines
++
++
++class SphinxStateMachine(states.RSTStateMachine):
++    """A state machine that adds Sphinx-specific hooks.
++
++    In particular, it emits the ``source-read`` event for the content of
++    files that are inserted by the ``include`` directive, so that extensions
++    can transform included sources in the same way as regular documents.
++    """
++
++    def insert_input(self, input_lines: list[str], source: str) -> None:
++        # ``insert_input`` is called by the docutils ``include`` directive to
++        # queue the content of the included file; emit ``source-read`` so that
++        # handlers may modify it in-place before it is parsed.
++        env = getattr(getattr(self.document, 'settings', None), 'env', None)
++        input_lines = _emit_source_read(env, source, input_lines)
++        super().insert_input(input_lines, source)
++
++
++class SphinxNestedStateMachine(states.NestedStateMachine):
++    """A subclass of ``NestedStateMachine`` that emits ``source-read``.
++
++    ``NestedStateMachine`` instances are used to parse the content of files
++    inserted by the ``include`` directive; see :class:`SphinxStateMachine`.
++    """
++
++    def insert_input(self, input_lines: list[str], source: str) -> None:
++        input_lines = _emit_source_read(self.document.settings.env, source, input_lines)
++        super().insert_input(input_lines, source)
++
++
+ class RSTParser(docutils.parsers.rst.Parser, Parser):
+     """A reST parser for Sphinx."""
+ 
+@@ -62,11 +152,15 @@ class RSTParser(docutils.parsers.rst.Parser, Parser):
+     def parse(self, inputstring: str | StringList, document: nodes.document) -> None:
+         """Parse text and generate a document tree."""
+         self.setup_parse(inputstring, document)  # type: ignore[arg-type]
+-        self.statemachine = states.RSTStateMachine(
++        self.statemachine = SphinxStateMachine(
+             state_classes=self.state_classes,
+             initial_state=self.initial_state,
+             debug=document.reporter.debug_flag)
+ 
++        # Wrap the nested state machine used to parse included files so that
++        # the "source-read" event is emitted for their content as well.
++        states.RSTState.nested_sm = SphinxNestedStateMachine
++
+         # preprocess inputstring
+         if isinstance(inputstring, str):
+             lines = docutils.statemachine.string2lines(
+diff --git a/tests/test_environment.py b/tests/test_environment.py
+index 8a34457cb..73d502488 100644
+--- a/tests/test_environment.py
++++ b/tests/test_environment.py
+@@ -10,6 +10,32 @@ from sphinx.builders.latex import LaTeXBuilder
+ from sphinx.environment import CONFIG_CHANGED, CONFIG_EXTENSIONS_CHANGED, CONFIG_NEW, CONFIG_OK
+ 
+ 
++@pytest.mark.sphinx('dummy', testroot='source-read')
++def test_source_read_included_file(app):
++    """The ``source-read`` event is emitted for files pulled in via ``include``.
++
++    Regression test for a bug where the event was only emitted for standalone
++    source files, so transformations were silently dropped for documents that
++    were only ever ``include``-d (and thus never read as a top-level document).
++    """
++    docs: dict[str, str] = {}
++
++    def subst(app, docname, source):
++        docs[docname] = source[0]
++        source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++    app.connect('source-read', subst)
++    app.build()
++
++    # ``include-fragment.txt`` is only ever pulled in by ``index.rst`` via the
++    # ``include`` directive (its ``.txt`` suffix keeps it out of the set of
++    # standalone sources).  The event must therefore fire while the include is
++    # being parsed, and the handler's replacement must reach the output.
++    doctree = app.env.get_doctree('index')
++    assert 'REPLACED' in doctree.astext()
++    assert '&REPLACE_ME;' not in doctree.astext()
++
++
+ @pytest.mark.sphinx('dummy', testroot='basic')
+ def test_config_status(make_app, app_params):
+     args, kwargs = app_params

@@ -1,0 +1,74 @@
+2026-10-04 19:15:25,555 - INFO - Creating container for pytest-dev__pytest-5809...
+2026-10-04 19:15:25,590 - INFO - Container for pytest-dev__pytest-5809 created: 1b8e4f2a051f7a206b443e51f2a3f38285e3850d5f5be22a6d1dff92a712954f
+2026-10-04 19:15:25,794 - INFO - Container for pytest-dev__pytest-5809 started: 1b8e4f2a051f7a206b443e51f2a3f38285e3850d5f5be22a6d1dff92a712954f
+2026-10-04 19:15:25,794 - INFO - Intermediate patch for pytest-dev__pytest-5809 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pytest-dev__pytest-5809/patch.diff, now applying to container...
+2026-10-04 19:15:25,904 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:15:26,062 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:15:26,171 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:15:26,277 - INFO - >>>>> Applied Patch:
+patching file changelog/5806.bugfix.rst
+patching file src/_pytest/pastebin.py
+patching file testing/test_pastebin.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 126 with fuzz 1.
+
+2026-10-04 19:15:26,331 - INFO - Git diff before:
+diff --git a/src/_pytest/pastebin.py b/src/_pytest/pastebin.py
+index 41576a615..7a3e80231 100755
+--- a/src/_pytest/pastebin.py
++++ b/src/_pytest/pastebin.py
+@@ -77,11 +77,7 @@ def create_new_paste(contents):
+         from urllib.request import urlopen
+         from urllib.parse import urlencode
+ 
+-    params = {
+-        "code": contents,
+-        "lexer": "python3" if sys.version_info[0] >= 3 else "python",
+-        "expiry": "1week",
+-    }
++    params = {"code": contents, "lexer": "text", "expiry": "1week"}
+     url = "https://bpaste.net"
+     response = urlopen(url, data=urlencode(params).encode("ascii")).read()
+     m = re.search(r'href="/raw/(\w+)"', response.decode("utf-8"))
+diff --git a/testing/test_pastebin.py b/testing/test_pastebin.py
+index bac8f9802..02efdb554 100755
+--- a/testing/test_pastebin.py
++++ b/testing/test_pastebin.py
+@@ -126,7 +126,7 @@ class TestPaste(object):
+         assert len(mocked_urlopen) == 1
+         url, data = mocked_urlopen[0]
+         assert type(data) is bytes
+-        lexer = "python3" if sys.version_info[0] >= 3 else "python"
++        lexer = "text"
+         assert url == "https://bpaste.net"
+         assert "lexer=%s" % lexer in data.decode()
+         assert "code=full-paste-contents" in data.decode()
+2026-10-04 19:15:26,331 - INFO - Eval script for pytest-dev__pytest-5809 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pytest-dev__pytest-5809/eval.sh; copying to container...
+2026-10-04 19:15:35,377 - INFO - Test runtime: 8.99 seconds
+2026-10-04 19:15:35,378 - INFO - Test output for pytest-dev__pytest-5809 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pytest-dev__pytest-5809/test_output.txt
+2026-10-04 19:15:35,433 - INFO - Git diff after:
+diff --git a/src/_pytest/pastebin.py b/src/_pytest/pastebin.py
+index 41576a615..7a3e80231 100755
+--- a/src/_pytest/pastebin.py
++++ b/src/_pytest/pastebin.py
+@@ -77,11 +77,7 @@ def create_new_paste(contents):
+         from urllib.request import urlopen
+         from urllib.parse import urlencode
+ 
+-    params = {
+-        "code": contents,
+-        "lexer": "python3" if sys.version_info[0] >= 3 else "python",
+-        "expiry": "1week",
+-    }
++    params = {"code": contents, "lexer": "text", "expiry": "1week"}
+     url = "https://bpaste.net"
+     response = urlopen(url, data=urlencode(params).encode("ascii")).read()
+     m = re.search(r'href="/raw/(\w+)"', response.decode("utf-8"))
+2026-10-04 19:15:35,433 - INFO - Git diff changed after running eval script
+2026-10-04 19:15:35,433 - INFO - Grading answer for pytest-dev__pytest-5809...
+2026-10-04 19:15:35,434 - INFO - report: {'pytest-dev__pytest-5809': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['testing/test_pastebin.py::TestPaste::test_create_new_paste'], 'failure': []}, 'PASS_TO_PASS': {'success': ['testing/test_pastebin.py::TestPasteCapture::test_failed', 'testing/test_pastebin.py::TestPasteCapture::test_all', 'testing/test_pastebin.py::TestPasteCapture::test_non_ascii_paste_text'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pytest-dev__pytest-5809: resolved: True
+2026-10-04 19:15:35,435 - INFO - Attempting to stop container sweb.eval.pytest-dev__pytest-5809.wescode-v3...
+2026-10-04 19:15:50,564 - INFO - Container sweb.eval.pytest-dev__pytest-5809.wescode-v3 stopped successfully.
+2026-10-04 19:15:50,564 - INFO - Attempting to remove container sweb.eval.pytest-dev__pytest-5809.wescode-v3...
+2026-10-04 19:15:50,589 - INFO - Container sweb.eval.pytest-dev__pytest-5809.wescode-v3 removed successfully.

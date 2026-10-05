@@ -1,0 +1,78 @@
+2026-10-04 17:34:09,109 - INFO - Creating container for django__django-11333...
+2026-10-04 17:34:09,242 - INFO - Container for django__django-11333 created: b5835d4a2d20ad01af65df1ee892c4589c86f092cff7695297e49ee7dddbefab
+2026-10-04 17:34:09,455 - INFO - Container for django__django-11333 started: b5835d4a2d20ad01af65df1ee892c4589c86f092cff7695297e49ee7dddbefab
+2026-10-04 17:34:09,455 - INFO - Intermediate patch for django__django-11333 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11333/patch.diff, now applying to container...
+2026-10-04 17:34:09,588 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:34:10,072 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:34:10,248 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:34:10,424 - INFO - >>>>> Applied Patch:
+patching file django/urls/resolvers.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 64 with fuzz 1.
+
+2026-10-04 17:34:10,498 - INFO - Git diff before:
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 247e3680c0..ac22e1399d 100755
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -64,10 +64,21 @@ class ResolverMatch:
+ 
+ 
+ @functools.lru_cache(maxsize=None)
++def _get_cached_resolver(urlconf):
++    return URLResolver(RegexPattern(r'^/'), urlconf)
++
++
+ def get_resolver(urlconf=None):
+     if urlconf is None:
++        # Resolve the default URLconf before looking it up in the cache so
++        # that calls made with None (e.g. before set_urlconf() has been
++        # called) and calls made with the resolved ROOT_URLCONF share a
++        # single URLResolver, avoiding a duplicate, expensive _populate().
+         urlconf = settings.ROOT_URLCONF
+-    return URLResolver(RegexPattern(r'^/'), urlconf)
++    return _get_cached_resolver(urlconf)
++
++
++get_resolver.cache_clear = _get_cached_resolver.cache_clear
+ 
+ 
+ @functools.lru_cache(maxsize=None)
+2026-10-04 17:34:10,499 - INFO - Eval script for django__django-11333 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11333/eval.sh; copying to container...
+2026-10-04 17:34:21,557 - INFO - Test runtime: 11.00 seconds
+2026-10-04 17:34:21,558 - INFO - Test output for django__django-11333 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11333/test_output.txt
+2026-10-04 17:34:21,618 - INFO - Git diff after:
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 247e3680c0..ac22e1399d 100755
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -64,10 +64,21 @@ class ResolverMatch:
+ 
+ 
+ @functools.lru_cache(maxsize=None)
++def _get_cached_resolver(urlconf):
++    return URLResolver(RegexPattern(r'^/'), urlconf)
++
++
+ def get_resolver(urlconf=None):
+     if urlconf is None:
++        # Resolve the default URLconf before looking it up in the cache so
++        # that calls made with None (e.g. before set_urlconf() has been
++        # called) and calls made with the resolved ROOT_URLCONF share a
++        # single URLResolver, avoiding a duplicate, expensive _populate().
+         urlconf = settings.ROOT_URLCONF
+-    return URLResolver(RegexPattern(r'^/'), urlconf)
++    return _get_cached_resolver(urlconf)
++
++
++get_resolver.cache_clear = _get_cached_resolver.cache_clear
+ 
+ 
+ @functools.lru_cache(maxsize=None)
+2026-10-04 17:34:21,618 - INFO - Grading answer for django__django-11333...
+2026-10-04 17:34:21,623 - INFO - report: {'django__django-11333': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_resolver_cache_default__root_urlconf (urlpatterns.test_resolvers.ResolverCacheTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_str (urlpatterns.test_resolvers.RegexPatternTests)', 'test_str (urlpatterns.test_resolvers.RoutePatternTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11333: resolved: True
+2026-10-04 17:34:21,623 - INFO - Attempting to stop container sweb.eval.django__django-11333.wescode-v3...
+2026-10-04 17:34:36,779 - INFO - Container sweb.eval.django__django-11333.wescode-v3 stopped successfully.
+2026-10-04 17:34:36,779 - INFO - Attempting to remove container sweb.eval.django__django-11333.wescode-v3...
+2026-10-04 17:34:36,809 - INFO - Container sweb.eval.django__django-11333.wescode-v3 removed successfully.

@@ -1,0 +1,76 @@
+2026-10-04 19:57:56,992 - INFO - Creating container for sympy__sympy-22714...
+2026-10-04 19:57:57,028 - INFO - Container for sympy__sympy-22714 created: dd48936e1a88ab7bef61f04ccdb7ccba561c481a3a15c2576cc38dcb86720af6
+2026-10-04 19:57:57,229 - INFO - Container for sympy__sympy-22714 started: dd48936e1a88ab7bef61f04ccdb7ccba561c481a3a15c2576cc38dcb86720af6
+2026-10-04 19:57:57,229 - INFO - Intermediate patch for sympy__sympy-22714 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-22714/patch.diff, now applying to container...
+2026-10-04 19:57:57,351 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:57:57,534 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:57:57,646 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:57:57,755 - INFO - >>>>> Applied Patch:
+patching file sympy/geometry/point.py
+patching file sympy/geometry/tests/test_point.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 453 with fuzz 1.
+
+2026-10-04 19:57:57,828 - INFO - Git diff before:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..11bad7ff9c 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -152,7 +152,7 @@ def __new__(cls, *args, **kwargs):
+                         'warn' or 'ignore'.'''))
+         if any(coords[dim:]):
+             raise ValueError('Nonzero coordinates cannot be removed.')
+-        if any(a.is_number and im(a) for a in coords):
++        if any(a.is_number and im(a).is_zero is False for a in coords):
+             raise ValueError('Imaginary coordinates are not permitted.')
+         if not all(isinstance(a, Expr) for a in coords):
+             raise TypeError('Coordinates must be valid SymPy expressions.')
+diff --git a/sympy/geometry/tests/test_point.py b/sympy/geometry/tests/test_point.py
+index 930d707735..d2e3a545c9 100755
+--- a/sympy/geometry/tests/test_point.py
++++ b/sympy/geometry/tests/test_point.py
+@@ -1,5 +1,6 @@
+ from sympy.core.basic import Basic
+ from sympy.core.numbers import (I, Rational, pi)
++from sympy.core.parameters import evaluate
+ from sympy.core.singleton import S
+ from sympy.core.symbol import Symbol
+ from sympy.core.sympify import sympify
+@@ -452,6 +453,12 @@ def test__normalize_dimension():
+         Point(1, 2, 0), Point(3, 4, 0)]
+ 
+ 
++def test_issue_22684():
++    # Used to give an error
++    with evaluate(False):
++        Point(1, 2)
++
++
+ def test_direction_cosine():
+     p1 = Point3D(0, 0, 0)
+     p2 = Point3D(1, 1, 1)
+2026-10-04 19:57:57,829 - INFO - Eval script for sympy__sympy-22714 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-22714/eval.sh; copying to container...
+2026-10-04 19:58:09,329 - INFO - Test runtime: 11.45 seconds
+2026-10-04 19:58:09,330 - INFO - Test output for sympy__sympy-22714 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-22714/test_output.txt
+2026-10-04 19:58:09,387 - INFO - Git diff after:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..11bad7ff9c 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -152,7 +152,7 @@ def __new__(cls, *args, **kwargs):
+                         'warn' or 'ignore'.'''))
+         if any(coords[dim:]):
+             raise ValueError('Nonzero coordinates cannot be removed.')
+-        if any(a.is_number and im(a) for a in coords):
++        if any(a.is_number and im(a).is_zero is False for a in coords):
+             raise ValueError('Imaginary coordinates are not permitted.')
+         if not all(isinstance(a, Expr) for a in coords):
+             raise TypeError('Coordinates must be valid SymPy expressions.')
+2026-10-04 19:58:09,387 - INFO - Git diff changed after running eval script
+2026-10-04 19:58:09,387 - INFO - Grading answer for sympy__sympy-22714...
+2026-10-04 19:58:09,389 - INFO - report: {'sympy__sympy-22714': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_issue_22684'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_point', 'test_point3D', 'test_Point2D', 'test_issue_9214', 'test_issue_11617', 'test_transform', 'test_concyclic_doctest_bug', 'test_arguments', 'test_unit', 'test_dot', 'test__normalize_dimension'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-22714: resolved: True
+2026-10-04 19:58:09,389 - INFO - Attempting to stop container sweb.eval.sympy__sympy-22714.wescode-v3...
+2026-10-04 19:58:24,535 - INFO - Container sweb.eval.sympy__sympy-22714.wescode-v3 stopped successfully.
+2026-10-04 19:58:24,535 - INFO - Attempting to remove container sweb.eval.sympy__sympy-22714.wescode-v3...
+2026-10-04 19:58:24,564 - INFO - Container sweb.eval.sympy__sympy-22714.wescode-v3 removed successfully.

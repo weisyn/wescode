@@ -1,0 +1,139 @@
+2026-10-04 17:39:08,374 - INFO - Creating container for django__django-12039...
+2026-10-04 17:39:08,421 - INFO - Container for django__django-12039 created: 8f24e0bd8c5d702817be3989b6c491d13cc35cf95471960b3354efa07fec4ef5
+2026-10-04 17:39:08,620 - INFO - Container for django__django-12039 started: 8f24e0bd8c5d702817be3989b6c491d13cc35cf95471960b3354efa07fec4ef5
+2026-10-04 17:39:08,620 - INFO - Intermediate patch for django__django-12039 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12039/patch.diff, now applying to container...
+2026-10-04 17:39:08,739 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:39:09,915 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:39:10,500 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:39:10,690 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/ddl_references.py
+patching file tests/indexes/tests.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 279 with fuzz 1.
+
+2026-10-04 17:39:10,747 - INFO - Git diff before:
+diff --git a/django/db/backends/ddl_references.py b/django/db/backends/ddl_references.py
+index 44e49806f8..a2f440056b 100644
+--- a/django/db/backends/ddl_references.py
++++ b/django/db/backends/ddl_references.py
+@@ -84,9 +84,10 @@ class Columns(TableColumns):
+     def __str__(self):
+         def col_str(column, idx):
+             try:
+-                return self.quote_name(column) + self.col_suffixes[idx]
++                suffix = self.col_suffixes[idx]
+             except IndexError:
+-                return self.quote_name(column)
++                suffix = ''
++            return self.quote_name(column) + ((' ' + suffix) if suffix else '')
+ 
+         return ', '.join(col_str(column, idx) for idx, column in enumerate(self.columns))
+ 
+@@ -110,13 +111,19 @@ class IndexColumns(Columns):
+ 
+     def __str__(self):
+         def col_str(column, idx):
++            try:
++                suffix = self.col_suffixes[idx]
++            except IndexError:
++                suffix = ''
++            col = self.quote_name(column) + ((' ' + suffix) if suffix else '')
+             # Index.__init__() guarantees that self.opclasses is the same
+             # length as self.columns.
+-            col = '{} {}'.format(self.quote_name(column), self.opclasses[idx])
+             try:
+-                col = '{} {}'.format(col, self.col_suffixes[idx])
++                opclass = self.opclasses[idx]
+             except IndexError:
+-                pass
++                opclass = ''
++            if opclass:
++                col = '%s %s' % (col, opclass)
+             return col
+ 
+         return ', '.join(col_str(column, idx) for idx, column in enumerate(self.columns))
+diff --git a/tests/indexes/tests.py b/tests/indexes/tests.py
+index 588feaddff..770710e2b9 100644
+--- a/tests/indexes/tests.py
++++ b/tests/indexes/tests.py
+@@ -151,6 +151,16 @@ class SchemaIndexesPostgreSQLTests(TransactionTestCase):
+             cursor.execute(self.get_opclass_query % 'test_ops_class')
+             self.assertEqual(cursor.fetchall(), [('varchar_pattern_ops', 'test_ops_class')])
+ 
++    def test_ops_class_whitespace(self):
++        index = Index(
++            name='test_ops_class_whitespace',
++            fields=['-headline'],
++            opclasses=['varchar_pattern_ops'],
++        )
++        with connection.schema_editor() as editor:
++            sql = str(index.create_sql(IndexedArticle2, editor))
++        self.assertIn('"headline" DESC varchar_pattern_ops', sql)
++
+     def test_ops_class_multiple_columns(self):
+         index = Index(
+             name='test_ops_class_multiple',
+@@ -269,6 +279,11 @@ class PartialIndexTests(TransactionTestCase):
+     # Schema editor is used to create the index to test that it works.
+     available_apps = ['indexes']
+ 
++    def test_index_with_ordering(self):
++        index = Index(fields=['-headline'])
++        sql = str(index.create_sql(Article, connection.schema_editor()))
++        self.assertIn('"headline" DESC', sql)
++
+     def test_partial_index(self):
+         with connection.schema_editor() as editor:
+             index = Index(
+2026-10-04 17:39:10,748 - INFO - Eval script for django__django-12039 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12039/eval.sh; copying to container...
+2026-10-04 17:39:16,861 - INFO - Test runtime: 6.06 seconds
+2026-10-04 17:39:16,861 - INFO - Test output for django__django-12039 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12039/test_output.txt
+2026-10-04 17:39:16,929 - INFO - Git diff after:
+diff --git a/django/db/backends/ddl_references.py b/django/db/backends/ddl_references.py
+index 44e49806f8..a2f440056b 100644
+--- a/django/db/backends/ddl_references.py
++++ b/django/db/backends/ddl_references.py
+@@ -84,9 +84,10 @@ class Columns(TableColumns):
+     def __str__(self):
+         def col_str(column, idx):
+             try:
+-                return self.quote_name(column) + self.col_suffixes[idx]
++                suffix = self.col_suffixes[idx]
+             except IndexError:
+-                return self.quote_name(column)
++                suffix = ''
++            return self.quote_name(column) + ((' ' + suffix) if suffix else '')
+ 
+         return ', '.join(col_str(column, idx) for idx, column in enumerate(self.columns))
+ 
+@@ -110,13 +111,19 @@ class IndexColumns(Columns):
+ 
+     def __str__(self):
+         def col_str(column, idx):
++            try:
++                suffix = self.col_suffixes[idx]
++            except IndexError:
++                suffix = ''
++            col = self.quote_name(column) + ((' ' + suffix) if suffix else '')
+             # Index.__init__() guarantees that self.opclasses is the same
+             # length as self.columns.
+-            col = '{} {}'.format(self.quote_name(column), self.opclasses[idx])
+             try:
+-                col = '{} {}'.format(col, self.col_suffixes[idx])
++                opclass = self.opclasses[idx]
+             except IndexError:
+-                pass
++                opclass = ''
++            if opclass:
++                col = '%s %s' % (col, opclass)
+             return col
+ 
+         return ', '.join(col_str(column, idx) for idx, column in enumerate(self.columns))
+2026-10-04 17:39:16,929 - INFO - Git diff changed after running eval script
+2026-10-04 17:39:16,929 - INFO - Grading answer for django__django-12039...
+2026-10-04 17:39:16,930 - INFO - report: {'django__django-12039': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_descending_columns_list_sql (indexes.tests.SchemaIndexesTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_columns_list_sql (indexes.tests.SchemaIndexesTests)', 'test_index_name (indexes.tests.SchemaIndexesTests)', 'test_index_name_hash (indexes.tests.SchemaIndexesTests)', 'test_index_together (indexes.tests.SchemaIndexesTests)', 'test_index_together_single_list (indexes.tests.SchemaIndexesTests)', 'test_create_index_ignores_opclasses (indexes.tests.SchemaIndexesNotPostgreSQLTests)', 'test_boolean_restriction_partial (indexes.tests.PartialIndexTests)', 'test_integer_restriction_partial (indexes.tests.PartialIndexTests)', 'test_is_null_condition (indexes.tests.PartialIndexTests)', 'test_multiple_conditions (indexes.tests.PartialIndexTests)', 'test_partial_index (indexes.tests.PartialIndexTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12039: resolved: True
+2026-10-04 17:39:16,930 - INFO - Attempting to stop container sweb.eval.django__django-12039.wescode-v3...
+2026-10-04 17:39:32,084 - INFO - Container sweb.eval.django__django-12039.wescode-v3 stopped successfully.
+2026-10-04 17:39:32,084 - INFO - Attempting to remove container sweb.eval.django__django-12039.wescode-v3...
+2026-10-04 17:39:32,259 - INFO - Container sweb.eval.django__django-12039.wescode-v3 removed successfully.

@@ -1,0 +1,69 @@
+2026-10-04 17:31:08,246 - INFO - Creating container for django__django-11119...
+2026-10-04 17:31:08,298 - INFO - Container for django__django-11119 created: a6dcddb0adeaad0092a9b0a1b93afd6ab4b763b6999c67949c064bc527fa465e
+2026-10-04 17:31:08,506 - INFO - Container for django__django-11119 started: a6dcddb0adeaad0092a9b0a1b93afd6ab4b763b6999c67949c064bc527fa465e
+2026-10-04 17:31:08,507 - INFO - Intermediate patch for django__django-11119 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11119/patch.diff, now applying to container...
+2026-10-04 17:31:08,631 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:31:09,789 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:31:10,377 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:31:10,580 - INFO - >>>>> Applied Patch:
+patching file django/template/engine.py
+patching file tests/template_tests/test_engine.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 21 with fuzz 2.
+
+2026-10-04 17:31:10,639 - INFO - Git diff before:
+diff --git a/django/template/engine.py b/django/template/engine.py
+index dfaa67ba12..ff9ce58d59 100644
+--- a/django/template/engine.py
++++ b/django/template/engine.py
+@@ -160,7 +160,7 @@ class Engine:
+         if isinstance(context, Context):
+             return t.render(context)
+         else:
+-            return t.render(Context(context))
++            return t.render(Context(context, autoescape=self.autoescape))
+ 
+     def select_template(self, template_name_list):
+         """
+diff --git a/tests/template_tests/test_engine.py b/tests/template_tests/test_engine.py
+index 2bb8601fbb..b975ea87b4 100644
+--- a/tests/template_tests/test_engine.py
++++ b/tests/template_tests/test_engine.py
+@@ -21,6 +21,13 @@ class RenderToStringTest(SimpleTestCase):
+             'obj:test\n',
+         )
+ 
++    def test_autoescape_off(self):
++        engine = Engine(dirs=[TEMPLATE_DIR], autoescape=False)
++        self.assertEqual(
++            engine.render_to_string('test_context.html', {'obj': '<script>'}),
++            'obj:<script>\n',
++        )
++
+ 
+ class GetDefaultTests(SimpleTestCase):
+2026-10-04 17:31:10,639 - INFO - Eval script for django__django-11119 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11119/eval.sh; copying to container...
+2026-10-04 17:31:16,915 - INFO - Test runtime: 6.21 seconds
+2026-10-04 17:31:16,915 - INFO - Test output for django__django-11119 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11119/test_output.txt
+2026-10-04 17:31:16,977 - INFO - Git diff after:
+diff --git a/django/template/engine.py b/django/template/engine.py
+index dfaa67ba12..ff9ce58d59 100644
+--- a/django/template/engine.py
++++ b/django/template/engine.py
+@@ -160,7 +160,7 @@ class Engine:
+         if isinstance(context, Context):
+             return t.render(context)
+         else:
+-            return t.render(Context(context))
++            return t.render(Context(context, autoescape=self.autoescape))
+ 
+     def select_template(self, template_name_list):
+         """
+2026-10-04 17:31:16,978 - INFO - Git diff changed after running eval script
+2026-10-04 17:31:16,978 - INFO - Grading answer for django__django-11119...
+2026-10-04 17:31:16,978 - INFO - report: {'django__django-11119': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_autoescape_off (template_tests.test_engine.RenderToStringTest)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_cached_loader_priority (template_tests.test_engine.LoaderTests)', 'test_loader_priority (template_tests.test_engine.LoaderTests)', 'test_origin (template_tests.test_engine.LoaderTests)', 'test_basic_context (template_tests.test_engine.RenderToStringTest)', 'test_multiple_engines_configured (template_tests.test_engine.GetDefaultTests)', 'test_no_engines_configured (template_tests.test_engine.GetDefaultTests)', 'test_single_engine_configured (template_tests.test_engine.GetDefaultTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11119: resolved: True
+2026-10-04 17:31:16,979 - INFO - Attempting to stop container sweb.eval.django__django-11119.wescode-v3...
+2026-10-04 17:31:32,278 - INFO - Container sweb.eval.django__django-11119.wescode-v3 stopped successfully.
+2026-10-04 17:31:32,278 - INFO - Attempting to remove container sweb.eval.django__django-11119.wescode-v3...
+2026-10-04 17:31:32,450 - INFO - Container sweb.eval.django__django-11119.wescode-v3 removed successfully.

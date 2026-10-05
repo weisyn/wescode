@@ -1,0 +1,121 @@
+diff --git a/lib/matplotlib/artist.py b/lib/matplotlib/artist.py
+index 99577ece5..eef9fa322 100644
+--- a/lib/matplotlib/artist.py
++++ b/lib/matplotlib/artist.py
+@@ -210,28 +210,28 @@ class Artist:
+         # callback has one parameter, which is the child to be removed.
+         if self._remove_method is not None:
+             self._remove_method(self)
+-            # clear stale callback
+-            self.stale_callback = None
+-            _ax_flag = False
+-            if hasattr(self, 'axes') and self.axes:
+-                # remove from the mouse hit list
+-                self.axes._mouseover_set.discard(self)
+-                self.axes.stale = True
+-                self.axes = None  # decouple the artist from the Axes
+-                _ax_flag = True
+-
+-            if self.figure:
+-                self.figure = None
+-                if not _ax_flag:
+-                    self.figure = True
+-
+         else:
+             raise NotImplementedError('cannot remove artist')
+-        # TODO: the fix for the collections relim problem is to move the
+-        # limits calculation into the artist itself, including the property of
+-        # whether or not the artist should affect the limits.  Then there will
+-        # be no distinction between axes.add_line, axes.add_patch, etc.
+-        # TODO: add legend support
++        self._stale_axes()
++
++    def _stale_axes(self):
++        # For the case where the artist is deparented--either via `remove()`
++        # or because its parent Axes was cleared--clear the stale callback and
++        # decouple the artist from its former Axes and Figure.
++        # clear stale callback
++        self.stale_callback = None
++        _ax_flag = False
++        if hasattr(self, 'axes') and self.axes:
++            # remove from the mouse hit list
++            self.axes._mouseover_set.discard(self)
++            self.axes.stale = True
++            self.axes = None  # decouple the artist from the Axes
++            _ax_flag = True
++
++        if self.figure:
++            self.figure = None
++            if not _ax_flag:
++                self.figure = True
+ 
+     def have_units(self):
+         """Return whether units are set on any axis."""
+diff --git a/lib/matplotlib/axes/_base.py b/lib/matplotlib/axes/_base.py
+index 90b0bf117..24a3a831e 100644
+--- a/lib/matplotlib/axes/_base.py
++++ b/lib/matplotlib/axes/_base.py
+@@ -1308,8 +1308,10 @@ class _AxesBase(martist.Artist):
+         self._get_patches_for_fill = _process_plot_var_args(self, 'fill')
+ 
+         self._gridOn = mpl.rcParams['axes.grid']
+-        self._children = []
++        self._clear_children()
+         self._mouseover_set = _OrderedSet()
++        for child_ax in self.child_axes:
++            child_ax._stale_axes()
+         self.child_axes = []
+         self._current_image = None  # strictly for pyplot via _sci, _gci
+         self._projection_init = None  # strictly for pyplot.subplot
+@@ -1392,6 +1394,18 @@ class _AxesBase(martist.Artist):
+ 
+         self.stale = True
+ 
++    def _clear_children(self):
++        # Decouple all the children from this Axes before dropping them, so
++        # that deparented artists have their `.axes` and `.figure` unset,
++        # consistently with `Artist.remove`.
++        for child in self._children:
++            if isinstance(child, martist.Artist):
++                child._stale_axes()
++            else:  # e.g. a `.Container`, which is not an `.Artist` itself.
++                for artist in child.get_children():
++                    artist._stale_axes()
++        self._children.clear()
++
+     def clear(self):
+         """Clear the Axes."""
+         # Act as an alias, or as the superclass implementation depending on the
+diff --git a/lib/matplotlib/tests/test_artist.py b/lib/matplotlib/tests/test_artist.py
+index 7e302784c..5f637d5a2 100644
+--- a/lib/matplotlib/tests/test_artist.py
++++ b/lib/matplotlib/tests/test_artist.py
+@@ -214,6 +214,28 @@ def test_remove():
+     assert ax.stale
+ 
+ 
++def test_clear():
++    # Test that clearing the axes unsets the axes and figure of artists
++    # formerly on it, consistently with `Artist.remove`.
++    fig, ax = plt.subplots()
++    im = ax.imshow(np.arange(36).reshape(6, 6))
++    ln, = ax.plot(range(5))
++    txt = ax.text(0.5, 0.5, "hi")
++    bar = ax.bar([1, 2], [3, 4])
++
++    artists = [im, ln, txt, *bar]
++    for art in artists:
++        assert art.axes is ax
++        assert art.figure is fig
++
++    ax.cla()
++
++    for art in artists:
++        assert art.axes is None
++        assert art.figure is None
++    assert ax._children == []
++
++
+ @image_comparison(["default_edges.png"], remove_text=True, style='default')
+ def test_default_edges():
+     # Remove this line when this test image is regenerated.

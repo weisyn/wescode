@@ -1,0 +1,46 @@
+diff --git a/sympy/core/tests/test_match.py b/sympy/core/tests/test_match.py
+index 60e37094cc..848dc38464 100644
+--- a/sympy/core/tests/test_match.py
++++ b/sympy/core/tests/test_match.py
+@@ -134,7 +134,8 @@ def test_mul():
+     assert e.match(x**p*exp(x*q)) == {p: 0, q: 1}
+ 
+     e = I*Poly(x, x)
+-    assert e.match(I*p) == {p: Poly(x, x)}
++    assert e == Poly(I*x, x)
++    assert e.match(I*p) == {p: x}
+ 
+ 
+ def test_mul_noncommutative():
+diff --git a/sympy/polys/polytools.py b/sympy/polys/polytools.py
+index d5ac051f63..226a5463c2 100644
+--- a/sympy/polys/polytools.py
++++ b/sympy/polys/polytools.py
+@@ -107,6 +107,11 @@ class Poly(Expr):
+     is_commutative = True
+     is_Poly = True
+ 
++    # Priority of the Poly over other objects when performing binary
++    # operations: needed so that e.g. Integer(2)*Poly(x) delegates to
++    # Poly.__rmul__ instead of being handled as a plain core operation.
++    _op_priority = 11.0
++
+     def __new__(cls, rep, *gens, **args):
+         """Create a new polynomial instance out of something useful. """
+         opt = options.build_options(gens, args)
+diff --git a/sympy/polys/tests/test_polytools.py b/sympy/polys/tests/test_polytools.py
+index 1f889e9f18..bd6a6cbd0f 100644
+--- a/sympy/polys/tests/test_polytools.py
++++ b/sympy/polys/tests/test_polytools.py
+@@ -677,6 +677,11 @@ def test_Poly_mul():
+     assert Poly(x, x) * 2 == Poly(2*x, x)
+     assert 2 * Poly(x, x) == Poly(2*x, x)
+ 
++    assert Poly(1, x, y) * x == Poly(x, x, y)
++    assert x * Poly(1, x, y) == Poly(x, x, y)
++    assert Poly(1, x, y) * sin(x) == sin(x)
++    assert sin(x) * Poly(1, x, y) == sin(x)
++
+ 
+ def test_Poly_sqr():
+     assert Poly(x*y, x, y).sqr() == Poly(x**2*y**2, x, y)

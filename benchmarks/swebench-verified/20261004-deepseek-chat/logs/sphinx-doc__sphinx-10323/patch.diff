@@ -1,0 +1,65 @@
+diff --git a/CHANGES b/CHANGES
+index 7037723fe..7cb77096a 100644
+--- a/CHANGES
++++ b/CHANGES
+@@ -72,6 +72,8 @@ Bugs fixed
+   bulding texinfo document
+ * #10000: LaTeX: glossary terms with common definition are rendered with
+   too much vertical whitespace
++* #10323: ``literalinclude``: An indentation of ``prepend`` and ``append``
++  options is no longer stripped by the ``dedent`` option
+ 
+ Testing
+ --------
+diff --git a/doc/usage/restructuredtext/directives.rst b/doc/usage/restructuredtext/directives.rst
+index d1877bca0..7b0115214 100644
+--- a/doc/usage/restructuredtext/directives.rst
++++ b/doc/usage/restructuredtext/directives.rst
+@@ -731,6 +731,9 @@ __ https://pygments.org/docs/lexers
+    ``prepend`` and ``append`` option, respectively.  This is useful e.g. for
+    highlighting PHP code that doesn't include the ``<?php``/``?>`` markers.
+ 
++   The ``prepend`` and ``append`` content is not affected by the ``dedent``
++   option; indentation given in these options is preserved as-is.
++
+    If you want to show the diff of the code, you can specify the old file by
+    giving a ``diff`` option::
+ 
+diff --git a/sphinx/directives/code.py b/sphinx/directives/code.py
+index dc44ed314..9437fe9a5 100644
+--- a/sphinx/directives/code.py
++++ b/sphinx/directives/code.py
+@@ -224,9 +224,9 @@ class LiteralIncludeReader:
+                        self.start_filter,
+                        self.end_filter,
+                        self.lines_filter,
++                       self.dedent_filter,
+                        self.prepend_filter,
+-                       self.append_filter,
+-                       self.dedent_filter]
++                       self.append_filter]
+             lines = self.read_file(self.filename, location=location)
+             for func in filters:
+                 lines = func(lines, location=location)
+diff --git a/tests/test_directive_code.py b/tests/test_directive_code.py
+index 98a9aa899..47c0294a6 100644
+--- a/tests/test_directive_code.py
++++ b/tests/test_directive_code.py
+@@ -216,6 +216,17 @@ def test_LiteralIncludeReader_prepend(literal_inc_path):
+                        "Sphinx\n")
+ 
+ 
++@pytest.mark.xfail(os.name != 'posix', reason="Not working on windows")
++def test_LiteralIncludeReader_prepend_and_dedent(literal_inc_path):
++    # dedent must not affect the prepend/append content (refs: #10323)
++    options = {'lines': '1', 'dedent': 4, 'prepend': '    <plugin>', 'append': '    </plugin>'}
++    reader = LiteralIncludeReader(literal_inc_path, options, DUMMY_CONFIG)
++    content, lines = reader.read()
++    assert content == ("    <plugin>\n"
++                       "terally included file using Python highlighting\n"
++                       "    </plugin>\n")
++
++
+ @pytest.mark.xfail(os.name != 'posix', reason="Not working on windows")
+ def test_LiteralIncludeReader_dedent(literal_inc_path):
+     # dedent: 2

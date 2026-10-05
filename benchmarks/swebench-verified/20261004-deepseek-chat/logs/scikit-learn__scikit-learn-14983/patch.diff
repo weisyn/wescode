@@ -1,0 +1,48 @@
+diff --git a/sklearn/model_selection/_split.py b/sklearn/model_selection/_split.py
+index c49a3ce6a..0c5677205 100644
+--- a/sklearn/model_selection/_split.py
++++ b/sklearn/model_selection/_split.py
+@@ -1163,6 +1163,9 @@ class _RepeatedSplits(metaclass=ABCMeta):
+                      **self.cvargs)
+         return cv.get_n_splits(X, y, groups) * self.n_repeats
+ 
++    def __repr__(self):
++        return _build_repr(self)
++
+ 
+ class RepeatedKFold(_RepeatedSplits):
+     """Repeated K-Fold cross validator.
+@@ -2165,4 +2168,9 @@ def _build_repr(self):
+             warnings.filters.pop(0)
+         params[key] = value
+ 
++    # Add the parameters that were passed as **cvargs (e.g. n_splits for
++    # RepeatedKFold) to the representation.
++    if hasattr(self, 'cvargs'):
++        params.update(self.cvargs)
++
+     return '%s(%s)' % (class_name, _pprint(params, offset=len(class_name)))
+diff --git a/sklearn/model_selection/tests/test_split.py b/sklearn/model_selection/tests/test_split.py
+index a38fb435c..a12816cca 100644
+--- a/sklearn/model_selection/tests/test_split.py
++++ b/sklearn/model_selection/tests/test_split.py
+@@ -1525,6 +1525,19 @@ def test_build_repr():
+     assert repr(MockSplitter(5, 6)) == "MockSplitter(a=5, b=6, c=None)"
+ 
+ 
++@pytest.mark.parametrize('CVSplitter', (RepeatedKFold, RepeatedStratifiedKFold))
++def test_repeated_cv_repr(CVSplitter):
++    # non-regression test for gh-14981: RepeatedKFold and
++    # RepeatedStratifiedKFold should show the parameters of the underlying
++    # splitter (n_splits) instead of the default object representation.
++    assert repr(CVSplitter()) == (
++        '{}(n_repeats=10, n_splits=5, random_state=None)'.format(
++            CVSplitter.__name__))
++    assert repr(CVSplitter(n_splits=3, n_repeats=2, random_state=0)) == (
++        '{}(n_repeats=2, n_splits=3, random_state=0)'.format(
++            CVSplitter.__name__))
++
++
+ @pytest.mark.parametrize('CVSplitter', (ShuffleSplit, GroupShuffleSplit,
+                                         StratifiedShuffleSplit))
+ def test_shuffle_split_empty_trainset(CVSplitter):

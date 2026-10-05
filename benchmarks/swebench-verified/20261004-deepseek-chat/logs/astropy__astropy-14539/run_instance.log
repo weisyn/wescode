@@ -1,0 +1,125 @@
+2026-10-04 17:19:12,009 - INFO - Creating container for astropy__astropy-14539...
+2026-10-04 17:19:12,055 - INFO - Container for astropy__astropy-14539 created: 3a17dc2a1fc659adc61c2d6a51f9f9cd1c635a4f0253d81915d850f44be36a9d
+2026-10-04 17:19:12,257 - INFO - Container for astropy__astropy-14539 started: 3a17dc2a1fc659adc61c2d6a51f9f9cd1c635a4f0253d81915d850f44be36a9d
+2026-10-04 17:19:12,257 - INFO - Intermediate patch for astropy__astropy-14539 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-14539/patch.diff, now applying to container...
+2026-10-04 17:19:12,369 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:19:12,824 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:19:13,228 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:19:13,337 - INFO - >>>>> Applied Patch:
+patching file astropy/io/fits/diff.py
+patching file astropy/io/fits/tests/test_diff.py
+patch unexpectedly ends in middle of line
+Hunk #4 succeeded at 594 with fuzz 1.
+
+2026-10-04 17:19:13,388 - INFO - Git diff before:
+diff --git a/astropy/io/fits/diff.py b/astropy/io/fits/diff.py
+index 100cdf1b8..d3608ef01 100644
+--- a/astropy/io/fits/diff.py
++++ b/astropy/io/fits/diff.py
+@@ -1449,7 +1449,7 @@ class TableDataDiff(_BaseDiff):
+                 arrb.dtype, np.floating
+             ):
+                 diffs = where_not_allclose(arra, arrb, rtol=self.rtol, atol=self.atol)
+-            elif "P" in col.format:
++            elif "P" in col.format or "Q" in col.format:
+                 diffs = (
+                     [
+                         idx
+diff --git a/astropy/io/fits/tests/test_diff.py b/astropy/io/fits/tests/test_diff.py
+index adfebe6a5..a5a771cd4 100644
+--- a/astropy/io/fits/tests/test_diff.py
++++ b/astropy/io/fits/tests/test_diff.py
+@@ -406,16 +406,17 @@ class TestDiff(FitsTestCase):
+         c8 = Column("H", format="C", array=[0.0 + 1.0j, 2.0 + 3.0j])
+         c9 = Column("I", format="M", array=[4.0 + 5.0j, 6.0 + 7.0j])
+         c10 = Column("J", format="PI(2)", array=[[0, 1], [2, 3]])
++        c11 = Column("K", format="QJ(2)", array=[[0, 1], [2, 3]])
+ 
+-        columns = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10]
++        columns = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]
+ 
+         ta = BinTableHDU.from_columns(columns)
+         tb = BinTableHDU.from_columns([c.copy() for c in columns])
+ 
+         diff = TableDataDiff(ta.data, tb.data)
+         assert diff.identical
+-        assert len(diff.common_columns) == 10
+-        assert diff.common_column_names == set("abcdefghij")
++        assert len(diff.common_columns) == 11
++        assert diff.common_column_names == set("abcdefghijk")
+         assert diff.diff_ratio == 0
+         assert diff.diff_total == 0
+ 
+@@ -549,6 +550,7 @@ class TestDiff(FitsTestCase):
+         ca8 = Column("H", format="C", array=[0.0 + 1.0j, 2.0 + 3.0j])
+         ca9 = Column("I", format="M", array=[4.0 + 5.0j, 6.0 + 7.0j])
+         ca10 = Column("J", format="PI(2)", array=[[0, 1], [2, 3]])
++        ca11 = Column("K", format="QJ(2)", array=[[0, 1], [2, 3]])
+ 
+         cb1 = Column("A", format="L", array=[False, False])
+         cb2 = Column("B", format="X", array=[[0], [0]])
+@@ -560,12 +562,13 @@ class TestDiff(FitsTestCase):
+         cb8 = Column("H", format="C", array=[1.0 + 1.0j, 2.0 + 3.0j])
+         cb9 = Column("I", format="M", array=[5.0 + 5.0j, 6.0 + 7.0j])
+         cb10 = Column("J", format="PI(2)", array=[[1, 2], [3, 4]])
++        cb11 = Column("K", format="QJ(2)", array=[[1, 2], [3, 4]])
+ 
+         ta = BinTableHDU.from_columns(
+-            [ca1, ca2, ca3, ca4, ca5, ca6, ca7, ca8, ca9, ca10]
++            [ca1, ca2, ca3, ca4, ca5, ca6, ca7, ca8, ca9, ca10, ca11]
+         )
+         tb = BinTableHDU.from_columns(
+-            [cb1, cb2, cb3, cb4, cb5, cb6, cb7, cb8, cb9, cb10]
++            [cb1, cb2, cb3, cb4, cb5, cb6, cb7, cb8, cb9, cb10, cb11]
+         )
+ 
+         diff = TableDataDiff(ta.data, tb.data, numdiffs=20)
+@@ -591,14 +594,20 @@ class TestDiff(FitsTestCase):
+         assert diff.diff_values[12][0] == ("J", 1)
+         assert (diff.diff_values[12][1][0] == [2, 3]).all()
+         assert (diff.diff_values[12][1][1] == [3, 4]).all()
++        assert diff.diff_values[13][0] == ("K", 0)
++        assert (diff.diff_values[13][1][0] == [0, 1]).all()
++        assert (diff.diff_values[13][1][1] == [1, 2]).all()
++        assert diff.diff_values[14][0] == ("K", 1)
++        assert (diff.diff_values[14][1][0] == [2, 3]).all()
++        assert (diff.diff_values[14][1][1] == [3, 4]).all()
+ 
+-        assert diff.diff_total == 13
+-        assert diff.diff_ratio == 0.65
++        assert diff.diff_total == 15
++        assert np.isclose(diff.diff_ratio, 0.682, atol=1e-3, rtol=0)
+ 
+         report = diff.report()
+         assert "Column A data differs in row 0:\n    a> True\n    b> False" in report
+         assert "...and at 1 more indices.\n Column D data differs in row 0:" in report
+-        assert "13 different table data element(s) found (65.00% different)" in report
++        assert "15 different table data element(s) found (68.18% different)" in report
+         assert report.count("more indices") == 1
+ 
+     def test_identical_files_basic(self):
+2026-10-04 17:19:13,389 - INFO - Eval script for astropy__astropy-14539 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-14539/eval.sh; copying to container...
+2026-10-04 17:20:25,510 - INFO - Test runtime: 72.06 seconds
+2026-10-04 17:20:25,510 - INFO - Test output for astropy__astropy-14539 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-14539/test_output.txt
+2026-10-04 17:20:25,563 - INFO - Git diff after:
+diff --git a/astropy/io/fits/diff.py b/astropy/io/fits/diff.py
+index 100cdf1b8..d3608ef01 100644
+--- a/astropy/io/fits/diff.py
++++ b/astropy/io/fits/diff.py
+@@ -1449,7 +1449,7 @@ class TableDataDiff(_BaseDiff):
+                 arrb.dtype, np.floating
+             ):
+                 diffs = where_not_allclose(arra, arrb, rtol=self.rtol, atol=self.atol)
+-            elif "P" in col.format:
++            elif "P" in col.format or "Q" in col.format:
+                 diffs = (
+                     [
+                         idx
+2026-10-04 17:20:25,564 - INFO - Git diff changed after running eval script
+2026-10-04 17:20:25,564 - INFO - Grading answer for astropy__astropy-14539...
+2026-10-04 17:20:25,566 - INFO - report: {'astropy__astropy-14539': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/io/fits/tests/test_diff.py::TestDiff::test_identical_tables', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_table_data'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/io/fits/tests/test_diff.py::TestDiff::test_identical_headers', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_slightly_different_headers', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_common_keywords', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_keyword_count', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_keywords', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_keyword_values', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_keyword_comments', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_keyword_values_with_duplicate', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_asymmetric_duplicate_keywords', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_floating_point_rtol', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_floating_point_atol', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_blanks', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_blank_cards[HeaderDiff]', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_blank_cards[HDUDiff]', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_blank_cards[FITSDiff]', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_hdus', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_keyword_values', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_keyword_comments', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_trivial_identical_images', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_identical_within_relative_tolerance', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_identical_within_absolute_tolerance', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_identical_within_rtol_and_atol', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_not_identical_within_rtol_and_atol', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_identical_comp_image_hdus', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_dimensions', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_pixels', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_diff_empty_tables', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_ignore_table_fields', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_table_field_names', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_table_field_counts', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_different_table_rows', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_identical_files_basic', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_partially_identical_files1', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_partially_identical_files2', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_partially_identical_files3', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_diff_nans', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_file_output_from_path_string', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_file_output_overwrite_safety', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_file_output_overwrite_success', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_rawdatadiff_nodiff', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_rawdatadiff_dimsdiff', 'astropy/io/fits/tests/test_diff.py::TestDiff::test_rawdatadiff_bytesdiff', 'astropy/io/fits/tests/test_diff.py::test_fitsdiff_hdu_name', 'astropy/io/fits/tests/test_diff.py::test_fitsdiff_no_hdu_name', 'astropy/io/fits/tests/test_diff.py::test_fitsdiff_with_names', 'astropy/io/fits/tests/test_diff.py::test_rawdatadiff_diff_with_rtol'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-14539: resolved: True
+2026-10-04 17:20:25,566 - INFO - Attempting to stop container sweb.eval.astropy__astropy-14539.wescode-v3...
+2026-10-04 17:20:40,710 - INFO - Container sweb.eval.astropy__astropy-14539.wescode-v3 stopped successfully.
+2026-10-04 17:20:40,710 - INFO - Attempting to remove container sweb.eval.astropy__astropy-14539.wescode-v3...
+2026-10-04 17:20:40,776 - INFO - Container sweb.eval.astropy__astropy-14539.wescode-v3 removed successfully.

@@ -1,0 +1,92 @@
+2026-10-04 17:30:41,504 - INFO - Creating container for django__django-11099...
+2026-10-04 17:30:41,553 - INFO - Container for django__django-11099 created: c7c98a2f3289c4a5dc28be5473f618c1028803b3f4822a50e5ccefc476afa39a
+2026-10-04 17:30:41,797 - INFO - Container for django__django-11099 started: c7c98a2f3289c4a5dc28be5473f618c1028803b3f4822a50e5ccefc476afa39a
+2026-10-04 17:30:41,797 - INFO - Intermediate patch for django__django-11099 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11099/patch.diff, now applying to container...
+2026-10-04 17:30:41,921 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:30:42,809 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:30:43,398 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:30:43,591 - INFO - >>>>> Applied Patch:
+patching file django/contrib/auth/validators.py
+patching file tests/auth_tests/test_validators.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 250 with fuzz 1.
+
+2026-10-04 17:30:43,661 - INFO - Git diff before:
+diff --git a/django/contrib/auth/validators.py b/django/contrib/auth/validators.py
+index b4878cfd45..9345c5cb0b 100755
+--- a/django/contrib/auth/validators.py
++++ b/django/contrib/auth/validators.py
+@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
+ 
+ @deconstructible
+ class ASCIIUsernameValidator(validators.RegexValidator):
+-    regex = r'^[\w.@+-]+$'
++    regex = r'^[\w.@+-]+\Z'
+     message = _(
+         'Enter a valid username. This value may contain only English letters, '
+         'numbers, and @/./+/-/_ characters.'
+@@ -17,7 +17,7 @@ class ASCIIUsernameValidator(validators.RegexValidator):
+ 
+ @deconstructible
+ class UnicodeUsernameValidator(validators.RegexValidator):
+-    regex = r'^[\w.@+-]+$'
++    regex = r'^[\w.@+-]+\Z'
+     message = _(
+         'Enter a valid username. This value may contain only letters, '
+         'numbers, and @/./+/-/_ characters.'
+diff --git a/tests/auth_tests/test_validators.py b/tests/auth_tests/test_validators.py
+index 1c2c6b4aff..87e3f890bb 100755
+--- a/tests/auth_tests/test_validators.py
++++ b/tests/auth_tests/test_validators.py
+@@ -237,7 +237,7 @@ class UsernameValidatorsTests(SimpleTestCase):
+         invalid_usernames = [
+             "o'connell", "عبد ال",
+             "zerowidth\u200Bspace", "nonbreaking\u00A0space",
+-            "en\u2013dash",
++            "en\u2013dash", 'trailingnewline\u000A',
+         ]
+         v = validators.UnicodeUsernameValidator()
+         for valid in valid_usernames:
+@@ -250,7 +250,7 @@ class UsernameValidatorsTests(SimpleTestCase):
+ 
+     def test_ascii_validator(self):
+         valid_usernames = ['glenn', 'GLEnN', 'jean-marc']
+-        invalid_usernames = ["o'connell", 'Éric', 'jean marc', "أحمد"]
++        invalid_usernames = ["o'connell", 'Éric', 'jean marc', "أحمد", 'trailingnewline\n']
+         v = validators.ASCIIUsernameValidator()
+         for valid in valid_usernames:
+             with self.subTest(valid=valid):
+2026-10-04 17:30:43,661 - INFO - Eval script for django__django-11099 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11099/eval.sh; copying to container...
+2026-10-04 17:30:52,670 - INFO - Test runtime: 8.95 seconds
+2026-10-04 17:30:52,674 - INFO - Test output for django__django-11099 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-11099/test_output.txt
+2026-10-04 17:30:52,745 - INFO - Git diff after:
+diff --git a/django/contrib/auth/validators.py b/django/contrib/auth/validators.py
+index b4878cfd45..9345c5cb0b 100755
+--- a/django/contrib/auth/validators.py
++++ b/django/contrib/auth/validators.py
+@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
+ 
+ @deconstructible
+ class ASCIIUsernameValidator(validators.RegexValidator):
+-    regex = r'^[\w.@+-]+$'
++    regex = r'^[\w.@+-]+\Z'
+     message = _(
+         'Enter a valid username. This value may contain only English letters, '
+         'numbers, and @/./+/-/_ characters.'
+@@ -17,7 +17,7 @@ class ASCIIUsernameValidator(validators.RegexValidator):
+ 
+ @deconstructible
+ class UnicodeUsernameValidator(validators.RegexValidator):
+-    regex = r'^[\w.@+-]+$'
++    regex = r'^[\w.@+-]+\Z'
+     message = _(
+         'Enter a valid username. This value may contain only letters, '
+         'numbers, and @/./+/-/_ characters.'
+2026-10-04 17:30:52,745 - INFO - Git diff changed after running eval script
+2026-10-04 17:30:52,746 - INFO - Grading answer for django__django-11099...
+2026-10-04 17:30:52,758 - INFO - report: {'django__django-11099': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_ascii_validator (auth_tests.test_validators.UsernameValidatorsTests)', 'test_unicode_validator (auth_tests.test_validators.UsernameValidatorsTests)', 'test_help_text (auth_tests.test_validators.UserAttributeSimilarityValidatorTest)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_help_text (auth_tests.test_validators.MinimumLengthValidatorTest)', 'test_validate (auth_tests.test_validators.MinimumLengthValidatorTest)', 'test_help_text (auth_tests.test_validators.NumericPasswordValidatorTest)', 'test_validate (auth_tests.test_validators.NumericPasswordValidatorTest)', 'test_validate (auth_tests.test_validators.UserAttributeSimilarityValidatorTest)', 'test_validate_property (auth_tests.test_validators.UserAttributeSimilarityValidatorTest)', 'test_empty_password_validator_help_text_html (auth_tests.test_validators.PasswordValidationTest)', 'test_get_default_password_validators (auth_tests.test_validators.PasswordValidationTest)', 'test_get_password_validators_custom (auth_tests.test_validators.PasswordValidationTest)', 'test_password_changed (auth_tests.test_validators.PasswordValidationTest)', 'test_password_changed_with_custom_validator (auth_tests.test_validators.PasswordValidationTest)', 'test_password_validators_help_text_html (auth_tests.test_validators.PasswordValidationTest)', 'test_password_validators_help_text_html_escaping (auth_tests.test_validators.PasswordValidationTest)', 'test_password_validators_help_texts (auth_tests.test_validators.PasswordValidationTest)', 'test_validate_password (auth_tests.test_validators.PasswordValidationTest)', 'test_help_text (auth_tests.test_validators.CommonPasswordValidatorTest)', 'test_validate (auth_tests.test_validators.CommonPasswordValidatorTest)', 'test_validate_custom_list (auth_tests.test_validators.CommonPasswordValidatorTest)', 'test_validate_django_supplied_file (auth_tests.test_validators.CommonPasswordValidatorTest)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11099: resolved: True
+2026-10-04 17:30:52,758 - INFO - Attempting to stop container sweb.eval.django__django-11099.wescode-v3...
+2026-10-04 17:31:08,053 - INFO - Container sweb.eval.django__django-11099.wescode-v3 stopped successfully.
+2026-10-04 17:31:08,053 - INFO - Attempting to remove container sweb.eval.django__django-11099.wescode-v3...
+2026-10-04 17:31:08,242 - INFO - Container sweb.eval.django__django-11099.wescode-v3 removed successfully.

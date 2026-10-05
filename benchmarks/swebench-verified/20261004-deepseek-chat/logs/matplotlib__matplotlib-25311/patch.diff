@@ -1,0 +1,78 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 1dee8a23d..db604c1a6 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1505,15 +1505,21 @@ class DraggableBase:
+         if not ref_artist.pickable():
+             ref_artist.set_picker(True)
+         self.got_artist = False
+-        self.canvas = self.ref_artist.figure.canvas
+         self._use_blit = use_blit and self.canvas.supports_blit
+-        self.cids = [
+-            self.canvas.callbacks._connect_picklable(
+-                'pick_event', self.on_pick),
+-            self.canvas.callbacks._connect_picklable(
+-                'button_release_event', self.on_release),
++        callbacks = self.canvas.callbacks
++        self._disconnectors = [
++            functools.partial(
++                callbacks.disconnect, callbacks._connect_picklable(name, func))
++            for name, func in [
++                ("pick_event", self.on_pick),
++                ("button_release_event", self.on_release),
++                ("motion_notify_event", self.on_motion),
++            ]
+         ]
+ 
++    # A property, not an attribute, to maintain picklability.
++    canvas = property(lambda self: self.ref_artist.figure.canvas)
++
+     def on_motion(self, evt):
+         if self._check_still_parented() and self.got_artist:
+             dx = evt.x - self.mouse_x
+@@ -1562,14 +1568,8 @@ class DraggableBase:
+ 
+     def disconnect(self):
+         """Disconnect the callbacks."""
+-        for cid in self.cids:
+-            self.canvas.mpl_disconnect(cid)
+-        try:
+-            c1 = self._c1
+-        except AttributeError:
+-            pass
+-        else:
+-            self.canvas.mpl_disconnect(c1)
++        for disconnector in self._disconnectors:
++            disconnector()
+ 
+     def save_offset(self):
+         pass
+diff --git a/lib/matplotlib/tests/test_legend.py b/lib/matplotlib/tests/test_legend.py
+index a8d7fd107..3844f0485 100644
+--- a/lib/matplotlib/tests/test_legend.py
++++ b/lib/matplotlib/tests/test_legend.py
+@@ -1,4 +1,5 @@
+ import collections
++import pickle
+ import platform
+ from unittest import mock
+ import warnings
+@@ -1040,6 +1041,18 @@ def test_legend_draggable(draggable):
+     assert leg.get_draggable() is draggable
+ 
+ 
++def test_legend_draggable_pickle():
++    # A draggable legend must not retain a reference to the (unpicklable)
++    # backend canvas, so that the figure can be pickled (see GH #25311).
++    fig, ax = plt.subplots()
++    ax.plot(range(10), label='shabnams')
++    leg = ax.legend(draggable=True)
++    assert leg.get_draggable()
++    # The canvas is exposed as a property and is not stored on the instance.
++    assert 'canvas' not in leg._draggable.__dict__
++    pickle.loads(pickle.dumps(fig))
++
++
+ def test_alpha_handles():
+     x, n, hh = plt.hist([1, 2, 3], alpha=0.25, label='data', color='red')
+     legend = plt.legend()

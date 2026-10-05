@@ -1,0 +1,126 @@
+2026-10-04 21:07:09,929 - INFO - Image not found locally, attempting to pull...
+2026-10-04 21:42:38,528 - INFO - Creating container for sympy__sympy-24661...
+2026-10-04 21:42:38,817 - INFO - Container for sympy__sympy-24661 created: 1688510c41bc0a877b47b1c38314e6a263e580d2fd3347b8160cdf72c3747e4d
+2026-10-04 21:42:39,009 - INFO - Container for sympy__sympy-24661 started: 1688510c41bc0a877b47b1c38314e6a263e580d2fd3347b8160cdf72c3747e4d
+2026-10-04 21:42:39,009 - INFO - Intermediate patch for sympy__sympy-24661 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-24661/patch.diff, now applying to container...
+2026-10-04 21:42:39,125 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 21:42:39,528 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 21:42:39,885 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 21:42:40,231 - INFO - >>>>> Applied Patch:
+patching file sympy/parsing/sympy_parser.py
+patching file sympy/parsing/tests/test_sympy_parser.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 279 with fuzz 1.
+
+2026-10-04 21:42:40,284 - INFO - Git diff before:
+diff --git a/sympy/parsing/sympy_parser.py b/sympy/parsing/sympy_parser.py
+index 52711d1324..130302099d 100644
+--- a/sympy/parsing/sympy_parser.py
++++ b/sympy/parsing/sympy_parser.py
+@@ -1119,6 +1119,29 @@ class EvaluateFalseTransformer(ast.NodeTransformer):
+         'exp', 'ln', 'log', 'sqrt', 'cbrt',
+     )
+ 
++    relational_operators = {
++        ast.NotEq: 'Ne',
++        ast.Lt: 'Lt',
++        ast.LtE: 'Le',
++        ast.Gt: 'Gt',
++        ast.GtE: 'Ge',
++        ast.Eq: 'Eq'
++    }
++    def visit_Compare(self, node):
++        if node.ops[0].__class__ in self.relational_operators:
++            sympy_class = self.relational_operators[node.ops[0].__class__]
++            right = self.visit(node.comparators[0])
++            left = self.visit(node.left)
++            new_node = ast.Call(
++                func=ast.Name(id=sympy_class, ctx=ast.Load()),
++                args=[left, right],
++                keywords=[ast.keyword(arg='evaluate', value=ast.NameConstant(value=False, ctx=ast.Load()))],
++                starargs=None,
++                kwargs=None
++            )
++            return new_node
++        return node
++
+     def flatten(self, args, func):
+         result = []
+         for arg in args:
+diff --git a/sympy/parsing/tests/test_sympy_parser.py b/sympy/parsing/tests/test_sympy_parser.py
+index 7c43e1fce3..6088ceffd9 100644
+--- a/sympy/parsing/tests/test_sympy_parser.py
++++ b/sympy/parsing/tests/test_sympy_parser.py
+@@ -6,7 +6,7 @@
+ import types
+ 
+ from sympy.assumptions import Q
+-from sympy.core import Symbol, Function, Float, Rational, Integer, I, Mul, Pow, Eq
++from sympy.core import Symbol, Function, Float, Rational, Integer, I, Mul, Pow, Eq, Lt, Le, Gt, Ge, Ne
+ from sympy.functions import exp, factorial, factorial2, sin, Min, Max
+ from sympy.logic import And
+ from sympy.series import Limit
+@@ -279,6 +279,17 @@ def test_parse_function_issue_3539():
+     f = Function('f')
+     assert parse_expr('f(x)') == f(x)
+ 
++def test_issue_24288():
++    inputs = {
++        "1 < 2": Lt(1, 2, evaluate=False),
++        "1 <= 2": Le(1, 2, evaluate=False),
++        "1 > 2": Gt(1, 2, evaluate=False),
++        "1 >= 2": Ge(1, 2, evaluate=False),
++        "1 != 2": Ne(1, 2, evaluate=False),
++        "1 == 2": Eq(1, 2, evaluate=False)
++    }
++    for text, result in inputs.items():
++        assert parse_expr(text, evaluate=False) == result
+ 
+ def test_split_symbols_numeric():
+     transformations = (
+2026-10-04 21:42:40,284 - INFO - Eval script for sympy__sympy-24661 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-24661/eval.sh; copying to container...
+2026-10-04 21:42:44,862 - INFO - Test runtime: 4.52 seconds
+2026-10-04 21:42:44,862 - INFO - Test output for sympy__sympy-24661 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-24661/test_output.txt
+2026-10-04 21:42:44,914 - INFO - Git diff after:
+diff --git a/sympy/parsing/sympy_parser.py b/sympy/parsing/sympy_parser.py
+index 52711d1324..130302099d 100644
+--- a/sympy/parsing/sympy_parser.py
++++ b/sympy/parsing/sympy_parser.py
+@@ -1119,6 +1119,29 @@ class EvaluateFalseTransformer(ast.NodeTransformer):
+         'exp', 'ln', 'log', 'sqrt', 'cbrt',
+     )
+ 
++    relational_operators = {
++        ast.NotEq: 'Ne',
++        ast.Lt: 'Lt',
++        ast.LtE: 'Le',
++        ast.Gt: 'Gt',
++        ast.GtE: 'Ge',
++        ast.Eq: 'Eq'
++    }
++    def visit_Compare(self, node):
++        if node.ops[0].__class__ in self.relational_operators:
++            sympy_class = self.relational_operators[node.ops[0].__class__]
++            right = self.visit(node.comparators[0])
++            left = self.visit(node.left)
++            new_node = ast.Call(
++                func=ast.Name(id=sympy_class, ctx=ast.Load()),
++                args=[left, right],
++                keywords=[ast.keyword(arg='evaluate', value=ast.NameConstant(value=False, ctx=ast.Load()))],
++                starargs=None,
++                kwargs=None
++            )
++            return new_node
++        return node
++
+     def flatten(self, args, func):
+         result = []
+         for arg in args:
+2026-10-04 21:42:44,914 - INFO - Git diff changed after running eval script
+2026-10-04 21:42:44,914 - INFO - Grading answer for sympy__sympy-24661...
+2026-10-04 21:42:44,915 - INFO - report: {'sympy__sympy-24661': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_issue_24288'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_sympy_parser', 'test_rationalize', 'test_factorial_fail', 'test_repeated_fail', 'test_repeated_dot_only', 'test_local_dict', 'test_local_dict_split_implmult', 'test_local_dict_symbol_to_fcn', 'test_global_dict', 'test_no_globals', 'test_issue_2515', 'test_issue_7663', 'test_recursive_evaluate_false_10560', 'test_function_evaluate_false', 'test_issue_10773', 'test_split_symbols', 'test_split_symbols_function', 'test_functional_exponent', 'test_match_parentheses_implicit_multiplication', 'test_convert_equals_signs', 'test_parse_function_issue_3539', 'test_split_symbols_numeric', 'test_unicode_names', 'test_python3_features', 'test_issue_19501', 'test_parsing_definitions', 'test_builtins'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-24661: resolved: True
+2026-10-04 21:42:44,915 - INFO - Attempting to stop container sweb.eval.sympy__sympy-24661.wescode-v3...
+2026-10-04 21:43:00,121 - INFO - Container sweb.eval.sympy__sympy-24661.wescode-v3 stopped successfully.
+2026-10-04 21:43:00,121 - INFO - Attempting to remove container sweb.eval.sympy__sympy-24661.wescode-v3...
+2026-10-04 21:43:00,180 - INFO - Container sweb.eval.sympy__sympy-24661.wescode-v3 removed successfully.

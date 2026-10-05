@@ -1,0 +1,163 @@
+2026-10-04 19:57:28,338 - INFO - Creating container for sympy__sympy-22080...
+2026-10-04 19:57:28,381 - INFO - Container for sympy__sympy-22080 created: d6488e4ad256b5badb5981629cc0f1c1d8615d75a1677ff3917d65c4c0fbfccd
+2026-10-04 19:57:28,569 - INFO - Container for sympy__sympy-22080 started: d6488e4ad256b5badb5981629cc0f1c1d8615d75a1677ff3917d65c4c0fbfccd
+2026-10-04 19:57:28,570 - INFO - Intermediate patch for sympy__sympy-22080 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-22080/patch.diff, now applying to container...
+2026-10-04 19:57:28,687 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:57:28,864 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:57:28,982 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:57:29,103 - INFO - >>>>> Applied Patch:
+patching file sympy/codegen/tests/test_rewriting.py
+patching file sympy/printing/codeprinter.py
+patching file sympy/printing/precedence.py
+patching file sympy/printing/tests/test_pycode.py
+patching file sympy/utilities/tests/test_lambdify.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 264 with fuzz 1.
+
+2026-10-04 19:57:29,195 - INFO - Git diff before:
+diff --git a/sympy/codegen/tests/test_rewriting.py b/sympy/codegen/tests/test_rewriting.py
+index c8af626b7e..32dfa8395e 100755
+--- a/sympy/codegen/tests/test_rewriting.py
++++ b/sympy/codegen/tests/test_rewriting.py
+@@ -266,10 +266,10 @@ def test_create_expand_pow_optimization():
+     # gh issue 15335
+     assert cc(x**(-4)) == '1.0/(x*x*x*x)'
+     assert cc(x**(-5)) == 'pow(x, -5)'
+-    assert cc(-x**4) == '-x*x*x*x'
+-    assert cc(x**4 - x**2) == '-x*x + x*x*x*x'
++    assert cc(-x**4) == '-(x*x*x*x)'
++    assert cc(x**4 - x**2) == '-(x*x) + x*x*x*x'
+     i = Symbol('i', integer=True)
+-    assert cc(x**i - x**2) == 'pow(x, i) - x*x'
++    assert cc(x**i - x**2) == 'pow(x, i) - (x*x)'
+     # gh issue 20753
+     cc2 = lambda x: ccode(optimize(x, [create_expand_pow_optimization(
+         4, base_req=lambda b: b.is_Function)]))
+diff --git a/sympy/printing/codeprinter.py b/sympy/printing/codeprinter.py
+index ba0e746f5d..4b300f4a2f 100755
+--- a/sympy/printing/codeprinter.py
++++ b/sympy/printing/codeprinter.py
+@@ -9,7 +9,7 @@
+ from sympy.core.mul import _keep_coeff
+ from sympy.core.symbol import Symbol
+ from sympy.printing.str import StrPrinter
+-from sympy.printing.precedence import precedence
++from sympy.printing.precedence import precedence, PRECEDENCE
+ 
+ 
+ class requires:
+@@ -487,7 +487,14 @@ def _print_Mul(self, expr):
+ 
+         a = a or [S.One]
+ 
+-        a_str = [self.parenthesize(x, prec) for x in a]
++        if len(a) == 1 and sign == "-":
++            # Unary minus does not have a SymPy class, and hence there's no
++            # precedence weight associated with it, Python's unary minus has
++            # an operator precedence between multiplication and exponentiation,
++            # so we use this to compute a weight.
++            a_str = [self.parenthesize(a[0], 0.5*(PRECEDENCE["Pow"]+PRECEDENCE["Mul"]))]
++        else:
++            a_str = [self.parenthesize(x, prec) for x in a]
+         b_str = [self.parenthesize(x, prec) for x in b]
+ 
+         # To parenthesize Pow with exp = -1 and having more than one Symbol
+diff --git a/sympy/printing/precedence.py b/sympy/printing/precedence.py
+index 47ff463faf..bddc43048f 100755
+--- a/sympy/printing/precedence.py
++++ b/sympy/printing/precedence.py
+@@ -40,6 +40,7 @@
+     "MatAdd": PRECEDENCE["Add"],
+     "MatPow": PRECEDENCE["Pow"],
+     "MatrixSolve": PRECEDENCE["Mul"],
++    "Mod": PRECEDENCE["Mul"],
+     "TensAdd": PRECEDENCE["Add"],
+     # As soon as `TensMul` is a subclass of `Mul`, remove this:
+     "TensMul": PRECEDENCE["Mul"],
+diff --git a/sympy/printing/tests/test_pycode.py b/sympy/printing/tests/test_pycode.py
+index cf18825eb1..847ea41b12 100755
+--- a/sympy/printing/tests/test_pycode.py
++++ b/sympy/printing/tests/test_pycode.py
+@@ -30,6 +30,8 @@ def test_PythonCodePrinter():
+ 
+     assert prntr.doprint(x**y) == 'x**y'
+     assert prntr.doprint(Mod(x, 2)) == 'x % 2'
++    assert prntr.doprint(-Mod(x, y)) == '-(x % y)'
++    assert prntr.doprint(Mod(-x, y)) == '(-x) % y'
+     assert prntr.doprint(And(x, y)) == 'x and y'
+     assert prntr.doprint(Or(x, y)) == 'x or y'
+     assert not prntr.module_imports
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index e25986b4a0..524e9d1220 100755
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -264,7 +264,15 @@ def test_issue_12984():
+         warnings.simplefilter("ignore", RuntimeWarning)
+         assert str(func_numexpr(-1, 24, 42)) == 'nan'
+ 
+-#================== Test some functions ============================
++
++def test_empty_modules():
++    x, y = symbols('x y')
++    expr = -(x % y)
++
++    no_modules = lambdify([x, y], expr)
++    empty_modules = lambdify([x, y], expr, modules=[])
++    assert no_modules(3, 7) == empty_modules(3, 7)
++    assert no_modules(3, 7) == -3
+ 
+ 
+ def test_exponentiation():
+2026-10-04 19:57:29,195 - INFO - Eval script for sympy__sympy-22080 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-22080/eval.sh; copying to container...
+2026-10-04 19:57:41,763 - INFO - Test runtime: 12.52 seconds
+2026-10-04 19:57:41,764 - INFO - Test output for sympy__sympy-22080 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-22080/test_output.txt
+2026-10-04 19:57:41,815 - INFO - Git diff after:
+diff --git a/sympy/printing/codeprinter.py b/sympy/printing/codeprinter.py
+index ba0e746f5d..4b300f4a2f 100755
+--- a/sympy/printing/codeprinter.py
++++ b/sympy/printing/codeprinter.py
+@@ -9,7 +9,7 @@
+ from sympy.core.mul import _keep_coeff
+ from sympy.core.symbol import Symbol
+ from sympy.printing.str import StrPrinter
+-from sympy.printing.precedence import precedence
++from sympy.printing.precedence import precedence, PRECEDENCE
+ 
+ 
+ class requires:
+@@ -487,7 +487,14 @@ def _print_Mul(self, expr):
+ 
+         a = a or [S.One]
+ 
+-        a_str = [self.parenthesize(x, prec) for x in a]
++        if len(a) == 1 and sign == "-":
++            # Unary minus does not have a SymPy class, and hence there's no
++            # precedence weight associated with it, Python's unary minus has
++            # an operator precedence between multiplication and exponentiation,
++            # so we use this to compute a weight.
++            a_str = [self.parenthesize(a[0], 0.5*(PRECEDENCE["Pow"]+PRECEDENCE["Mul"]))]
++        else:
++            a_str = [self.parenthesize(x, prec) for x in a]
+         b_str = [self.parenthesize(x, prec) for x in b]
+ 
+         # To parenthesize Pow with exp = -1 and having more than one Symbol
+diff --git a/sympy/printing/precedence.py b/sympy/printing/precedence.py
+index 47ff463faf..bddc43048f 100755
+--- a/sympy/printing/precedence.py
++++ b/sympy/printing/precedence.py
+@@ -40,6 +40,7 @@
+     "MatAdd": PRECEDENCE["Add"],
+     "MatPow": PRECEDENCE["Pow"],
+     "MatrixSolve": PRECEDENCE["Mul"],
++    "Mod": PRECEDENCE["Mul"],
+     "TensAdd": PRECEDENCE["Add"],
+     # As soon as `TensMul` is a subclass of `Mul`, remove this:
+     "TensMul": PRECEDENCE["Mul"],
+2026-10-04 19:57:41,815 - INFO - Git diff changed after running eval script
+2026-10-04 19:57:41,815 - INFO - Grading answer for sympy__sympy-22080...
+2026-10-04 19:57:41,817 - INFO - report: {'sympy__sympy-22080': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_create_expand_pow_optimization', 'test_PythonCodePrinter', 'test_empty_modules'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_log2_opt', 'test_exp2_opt', 'test_expm1_opt', 'test_expm1_two_exp_terms', 'test_cosm1_opt', 'test_cosm1_two_cos_terms', 'test_expm1_cosm1_mixed', 'test_log1p_opt', 'test_optims_c99', 'test_matsolve', 'test_logaddexp_opt', 'test_logaddexp2_opt', 'test_sinc_opts', 'test_optims_numpy', 'test_PythonCodePrinter_standard', 'test_MpmathPrinter', 'test_NumPyPrinter', 'test_SciPyPrinter', 'test_pycode_reserved_words', 'test_sqrt', 'test_frac', 'test_printmethod', 'test_codegen_ast_nodes', 'test_issue_14283', 'test_NumPyPrinter_print_seq', 'test_issue_16535_16536', 'test_Integral', 'test_fresnel_integrals', 'test_beta', 'test_airy', 'test_airy_prime', 'test_no_args', 'test_single_arg', 'test_list_args', 'test_nested_args', 'test_str_args', 'test_own_namespace_1', 'test_own_namespace_2', 'test_own_module', 'test_bad_args', 'test_atoms', 'test_sympy_lambda', 'test_math_lambda', 'test_mpmath_lambda', 'test_number_precision', 'test_mpmath_precision', 'test_math_transl', 'test_mpmath_transl', 'test_exponentiation', 'test_trig', 'test_integral', 'test_double_integral', 'test_vector_simple', 'test_vector_discontinuous', 'test_trig_symbolic', 'test_trig_float', 'test_docs', 'test_math', 'test_sin', 'test_matrix', 'test_issue9474', 'test_sym_single_arg', 'test_sym_list_args', 'test_sym_integral', 'test_namespace_order', 'test_namespace_type', 'test_imps', 'test_imps_errors', 'test_imps_wrong_args', 'test_lambdify_imps', 'test_dummification', 'test_curly_matrix_symbol', 'test_python_keywords', 'test_lambdify_docstring', 'test_special_printers', 'test_true_false', 'test_issue_2790', 'test_issue_12092', 'test_issue_14911', 'test_ITE', 'test_Min_Max', 'test_issue_12173', 'test_sinc_mpmath', 'test_lambdify_dummy_arg', 'test_lambdify_mixed_symbol_dummy_args', 'test_lambdify_inspect', 'test_issue_14941', 'test_lambdify_Derivative_arg_issue_16468', 'test_imag_real', 'test_single_e', 'test_beta_math'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-22080: resolved: True
+2026-10-04 19:57:41,817 - INFO - Attempting to stop container sweb.eval.sympy__sympy-22080.wescode-v3...
+2026-10-04 19:57:56,954 - INFO - Container sweb.eval.sympy__sympy-22080.wescode-v3 stopped successfully.
+2026-10-04 19:57:56,955 - INFO - Attempting to remove container sweb.eval.sympy__sympy-22080.wescode-v3...
+2026-10-04 19:57:56,987 - INFO - Container sweb.eval.sympy__sympy-22080.wescode-v3 removed successfully.

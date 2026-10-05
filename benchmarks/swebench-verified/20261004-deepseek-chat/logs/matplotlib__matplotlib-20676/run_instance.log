@@ -1,0 +1,131 @@
+2026-10-04 18:23:40,611 - INFO - Creating container for matplotlib__matplotlib-20676...
+2026-10-04 18:23:40,656 - INFO - Container for matplotlib__matplotlib-20676 created: 4fc2e37b0dfaeece92c64e8191c165181db5da610a2dacd577ed88144ede8fa8
+2026-10-04 18:23:40,854 - INFO - Container for matplotlib__matplotlib-20676 started: 4fc2e37b0dfaeece92c64e8191c165181db5da610a2dacd577ed88144ede8fa8
+2026-10-04 18:23:40,854 - INFO - Intermediate patch for matplotlib__matplotlib-20676 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/matplotlib__matplotlib-20676/patch.diff, now applying to container...
+2026-10-04 18:23:40,958 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:23:41,765 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:23:42,880 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:23:43,016 - INFO - >>>>> Applied Patch:
+patching file lib/matplotlib/tests/test_widgets.py
+patching file lib/matplotlib/widgets.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 2369 with fuzz 1.
+
+2026-10-04 18:23:43,071 - INFO - Git diff before:
+diff --git a/lib/matplotlib/tests/test_widgets.py b/lib/matplotlib/tests/test_widgets.py
+index 71ebd176f..b1cfa1cb6 100644
+--- a/lib/matplotlib/tests/test_widgets.py
++++ b/lib/matplotlib/tests/test_widgets.py
+@@ -302,6 +302,26 @@ def test_tool_line_handle():
+     assert tool_line_handle.positions == positions
+ 
+ 
++def test_span_selector_limits():
++    # SpanSelector with interactive=True must not modify the axes limits, in
++    # particular it must not force 0 into the view limits (gh#20488).
++    ax = get_ax()
++    ax.plot([10, 20], [10, 20])
++    xlim = ax.get_xlim()
++    ylim = ax.get_ylim()
++
++    def onselect(vmin, vmax):
++        pass
++
++    widgets.SpanSelector(ax, onselect, 'horizontal', interactive=True)
++    assert ax.get_xlim() == xlim
++    assert ax.get_ylim() == ylim
++
++    widgets.SpanSelector(ax, onselect, 'vertical', interactive=True)
++    assert ax.get_xlim() == xlim
++    assert ax.get_ylim() == ylim
++
++
+ def check_lasso_selector(**kwargs):
+     ax = get_ax()
+ 
+diff --git a/lib/matplotlib/widgets.py b/lib/matplotlib/widgets.py
+index a199e45d4..0ef94cbb9 100644
+--- a/lib/matplotlib/widgets.py
++++ b/lib/matplotlib/widgets.py
+@@ -2156,7 +2156,12 @@ class SpanSelector(_SelectorWidget):
+             self.artists.append(self._rect)
+ 
+     def _setup_edge_handle(self, props):
+-        self._edge_handles = ToolLineHandles(self.ax, self.extents,
++        # Define initial position using the axis bounds to keep the same bounds
++        if self.direction == 'horizontal':
++            positions = self.ax.get_xbound()
++        else:
++            positions = self.ax.get_ybound()
++        self._edge_handles = ToolLineHandles(self.ax, positions,
+                                              direction=self.direction,
+                                              line_props=props,
+                                              useblit=self.useblit)
+@@ -2364,12 +2369,14 @@ class ToolLineHandles:
+ 
+         if line_props is None:
+             line_props = {}
+-        line_props.update({'visible': False, 'animated': useblit})
+-
+-        line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
++        line_props = {
++            'visible': False, 'animated': useblit, **line_props}
+         self._line_props = line_props
+ 
+-        self.artists = [line_fun(p, **line_props) for p in positions]
++        self.artists = [
++            Line2D([p, p], [0, 1], **line_props) for p in positions]
++        for artist in self.artists:
++            ax.add_line(artist)
+ 
+     @property
+     def positions(self):
+2026-10-04 18:23:43,072 - INFO - Eval script for matplotlib__matplotlib-20676 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/matplotlib__matplotlib-20676/eval.sh; copying to container...
+2026-10-04 18:24:57,801 - INFO - Test runtime: 74.66 seconds
+2026-10-04 18:24:57,801 - INFO - Test output for matplotlib__matplotlib-20676 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/matplotlib__matplotlib-20676/test_output.txt
+2026-10-04 18:24:57,860 - INFO - Git diff after:
+diff --git a/lib/matplotlib/widgets.py b/lib/matplotlib/widgets.py
+index a199e45d4..0ef94cbb9 100644
+--- a/lib/matplotlib/widgets.py
++++ b/lib/matplotlib/widgets.py
+@@ -2156,7 +2156,12 @@ class SpanSelector(_SelectorWidget):
+             self.artists.append(self._rect)
+ 
+     def _setup_edge_handle(self, props):
+-        self._edge_handles = ToolLineHandles(self.ax, self.extents,
++        # Define initial position using the axis bounds to keep the same bounds
++        if self.direction == 'horizontal':
++            positions = self.ax.get_xbound()
++        else:
++            positions = self.ax.get_ybound()
++        self._edge_handles = ToolLineHandles(self.ax, positions,
+                                              direction=self.direction,
+                                              line_props=props,
+                                              useblit=self.useblit)
+@@ -2364,12 +2369,14 @@ class ToolLineHandles:
+ 
+         if line_props is None:
+             line_props = {}
+-        line_props.update({'visible': False, 'animated': useblit})
+-
+-        line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
++        line_props = {
++            'visible': False, 'animated': useblit, **line_props}
+         self._line_props = line_props
+ 
+-        self.artists = [line_fun(p, **line_props) for p in positions]
++        self.artists = [
++            Line2D([p, p], [0, 1], **line_props) for p in positions]
++        for artist in self.artists:
++            ax.add_line(artist)
+ 
+     @property
+     def positions(self):
+2026-10-04 18:24:57,860 - INFO - Git diff changed after running eval script
+2026-10-04 18:24:57,860 - INFO - Grading answer for matplotlib__matplotlib-20676...
+2026-10-04 18:24:57,861 - INFO - report: {'matplotlib__matplotlib-20676': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['lib/matplotlib/tests/test_widgets.py::test_span_selector_bound[horizontal]'], 'failure': ['lib/matplotlib/tests/test_widgets.py::test_span_selector_bound[vertical]']}, 'PASS_TO_PASS': {'success': ['lib/matplotlib/tests/test_widgets.py::test_rectangle_drag[True-new_center0]', 'lib/matplotlib/tests/test_widgets.py::test_rectangle_drag[False-new_center1]', 'lib/matplotlib/tests/test_widgets.py::test_ellipse', 'lib/matplotlib/tests/test_widgets.py::test_rectangle_handles', 'lib/matplotlib/tests/test_widgets.py::test_span_selector', 'lib/matplotlib/tests/test_widgets.py::test_span_selector_drag[True]', 'lib/matplotlib/tests/test_widgets.py::test_span_selector_drag[False]', 'lib/matplotlib/tests/test_widgets.py::test_span_selector_direction', 'lib/matplotlib/tests/test_widgets.py::test_tool_line_handle', 'lib/matplotlib/tests/test_widgets.py::test_lasso_selector', 'lib/matplotlib/tests/test_widgets.py::test_CheckButtons', 'lib/matplotlib/tests/test_widgets.py::test_TextBox', 'lib/matplotlib/tests/test_widgets.py::test_check_radio_buttons_image[png]', 'lib/matplotlib/tests/test_widgets.py::test_check_bunch_of_radio_buttons[png]', 'lib/matplotlib/tests/test_widgets.py::test_slider_slidermin_slidermax_invalid', 'lib/matplotlib/tests/test_widgets.py::test_slider_slidermin_slidermax', 'lib/matplotlib/tests/test_widgets.py::test_slider_valmin_valmax', 'lib/matplotlib/tests/test_widgets.py::test_slider_valstep_snapping', 'lib/matplotlib/tests/test_widgets.py::test_slider_horizontal_vertical', 'lib/matplotlib/tests/test_widgets.py::test_range_slider[horizontal]', 'lib/matplotlib/tests/test_widgets.py::test_range_slider[vertical]', 'lib/matplotlib/tests/test_widgets.py::test_polygon_selector', 'lib/matplotlib/tests/test_widgets.py::test_MultiCursor[True-True]', 'lib/matplotlib/tests/test_widgets.py::test_MultiCursor[True-False]', 'lib/matplotlib/tests/test_widgets.py::test_MultiCursor[False-True]', 'lib/matplotlib/tests/test_widgets.py::test_rect_visibility[png]', 'lib/matplotlib/tests/test_widgets.py::test_rect_visibility[pdf]', 'lib/matplotlib/tests/test_widgets.py::test_polygon_selector_remove[1]', 'lib/matplotlib/tests/test_widgets.py::test_polygon_selector_remove[2]', 'lib/matplotlib/tests/test_widgets.py::test_polygon_selector_remove[3]', 'lib/matplotlib/tests/test_widgets.py::test_polygon_selector_remove_first_point', 'lib/matplotlib/tests/test_widgets.py::test_polygon_selector_redraw'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for matplotlib__matplotlib-20676: resolved: False
+2026-10-04 18:24:57,861 - INFO - Attempting to stop container sweb.eval.matplotlib__matplotlib-20676.wescode-v3...
+2026-10-04 18:25:13,016 - INFO - Container sweb.eval.matplotlib__matplotlib-20676.wescode-v3 stopped successfully.
+2026-10-04 18:25:13,016 - INFO - Attempting to remove container sweb.eval.matplotlib__matplotlib-20676.wescode-v3...
+2026-10-04 18:25:13,119 - INFO - Container sweb.eval.matplotlib__matplotlib-20676.wescode-v3 removed successfully.

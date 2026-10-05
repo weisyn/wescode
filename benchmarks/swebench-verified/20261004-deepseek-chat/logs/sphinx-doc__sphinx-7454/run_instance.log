@@ -1,0 +1,93 @@
+2026-10-04 19:27:37,813 - INFO - Creating container for sphinx-doc__sphinx-7454...
+2026-10-04 19:27:37,853 - INFO - Container for sphinx-doc__sphinx-7454 created: fe4a31e31e2a994c2ec5b3f1d2af38877d4190ff2129504b3ea0a7ef1baef0a6
+2026-10-04 19:27:38,045 - INFO - Container for sphinx-doc__sphinx-7454 started: fe4a31e31e2a994c2ec5b3f1d2af38877d4190ff2129504b3ea0a7ef1baef0a6
+2026-10-04 19:27:38,045 - INFO - Intermediate patch for sphinx-doc__sphinx-7454 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7454/patch.diff, now applying to container...
+2026-10-04 19:27:38,160 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:27:38,340 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:27:38,454 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:27:38,566 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/domains/python.py
+patching file tests/test_domain_py.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 266 with fuzz 1.
+
+2026-10-04 19:27:38,637 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index e0923b433..355534642 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -19,6 +19,8 @@ Bugs fixed
+ ----------
+ 
+ * #7428: py domain: a reference to class ``None`` emits a nitpicky warning
++* #7454: py domain: ``None`` in a type annotation of a signature is not linked
++  to the documentation for the ``None`` singleton
+ * #7418: std domain: duplication warning for glossary terms is case insensitive
+ * #7438: C++, fix merging overloaded functions in parallel builds.
+ * #7422: autodoc: fails with ValueError when using autodoc_mock_imports
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 893bb0a22..8b32f5b3c 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -113,7 +113,7 @@ def _parse_annotation(annotation: str) -> List[Node]:
+         tree = ast_parse(annotation)
+         result = unparse(tree)
+         for i, node in enumerate(result):
+-            if isinstance(node, nodes.Text):
++            if isinstance(node, nodes.Text) and node.strip():
+                 result[i] = make_xref(str(node))
+         return result
+     except SyntaxError:
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index dc3d51d0a..bc2b365a9 100755
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -266,6 +266,9 @@ def test_parse_annotation():
+                           [pending_xref, "int"],
+                           [desc_sig_punctuation, "]"]))
+ 
++    doctree = _parse_annotation("None")
++    assert_node(doctree, ([pending_xref, "None"],))
++
+ 
+ def test_pyfunction_signature(app):
+     text = ".. py:function:: hello(name: str) -> str"
+2026-10-04 19:27:38,637 - INFO - Eval script for sphinx-doc__sphinx-7454 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7454/eval.sh; copying to container...
+2026-10-04 19:27:44,268 - INFO - Test runtime: 5.57 seconds
+2026-10-04 19:27:44,268 - INFO - Test output for sphinx-doc__sphinx-7454 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7454/test_output.txt
+2026-10-04 19:27:44,326 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index e0923b433..355534642 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -19,6 +19,8 @@ Bugs fixed
+ ----------
+ 
+ * #7428: py domain: a reference to class ``None`` emits a nitpicky warning
++* #7454: py domain: ``None`` in a type annotation of a signature is not linked
++  to the documentation for the ``None`` singleton
+ * #7418: std domain: duplication warning for glossary terms is case insensitive
+ * #7438: C++, fix merging overloaded functions in parallel builds.
+ * #7422: autodoc: fails with ValueError when using autodoc_mock_imports
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 893bb0a22..8b32f5b3c 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -113,7 +113,7 @@ def _parse_annotation(annotation: str) -> List[Node]:
+         tree = ast_parse(annotation)
+         result = unparse(tree)
+         for i, node in enumerate(result):
+-            if isinstance(node, nodes.Text):
++            if isinstance(node, nodes.Text) and node.strip():
+                 result[i] = make_xref(str(node))
+         return result
+     except SyntaxError:
+2026-10-04 19:27:44,327 - INFO - Git diff changed after running eval script
+2026-10-04 19:27:44,327 - INFO - Grading answer for sphinx-doc__sphinx-7454...
+2026-10-04 19:27:44,335 - INFO - report: {'sphinx-doc__sphinx-7454': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['tests/test_domain_py.py::test_parse_annotation']}, 'PASS_TO_PASS': {'success': ['tests/test_domain_py.py::test_function_signatures', 'tests/test_domain_py.py::test_domain_py_xrefs', 'tests/test_domain_py.py::test_domain_py_objects', 'tests/test_domain_py.py::test_resolve_xref_for_properties', 'tests/test_domain_py.py::test_domain_py_find_obj', 'tests/test_domain_py.py::test_get_full_qualified_name', 'tests/test_domain_py.py::test_pyfunction_signature', 'tests/test_domain_py.py::test_pyfunction_signature_full', 'tests/test_domain_py.py::test_pyfunction_signature_full_py38', 'tests/test_domain_py.py::test_optional_pyfunction_signature', 'tests/test_domain_py.py::test_pyexception_signature', 'tests/test_domain_py.py::test_exceptions_module_is_ignored', 'tests/test_domain_py.py::test_pydata_signature', 'tests/test_domain_py.py::test_pydata_signature_old', 'tests/test_domain_py.py::test_pyobject_prefix', 'tests/test_domain_py.py::test_pydata', 'tests/test_domain_py.py::test_pyfunction', 'tests/test_domain_py.py::test_pymethod_options', 'tests/test_domain_py.py::test_pyclassmethod', 'tests/test_domain_py.py::test_pystaticmethod', 'tests/test_domain_py.py::test_pyattribute', 'tests/test_domain_py.py::test_pydecorator_signature', 'tests/test_domain_py.py::test_pydecoratormethod_signature', 'tests/test_domain_py.py::test_module_index', 'tests/test_domain_py.py::test_module_index_submodule', 'tests/test_domain_py.py::test_module_index_not_collapsed', 'tests/test_domain_py.py::test_modindex_common_prefix'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-7454: resolved: False
+2026-10-04 19:27:44,335 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-7454.wescode-v3...
+2026-10-04 19:27:59,472 - INFO - Container sweb.eval.sphinx-doc__sphinx-7454.wescode-v3 stopped successfully.
+2026-10-04 19:27:59,472 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-7454.wescode-v3...
+2026-10-04 19:27:59,496 - INFO - Container sweb.eval.sphinx-doc__sphinx-7454.wescode-v3 removed successfully.

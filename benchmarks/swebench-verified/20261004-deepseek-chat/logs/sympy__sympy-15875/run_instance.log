@@ -1,0 +1,67 @@
+2026-10-04 19:46:49,081 - INFO - Creating container for sympy__sympy-15875...
+2026-10-04 19:46:49,127 - INFO - Container for sympy__sympy-15875 created: c0ebac92e1be420135d4fb8d9fbe58375c4600a9d0658f10962483729e0b8723
+2026-10-04 19:46:49,327 - INFO - Container for sympy__sympy-15875 started: c0ebac92e1be420135d4fb8d9fbe58375c4600a9d0658f10962483729e0b8723
+2026-10-04 19:46:49,328 - INFO - Intermediate patch for sympy__sympy-15875 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15875/patch.diff, now applying to container...
+2026-10-04 19:46:49,436 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:46:49,603 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:46:49,715 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:46:49,829 - INFO - >>>>> Applied Patch:
+patching file sympy/core/add.py
+patching file sympy/core/tests/test_arit.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1986 with fuzz 1.
+
+2026-10-04 19:46:49,890 - INFO - Git diff before:
+diff --git a/sympy/core/add.py b/sympy/core/add.py
+index 83a5f2aed..24ae64f2c 100755
+--- a/sympy/core/add.py
++++ b/sympy/core/add.py
+@@ -554,7 +554,7 @@ def _eval_is_zero(self):
+                 return
+         if z == len(self.args):
+             return True
+-        if len(nz) == len(self.args):
++        if len(nz) == 0 or len(nz) == len(self.args):
+             return None
+         b = self.func(*nz)
+         if b.is_zero:
+diff --git a/sympy/core/tests/test_arit.py b/sympy/core/tests/test_arit.py
+index e2398a4e7..f3f192ae2 100755
+--- a/sympy/core/tests/test_arit.py
++++ b/sympy/core/tests/test_arit.py
+@@ -1986,6 +1986,10 @@ def test_Add_is_zero():
+     x, y = symbols('x y', zero=True)
+     assert (x + y).is_zero
+ 
++    # Issue 15873
++    e = -2*I + (1 + I)**2
++    assert e.is_zero is None
++
+ 
+ def test_issue_14392():
+     assert (sin(zoo)**2).as_real_imag() == (nan, nan)
+2026-10-04 19:46:49,890 - INFO - Eval script for sympy__sympy-15875 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15875/eval.sh; copying to container...
+2026-10-04 19:47:04,783 - INFO - Test runtime: 14.84 seconds
+2026-10-04 19:47:04,783 - INFO - Test output for sympy__sympy-15875 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15875/test_output.txt
+2026-10-04 19:47:04,839 - INFO - Git diff after:
+diff --git a/sympy/core/add.py b/sympy/core/add.py
+index 83a5f2aed..24ae64f2c 100755
+--- a/sympy/core/add.py
++++ b/sympy/core/add.py
+@@ -554,7 +554,7 @@ def _eval_is_zero(self):
+                 return
+         if z == len(self.args):
+             return True
+-        if len(nz) == len(self.args):
++        if len(nz) == 0 or len(nz) == len(self.args):
+             return None
+         b = self.func(*nz)
+         if b.is_zero:
+2026-10-04 19:47:04,839 - INFO - Git diff changed after running eval script
+2026-10-04 19:47:04,839 - INFO - Grading answer for sympy__sympy-15875...
+2026-10-04 19:47:04,841 - INFO - report: {'sympy__sympy-15875': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_Add_is_zero'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_bug1', 'test_Symbol', 'test_arit0', 'test_div', 'test_pow', 'test_pow2', 'test_pow3', 'test_mod_pow', 'test_pow_E', 'test_pow_issue_3516', 'test_pow_im', 'test_real_mul', 'test_ncmul', 'test_ncpow', 'test_powerbug', 'test_Mul_doesnt_expand_exp', 'test_Add_Mul_is_integer', 'test_Add_Mul_is_finite', 'test_Mul_is_even_odd', 'test_evenness_in_ternary_integer_product_with_even', 'test_oddness_in_ternary_integer_product_with_even', 'test_Mul_is_rational', 'test_Add_is_rational', 'test_Add_is_even_odd', 'test_Mul_is_negative_positive', 'test_Mul_is_negative_positive_2', 'test_Mul_is_nonpositive_nonnegative', 'test_Add_is_negative_positive', 'test_Add_is_nonpositive_nonnegative', 'test_Pow_is_integer', 'test_Pow_is_real', 'test_real_Pow', 'test_Pow_is_finite', 'test_Pow_is_even_odd', 'test_Pow_is_negative_positive', 'test_Pow_is_zero', 'test_Pow_is_nonpositive_nonnegative', 'test_Mul_is_imaginary_real', 'test_Mul_hermitian_antihermitian', 'test_Add_is_comparable', 'test_Mul_is_comparable', 'test_Pow_is_comparable', 'test_Add_is_positive_2', 'test_Add_is_irrational', 'test_issue_3531b', 'test_bug3', 'test_suppressed_evaluation', 'test_Add_as_coeff_mul', 'test_Pow_as_coeff_mul_doesnt_expand', 'test_issue_3514', 'test_make_args', 'test_issue_5126', 'test_Rational_as_content_primitive', 'test_Add_as_content_primitive', 'test_Mul_as_content_primitive', 'test_Pow_as_content_primitive', 'test_issue_5460', 'test_product_irrational', 'test_issue_5919', 'test_Mod', 'test_Mod_is_integer', 'test_Mod_is_nonposneg', 'test_issue_6001', 'test_polar', 'test_issue_6040', 'test_issue_6082', 'test_issue_6077', 'test_mul_flatten_oo', 'test_add_flatten', 'test_issue_5160_6087_6089_6090', 'test_float_int', 'test_issue_6611a', 'test_denest_add_mul', 'test_mul_coeff', 'test_mul_zero_detection', 'test_Mul_with_zero_infinite', 'test_Mul_does_not_cancel_infinities', 'test_Mul_does_not_distribute_infinity', 'test_issue_8247_8354', 'test_issue_14392'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-15875: resolved: True
+2026-10-04 19:47:04,841 - INFO - Attempting to stop container sweb.eval.sympy__sympy-15875.wescode-v3...
+2026-10-04 19:47:19,982 - INFO - Container sweb.eval.sympy__sympy-15875.wescode-v3 stopped successfully.
+2026-10-04 19:47:19,982 - INFO - Attempting to remove container sweb.eval.sympy__sympy-15875.wescode-v3...
+2026-10-04 19:47:20,014 - INFO - Container sweb.eval.sympy__sympy-15875.wescode-v3 removed successfully.

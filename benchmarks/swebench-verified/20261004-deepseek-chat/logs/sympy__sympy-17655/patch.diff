@@ -1,0 +1,54 @@
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..9223b20967 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -105,6 +105,12 @@ class Point(GeometryEntity):
+ 
+     is_Point = True
+ 
++    # Note that the lower priority of the `Expr` subclasses is
++    # intentionally overridden here so that the reverse multiplication
++    # is dispatched to `Point.__rmul__` instead of building a `Mul`
++    # (see `call_highest_priority`).
++    _op_priority = 11.0
++
+     def __new__(cls, *args, **kwargs):
+         evaluate = kwargs.get('evaluate', global_evaluate[0])
+         on_morph = kwargs.get('on_morph', 'ignore')
+@@ -278,6 +284,22 @@ def __mul__(self, factor):
+         coords = [simplify(x*factor) for x in self.args]
+         return Point(coords, evaluate=False)
+ 
++    def __rmul__(self, factor):
++        """Multiply point's coordinates by a factor.
++
++        Although the same as `__mul__`, this method is needed so that
++        the multiplication by a scalar works regardless of the order
++        of the operands, e.g. `2*Point(1, 2)` and `Point(1, 2)*2`.
++
++        Examples
++        ========
++
++        >>> from sympy.geometry.point import Point
++        >>> 2*Point(1, 2)
++        Point2D(2, 4)
++        """
++        return self.__mul__(factor)
++
+     def __neg__(self):
+         """Negate the point."""
+         coords = [-x for x in self.args]
+diff --git a/sympy/geometry/tests/test_point.py b/sympy/geometry/tests/test_point.py
+index 475d1d403f..235c40e47d 100644
+--- a/sympy/geometry/tests/test_point.py
++++ b/sympy/geometry/tests/test_point.py
+@@ -352,6 +352,9 @@ def test_arguments():
+     assert a/10.0 == Point(0, 0.1, evaluate=False)
+     a = Point(0, 1)
+     assert a*10.0 == Point(0.0, 10.0, evaluate=False)
++    a = Point(0, 1)
++    assert 10.0*a == Point(0.0, 10.0, evaluate=False)
++    assert 10*a == Point(0, 10)
+ 
+     # test evaluate=False when changing dimensions
+     u = Point(.1, .2, evaluate=False)

@@ -1,0 +1,99 @@
+2026-10-04 17:11:57,767 - INFO - Creating container for astropy__astropy-13579...
+2026-10-04 17:11:57,807 - INFO - Container for astropy__astropy-13579 created: 8c30b60c239a47569ee3aa3526e972566c13bc84e39a0b6e419c9542cb8bfb18
+2026-10-04 17:11:57,994 - INFO - Container for astropy__astropy-13579 started: 8c30b60c239a47569ee3aa3526e972566c13bc84e39a0b6e419c9542cb8bfb18
+2026-10-04 17:11:57,994 - INFO - Intermediate patch for astropy__astropy-13579 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-13579/patch.diff, now applying to container...
+2026-10-04 17:11:58,108 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:11:58,533 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:11:58,930 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:11:59,355 - INFO - >>>>> Applied Patch:
+patching file astropy/wcs/src/wcslib_wtbarr_wrap.c
+patching file astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 253 with fuzz 1.
+
+2026-10-04 17:11:59,408 - INFO - Git diff before:
+diff --git a/astropy/wcs/src/wcslib_wtbarr_wrap.c b/astropy/wcs/src/wcslib_wtbarr_wrap.c
+index 645e8b382..0b1896230 100644
+--- a/astropy/wcs/src/wcslib_wtbarr_wrap.c
++++ b/astropy/wcs/src/wcslib_wtbarr_wrap.c
+@@ -205,8 +205,8 @@ PyTypeObject PyWtbarrType = {
+   0,                            /*tp_as_buffer*/
+   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
+   doc_Wtbarr,                   /* tp_doc */
+-  PyWtbarr_traverse,            /* tp_traverse */
+-  PyWtbarr_clear,               /* tp_clear */
++  (traverseproc)PyWtbarr_traverse,            /* tp_traverse */
++  (inquiry)PyWtbarr_clear,               /* tp_clear */
+   0,                            /* tp_richcompare */
+   0,                            /* tp_weaklistoffset */
+   0,                            /* tp_iter */
+diff --git a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+index d7605b078..773663f6e 100644
+--- a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+@@ -243,6 +243,8 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
+         return world_arrays
+ 
+     def world_to_pixel_values(self, *world_arrays):
++        sliced_out_world_coords = self._pixel_to_world_values_all(*[0]*len(self._pixel_keep))
++
+         world_arrays = tuple(map(np.asanyarray, world_arrays))
+         world_arrays_new = []
+         iworld_curr = -1
+@@ -251,7 +253,7 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
+                 iworld_curr += 1
+                 world_arrays_new.append(world_arrays[iworld_curr])
+             else:
+-                world_arrays_new.append(1.)
++                world_arrays_new.append(sliced_out_world_coords[iworld])
+ 
+         world_arrays_new = np.broadcast_arrays(*world_arrays_new)
+         pixel_arrays = list(self._wcs.world_to_pixel_values(*world_arrays_new))
+2026-10-04 17:11:59,408 - INFO - Eval script for astropy__astropy-13579 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-13579/eval.sh; copying to container...
+2026-10-04 17:13:21,571 - INFO - Test runtime: 82.11 seconds
+2026-10-04 17:13:21,572 - INFO - Test output for astropy__astropy-13579 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-13579/test_output.txt
+2026-10-04 17:13:21,630 - INFO - Git diff after:
+diff --git a/astropy/wcs/src/wcslib_wtbarr_wrap.c b/astropy/wcs/src/wcslib_wtbarr_wrap.c
+index 645e8b382..0b1896230 100644
+--- a/astropy/wcs/src/wcslib_wtbarr_wrap.c
++++ b/astropy/wcs/src/wcslib_wtbarr_wrap.c
+@@ -205,8 +205,8 @@ PyTypeObject PyWtbarrType = {
+   0,                            /*tp_as_buffer*/
+   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
+   doc_Wtbarr,                   /* tp_doc */
+-  PyWtbarr_traverse,            /* tp_traverse */
+-  PyWtbarr_clear,               /* tp_clear */
++  (traverseproc)PyWtbarr_traverse,            /* tp_traverse */
++  (inquiry)PyWtbarr_clear,               /* tp_clear */
+   0,                            /* tp_richcompare */
+   0,                            /* tp_weaklistoffset */
+   0,                            /* tp_iter */
+diff --git a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+index d7605b078..773663f6e 100644
+--- a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+@@ -243,6 +243,8 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
+         return world_arrays
+ 
+     def world_to_pixel_values(self, *world_arrays):
++        sliced_out_world_coords = self._pixel_to_world_values_all(*[0]*len(self._pixel_keep))
++
+         world_arrays = tuple(map(np.asanyarray, world_arrays))
+         world_arrays_new = []
+         iworld_curr = -1
+@@ -251,7 +253,7 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
+                 iworld_curr += 1
+                 world_arrays_new.append(world_arrays[iworld_curr])
+             else:
+-                world_arrays_new.append(1.)
++                world_arrays_new.append(sliced_out_world_coords[iworld])
+ 
+         world_arrays_new = np.broadcast_arrays(*world_arrays_new)
+         pixel_arrays = list(self._wcs.world_to_pixel_values(*world_arrays_new))
+2026-10-04 17:13:21,630 - INFO - Grading answer for astropy__astropy-13579...
+2026-10-04 17:13:21,633 - INFO - report: {'astropy__astropy-13579': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_coupled_world_slicing'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_invalid_slices', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_sanitize_slice[item0-4-expected0]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_sanitize_slice[item1-5-expected1]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_sanitize_slice[item2-10-expected2]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_ellipsis', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_pixel_to_world_broadcasting', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_world_to_pixel_broadcasting', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_spectral_slice', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_spectral_range', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_celestial_slice', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_celestial_range', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_celestial_range_rot', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_no_array_shape', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_ellipsis_none_types', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice10-slice20-expected0]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice11-slice21-expected1]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice12-slice22-expected2]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice13-slice23-expected3]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice14-slice24-expected4]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice15-slice25-expected5]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice16-slice26-expected6]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice17-slice27-expected7]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice18-slice28-expected8]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice19-slice29-expected9]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice110-slice210-expected10]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice111-slice211-expected11]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice112-slice212-expected12]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice113-slice213-expected13]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice114-slice214-expected14]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice115-slice215-expected15]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice116-3-3]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice117-3-5]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice118-3-3]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_combine_slices[slice119-3-5]', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_nested_slicing', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_too_much_slicing', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_1d_sliced_low_level', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_dropped_dimensions', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_dropped_dimensions_4d', 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py::test_pixel_to_world_values_different_int_types'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-13579: resolved: True
+2026-10-04 17:13:21,634 - INFO - Attempting to stop container sweb.eval.astropy__astropy-13579.wescode-v3...
+2026-10-04 17:13:36,844 - INFO - Container sweb.eval.astropy__astropy-13579.wescode-v3 stopped successfully.
+2026-10-04 17:13:36,844 - INFO - Attempting to remove container sweb.eval.astropy__astropy-13579.wescode-v3...
+2026-10-04 17:13:36,911 - INFO - Container sweb.eval.astropy__astropy-13579.wescode-v3 removed successfully.

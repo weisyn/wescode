@@ -1,0 +1,155 @@
+2026-10-04 18:03:54,223 - INFO - Creating container for django__django-15022...
+2026-10-04 18:03:54,274 - INFO - Container for django__django-15022 created: 81a5402d3f13483be63b20b31b601a1fe786e59bae47f1974b2da454ef642cb0
+2026-10-04 18:03:54,457 - INFO - Container for django__django-15022 started: 81a5402d3f13483be63b20b31b601a1fe786e59bae47f1974b2da454ef642cb0
+2026-10-04 18:03:54,457 - INFO - Intermediate patch for django__django-15022 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15022/patch.diff, now applying to container...
+2026-10-04 18:03:54,590 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:03:55,580 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:03:56,079 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:03:56,570 - INFO - >>>>> Applied Patch:
+patching file django/contrib/admin/options.py
+patching file tests/admin_changelist/admin.py
+patching file tests/admin_changelist/tests.py
+patch unexpectedly ends in middle of line
+Hunk #3 succeeded at 591 with fuzz 1.
+
+2026-10-04 18:03:56,641 - INFO - Git diff before:
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 66f3396a6b..c5968a79ed 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -1031,6 +1031,7 @@ class ModelAdmin(BaseModelAdmin):
+         if search_fields and search_term:
+             orm_lookups = [construct_search(str(search_field))
+                            for search_field in search_fields]
++            term_queries = []
+             for bit in smart_split(search_term):
+                 if bit.startswith(('"', "'")) and bit[0] == bit[-1]:
+                     bit = unescape_string_literal(bit)
+@@ -1038,7 +1039,8 @@ class ModelAdmin(BaseModelAdmin):
+                     *((orm_lookup, bit) for orm_lookup in orm_lookups),
+                     _connector=models.Q.OR,
+                 )
+-                queryset = queryset.filter(or_queries)
++                term_queries.append(or_queries)
++            queryset = queryset.filter(models.Q(*term_queries))
+             may_have_duplicates |= any(
+                 lookup_spawns_duplicates(self.opts, search_spec)
+                 for search_spec in orm_lookups
+diff --git a/tests/admin_changelist/admin.py b/tests/admin_changelist/admin.py
+index f8051f64fa..929539ea88 100644
+--- a/tests/admin_changelist/admin.py
++++ b/tests/admin_changelist/admin.py
+@@ -36,6 +36,12 @@ class ParentAdmin(admin.ModelAdmin):
+     list_select_related = ['child']
+ 
+ 
++class ParentAdminTwoSearchFields(admin.ModelAdmin):
++    list_filter = ['child__name']
++    search_fields = ['child__name', 'child__age']
++    list_select_related = ['child']
++
++
+ class ChildAdmin(admin.ModelAdmin):
+     list_display = ['name', 'parent']
+     list_per_page = 10
+diff --git a/tests/admin_changelist/tests.py b/tests/admin_changelist/tests.py
+index 92ea0dd718..86fcab531a 100644
+--- a/tests/admin_changelist/tests.py
++++ b/tests/admin_changelist/tests.py
+@@ -30,8 +30,8 @@ from .admin import (
+     DynamicListDisplayLinksChildAdmin, DynamicListFilterChildAdmin,
+     DynamicSearchFieldsChildAdmin, EmptyValueChildAdmin, EventAdmin,
+     FilteredChildAdmin, GroupAdmin, InvitationAdmin,
+-    NoListDisplayLinksParentAdmin, ParentAdmin, QuartetAdmin, SwallowAdmin,
+-    site as custom_site,
++    NoListDisplayLinksParentAdmin, ParentAdmin, ParentAdminTwoSearchFields,
++    QuartetAdmin, SwallowAdmin, site as custom_site,
+ )
+ from .models import (
+     Band, CharPK, Child, ChordsBand, ChordsMusician, Concert, CustomIdUser,
+@@ -153,6 +153,42 @@ class ChangeListTests(TestCase):
+         cl = ia.get_changelist_instance(request)
+         self.assertEqual(cl.queryset.query.select_related, {'player': {}, 'band': {}})
+ 
++    def test_many_search_terms(self):
++        parent = Parent.objects.create(name='Mary')
++        Child.objects.create(parent=parent, name='Danielle')
++        Child.objects.create(parent=parent, name='Daniel')
++
++        m = ParentAdmin(Parent, custom_site)
++        request = self.factory.get('/parent/', data={SEARCH_VAR: 'daniel ' * 80})
++        request.user = self.superuser
++
++        cl = m.get_changelist_instance(request)
++        with CaptureQueriesContext(connection) as context:
++            object_count = cl.queryset.count()
++        self.assertEqual(object_count, 1)
++        self.assertEqual(context.captured_queries[0]['sql'].count('JOIN'), 1)
++
++    def test_related_field_multiple_search_terms(self):
++        """
++        Searches over multi-valued relationships return rows from related
++        models only when all searched fields match that row.
++        """
++        parent = Parent.objects.create(name='Mary')
++        Child.objects.create(parent=parent, name='Danielle', age=18)
++        Child.objects.create(parent=parent, name='Daniel', age=19)
++
++        m = ParentAdminTwoSearchFields(Parent, custom_site)
++
++        request = self.factory.get('/parent/', data={SEARCH_VAR: 'danielle 19'})
++        request.user = self.superuser
++        cl = m.get_changelist_instance(request)
++        self.assertEqual(cl.queryset.count(), 0)
++
++        request = self.factory.get('/parent/', data={SEARCH_VAR: 'daniel 19'})
++        request.user = self.superuser
++        cl = m.get_changelist_instance(request)
++        self.assertEqual(cl.queryset.count(), 1)
++
+     def test_result_list_empty_changelist_value(self):
+         """
+         Regression test for #14982: EMPTY_CHANGELIST_VALUE should be honored
+@@ -555,7 +591,7 @@ class ChangeListTests(TestCase):
+             ('Finlayson', 1),
+             ('Finlayson Hype', 0),
+             ('Jonathan Finlayson Duo', 1),
+-            ('Mary Jonathan Duo', 1),
++            ('Mary Jonathan Duo', 0),
+             ('Oscar Finlayson Duo', 0),
+         ):
+             with self.subTest(search_string=search_string):
+2026-10-04 18:03:56,642 - INFO - Eval script for django__django-15022 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15022/eval.sh; copying to container...
+2026-10-04 18:04:05,085 - INFO - Test runtime: 8.39 seconds
+2026-10-04 18:04:05,086 - INFO - Test output for django__django-15022 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15022/test_output.txt
+2026-10-04 18:04:05,147 - INFO - Git diff after:
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 66f3396a6b..c5968a79ed 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -1031,6 +1031,7 @@ class ModelAdmin(BaseModelAdmin):
+         if search_fields and search_term:
+             orm_lookups = [construct_search(str(search_field))
+                            for search_field in search_fields]
++            term_queries = []
+             for bit in smart_split(search_term):
+                 if bit.startswith(('"', "'")) and bit[0] == bit[-1]:
+                     bit = unescape_string_literal(bit)
+@@ -1038,7 +1039,8 @@ class ModelAdmin(BaseModelAdmin):
+                     *((orm_lookup, bit) for orm_lookup in orm_lookups),
+                     _connector=models.Q.OR,
+                 )
+-                queryset = queryset.filter(or_queries)
++                term_queries.append(or_queries)
++            queryset = queryset.filter(models.Q(*term_queries))
+             may_have_duplicates |= any(
+                 lookup_spawns_duplicates(self.opts, search_spec)
+                 for search_spec in orm_lookups
+2026-10-04 18:04:05,147 - INFO - Git diff changed after running eval script
+2026-10-04 18:04:05,148 - INFO - Grading answer for django__django-15022...
+2026-10-04 18:04:05,149 - INFO - report: {'django__django-15022': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_many_search_terms (admin_changelist.tests.ChangeListTests)', 'All rows containing each of the searched words are returned, where each', 'Searches over multi-valued relationships return rows from related'], 'failure': []}, 'PASS_TO_PASS': {'success': ["{% get_admin_log %} works if the user model's primary key isn't named", 'test_missing_args (admin_changelist.tests.GetAdminLogTests)', '{% get_admin_log %} works without specifying a user.', 'test_non_integer_limit (admin_changelist.tests.GetAdminLogTests)', 'test_without_as (admin_changelist.tests.GetAdminLogTests)', 'test_without_for_user (admin_changelist.tests.GetAdminLogTests)', 'test_builtin_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_changelist_search_form_validation (admin_changelist.tests.ChangeListTests)', 'list_editable edits use a filtered queryset to limit memory usage.', 'test_clear_all_filters_link (admin_changelist.tests.ChangeListTests)', 'test_clear_all_filters_link_callable_filter (admin_changelist.tests.ChangeListTests)', 'Regression test for #13196: output of functions should be  localized', 'test_custom_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_custom_lookup_with_pk_shortcut (admin_changelist.tests.ChangeListTests)', 'test_custom_paginator (admin_changelist.tests.ChangeListTests)', "The primary key is used in the ordering of the changelist's results to", 'Regression tests for #14206: dynamic list_display support.', 'Regression tests for #16257: dynamic list_display_links support.', 'Regression tests for ticket #17646: dynamic list_filter support.', 'test_dynamic_search_fields (admin_changelist.tests.ChangeListTests)', 'test_get_edited_object_ids (admin_changelist.tests.ChangeListTests)', 'test_get_list_editable_queryset (admin_changelist.tests.ChangeListTests)', 'test_get_list_editable_queryset_with_regex_chars_in_prefix (admin_changelist.tests.ChangeListTests)', 'test_get_select_related_custom_method (admin_changelist.tests.ChangeListTests)', 'Simultaneous edits of list_editable fields on the changelist by', 'test_no_clear_all_filters_link (admin_changelist.tests.ChangeListTests)', 'Regression test for #13902: When using a ManyToMany in list_filter,', 'When using a ManyToMany in search_fields at the second level behind a', 'Regressions tests for #15819: If a field listed in list_filters is a', 'Regressions tests for #15819: If a field listed in search_fields', 'When using a ManyToMany in list_filter at the second level behind a', "If a ManyToManyField is in list_filter but isn't in any lookup params,", "#15185 -- Allow no links from the 'change list' view grid.", 'When ModelAdmin.has_add_permission() returns False, the object-tools', "Regression tests for #12893: Pagination in admins changelist doesn't", 'Regression tests for ticket #15653: ensure the number of pages', 'test_pk_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_repr (admin_changelist.tests.ChangeListTests)', 'Regression test for #14312: list_editable with pagination', 'Regression tests for #11791: Inclusion tag result_list generates a', 'Regression test for #14982: EMPTY_CHANGELIST_VALUE should be honored', 'Inclusion tag result_list generates a table when with default', 'Empty value display can be set in ModelAdmin or individual fields.', 'Empty value display can be set on AdminSite.', 'test_search_help_text (admin_changelist.tests.ChangeListTests)', 'test_select_related_as_empty_tuple (admin_changelist.tests.ChangeListTests)', 'test_select_related_as_tuple (admin_changelist.tests.ChangeListTests)', "Regression test for #10348: ChangeList.get_queryset() shouldn't", 'test_select_related_preserved_when_multi_valued_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_show_all (admin_changelist.tests.ChangeListTests)', 'test_spanning_relations_with_custom_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_specified_ordering_by_f_expression (admin_changelist.tests.ChangeListTests)', 'test_specified_ordering_by_f_expression_without_asc_desc (admin_changelist.tests.ChangeListTests)', 'test_total_ordering_optimization (admin_changelist.tests.ChangeListTests)', 'test_total_ordering_optimization_meta_constraints (admin_changelist.tests.ChangeListTests)', 'test_tuple_list_display (admin_changelist.tests.ChangeListTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-15022: resolved: True
+2026-10-04 18:04:05,149 - INFO - Attempting to stop container sweb.eval.django__django-15022.wescode-v3...
+2026-10-04 18:04:20,349 - INFO - Container sweb.eval.django__django-15022.wescode-v3 stopped successfully.
+2026-10-04 18:04:20,350 - INFO - Attempting to remove container sweb.eval.django__django-15022.wescode-v3...
+2026-10-04 18:04:20,565 - INFO - Container sweb.eval.django__django-15022.wescode-v3 removed successfully.

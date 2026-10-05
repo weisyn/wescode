@@ -1,0 +1,47 @@
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 1b8005e1d2..778d81c2a9 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -507,7 +507,20 @@ def _eval_evalf(self, prec):
+             func = getattr(mpmath, fname)
+         except (AttributeError, KeyError):
+             try:
+-                return Float(self._imp_(*self.args), prec)
++                imp = self._imp_
++            except AttributeError:
++                return
++            if imp is None:
++                return
++            try:
++                # recursively evaluate the result of the implementation so
++                # that a composition of implemented functions, e.g.
++                # f(g(2)), is fully evaluated.  The result of evaluating must
++                # itself be a number, otherwise the function is left alone.
++                result = imp(*self.args).evalf(prec)
++                if result.is_number:
++                    return result
++                return
+             except (AttributeError, TypeError, ValueError):
+                 return
+ 
+diff --git a/sympy/core/tests/test_evalf.py b/sympy/core/tests/test_evalf.py
+index 1d63f9ea93..962df3bad6 100644
+--- a/sympy/core/tests/test_evalf.py
++++ b/sympy/core/tests/test_evalf.py
+@@ -327,6 +327,16 @@ def test_implemented_function_evalf():
+     assert f(x).evalf() == f(x)
+     del f._imp_     # XXX: due to caching _imp_ would influence all other tests
+ 
++    # evalf of composed implemented functions
++    f = implemented_function('f', lambda x: x**2)
++    g = implemented_function('g', lambda x: 2*x)
++    assert f(2).evalf() == 4
++    assert g(2).evalf() == 4
++    assert f(g(2)).evalf() == 16
++    assert f(g(x)).evalf() == f(g(x))
++    del f._imp_
++    del g._imp_
++
+ 
+ def test_evaluate_false():
+     for no in [0, False]:

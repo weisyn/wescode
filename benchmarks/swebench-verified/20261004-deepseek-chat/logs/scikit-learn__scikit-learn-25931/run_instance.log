@@ -1,0 +1,145 @@
+2026-10-04 19:23:38,783 - INFO - Creating container for scikit-learn__scikit-learn-25931...
+2026-10-04 19:23:38,827 - INFO - Container for scikit-learn__scikit-learn-25931 created: b3b9d1fefec40695b8fbb57ead718c42723ed6a58f90d298a511e09d9cedd0bc
+2026-10-04 19:23:39,023 - INFO - Container for scikit-learn__scikit-learn-25931 started: b3b9d1fefec40695b8fbb57ead718c42723ed6a58f90d298a511e09d9cedd0bc
+2026-10-04 19:23:39,024 - INFO - Intermediate patch for scikit-learn__scikit-learn-25931 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-25931/patch.diff, now applying to container...
+2026-10-04 19:23:39,146 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:23:39,323 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:23:39,438 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:23:39,557 - INFO - >>>>> Applied Patch:
+patching file doc/whats_new/v1.3.rst
+patching file sklearn/ensemble/_iforest.py
+patching file sklearn/ensemble/tests/test_iforest.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 326 with fuzz 1.
+
+2026-10-04 19:23:39,629 - INFO - Git diff before:
+diff --git a/doc/whats_new/v1.3.rst b/doc/whats_new/v1.3.rst
+index dac97146b..0b7fa2d11 100755
+--- a/doc/whats_new/v1.3.rst
++++ b/doc/whats_new/v1.3.rst
+@@ -202,6 +202,10 @@ Changelog
+ :mod:`sklearn.ensemble`
+ .......................
+ 
++- |Fix| :class:`ensemble.IsolationForest` no longer warns about invalid feature
++  names when fitted on a dataframe with a non-default `contamination` value.
++  :pr:`25931` by :user:`Yao Xiao <Charlie-XIAO>`.
++
+ - |Feature| :class:`ensemble.HistGradientBoostingRegressor` now supports
+   the Gamma deviance loss via `loss="gamma"`.
+   Using the Gamma deviance as loss function comes in handy for modelling skewed
+diff --git a/sklearn/ensemble/_iforest.py b/sklearn/ensemble/_iforest.py
+index 4d6c1c3f0..6deea7cde 100755
+--- a/sklearn/ensemble/_iforest.py
++++ b/sklearn/ensemble/_iforest.py
+@@ -345,7 +345,9 @@ class IsolationForest(OutlierMixin, BaseBagging):
+             return self
+ 
+         # else, define offset_ wrt contamination parameter
+-        self.offset_ = np.percentile(self.score_samples(X), 100.0 * self.contamination)
++        # To avoid validating the input data twice, we use the private
++        # `_score_samples` since `X` is already validated.
++        self.offset_ = np.percentile(self._score_samples(X), 100.0 * self.contamination)
+ 
+         return self
+ 
+@@ -435,6 +437,15 @@ class IsolationForest(OutlierMixin, BaseBagging):
+         # Check data
+         X = self._validate_data(X, accept_sparse="csr", dtype=np.float32, reset=False)
+ 
++        return self._score_samples(X)
++
++    def _score_samples(self, X):
++        """Private version of score_samples without any data validation.
++
++        This is useful to call this method during fit since X is already
++        validated and we do not want the validation to complain about
++        potentially inconsistent feature names between X and the fitted data.
++        """
+         # Take the opposite of the scores as bigger is better (here less
+         # abnormal)
+         return -self._compute_chunked_score_samples(X)
+diff --git a/sklearn/ensemble/tests/test_iforest.py b/sklearn/ensemble/tests/test_iforest.py
+index 5f046540f..3777517c6 100755
+--- a/sklearn/ensemble/tests/test_iforest.py
++++ b/sklearn/ensemble/tests/test_iforest.py
+@@ -326,6 +326,21 @@ def test_iforest_with_n_jobs_does_not_segfault():
+     IsolationForest(n_estimators=10, max_samples=256, n_jobs=2).fit(X)
+ 
+ 
++def test_iforest_dataframe_feature_names_no_warning():
++    """Check that fitting on a DataFrame with a non-default contamination
++    does not raise a warning about invalid feature names.
++
++    Non-regression test for #25844.
++    """
++    pd = pytest.importorskip("pandas")
++
++    X = pd.DataFrame({"a": [-1.1, 0.3, 0.5, 100]})
++
++    with warnings.catch_warnings():
++        warnings.simplefilter("error", UserWarning)
++        IsolationForest(random_state=0, contamination=0.05).fit(X)
++
++
+ # TODO(1.4): remove in 1.4
+ def test_base_estimator_property_deprecated():
+     X = np.array([[1, 2], [3, 4]])
+2026-10-04 19:23:39,629 - INFO - Eval script for scikit-learn__scikit-learn-25931 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-25931/eval.sh; copying to container...
+2026-10-04 19:23:51,731 - INFO - Test runtime: 12.04 seconds
+2026-10-04 19:23:51,731 - INFO - Test output for scikit-learn__scikit-learn-25931 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-25931/test_output.txt
+2026-10-04 19:23:51,782 - INFO - Git diff after:
+diff --git a/doc/whats_new/v1.3.rst b/doc/whats_new/v1.3.rst
+index dac97146b..0b7fa2d11 100755
+--- a/doc/whats_new/v1.3.rst
++++ b/doc/whats_new/v1.3.rst
+@@ -202,6 +202,10 @@ Changelog
+ :mod:`sklearn.ensemble`
+ .......................
+ 
++- |Fix| :class:`ensemble.IsolationForest` no longer warns about invalid feature
++  names when fitted on a dataframe with a non-default `contamination` value.
++  :pr:`25931` by :user:`Yao Xiao <Charlie-XIAO>`.
++
+ - |Feature| :class:`ensemble.HistGradientBoostingRegressor` now supports
+   the Gamma deviance loss via `loss="gamma"`.
+   Using the Gamma deviance as loss function comes in handy for modelling skewed
+diff --git a/sklearn/ensemble/_iforest.py b/sklearn/ensemble/_iforest.py
+index 4d6c1c3f0..6deea7cde 100755
+--- a/sklearn/ensemble/_iforest.py
++++ b/sklearn/ensemble/_iforest.py
+@@ -345,7 +345,9 @@ class IsolationForest(OutlierMixin, BaseBagging):
+             return self
+ 
+         # else, define offset_ wrt contamination parameter
+-        self.offset_ = np.percentile(self.score_samples(X), 100.0 * self.contamination)
++        # To avoid validating the input data twice, we use the private
++        # `_score_samples` since `X` is already validated.
++        self.offset_ = np.percentile(self._score_samples(X), 100.0 * self.contamination)
+ 
+         return self
+ 
+@@ -435,6 +437,15 @@ class IsolationForest(OutlierMixin, BaseBagging):
+         # Check data
+         X = self._validate_data(X, accept_sparse="csr", dtype=np.float32, reset=False)
+ 
++        return self._score_samples(X)
++
++    def _score_samples(self, X):
++        """Private version of score_samples without any data validation.
++
++        This is useful to call this method during fit since X is already
++        validated and we do not want the validation to complain about
++        potentially inconsistent feature names between X and the fitted data.
++        """
+         # Take the opposite of the scores as bigger is better (here less
+         # abnormal)
+         return -self._compute_chunked_score_samples(X)
+2026-10-04 19:23:51,782 - INFO - Git diff changed after running eval script
+2026-10-04 19:23:51,782 - INFO - Grading answer for scikit-learn__scikit-learn-25931...
+2026-10-04 19:23:51,784 - INFO - report: {'scikit-learn__scikit-learn-25931': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/ensemble/tests/test_iforest.py::test_iforest_preserve_feature_names'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/ensemble/tests/test_iforest.py::test_iforest[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_sparse[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_error', 'sklearn/ensemble/tests/test_iforest.py::test_recalculate_max_depth', 'sklearn/ensemble/tests/test_iforest.py::test_max_samples_attribute', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_parallel_regression[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_performance[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_works[42-0.25]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_works[42-auto]', 'sklearn/ensemble/tests/test_iforest.py::test_max_samples_consistency', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_subsampled_features', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_average_path_length', 'sklearn/ensemble/tests/test_iforest.py::test_score_samples', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_warm_start', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works1[42-0.25-3]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works1[42-auto-2]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works2[42-0.25-3]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works2[42-auto-2]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_with_uniform_data', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_with_n_jobs_does_not_segfault', 'sklearn/ensemble/tests/test_iforest.py::test_base_estimator_property_deprecated'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-25931: resolved: True
+2026-10-04 19:23:51,785 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-25931.wescode-v3...
+2026-10-04 19:24:06,922 - INFO - Container sweb.eval.scikit-learn__scikit-learn-25931.wescode-v3 stopped successfully.
+2026-10-04 19:24:06,922 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-25931.wescode-v3...
+2026-10-04 19:24:06,950 - INFO - Container sweb.eval.scikit-learn__scikit-learn-25931.wescode-v3 removed successfully.

@@ -1,0 +1,101 @@
+diff --git a/ChangeLog b/ChangeLog
+index 97af302a..4f9c1e87 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -13,6 +13,11 @@ Release date: TBA
+ * The python3 porting mode checker and it's ``py3k`` option were removed. You can still find it in older pylint
+   versions.
+ 
++* Setting ``min-similarity-lines`` to ``0`` now disables the duplicate code check
++  instead of reporting a similarity for every single line.
++
++  Closes #2143
++
+ * ``raising-bad-type`` is now properly emitted when  raising a string
+ 
+ * Added new extension ``SetMembershipChecker`` with ``use-set-for-membership`` check:
+diff --git a/pylint/checkers/similar.py b/pylint/checkers/similar.py
+index c65b1c89..eba06846 100644
+--- a/pylint/checkers/similar.py
++++ b/pylint/checkers/similar.py
+@@ -362,6 +362,8 @@ class Similar:
+         ignore_signatures: bool = False,
+     ) -> None:
+         self.min_lines = min_lines
++        """Minimum number of successive lines for a similarity to be reported.
++        A value of 0 disables the duplicate code check."""
+         self.ignore_comments = ignore_comments
+         self.ignore_docstrings = ignore_docstrings
+         self.ignore_imports = ignore_imports
+@@ -470,7 +472,16 @@ class Similar:
+         the couple of corresponding starting and ending lines in both files.
+         Last regroups all successive couples in a bigger one. It allows to take into account common chunk of lines that have more
+         than the minimal number of successive lines required.
++
++        :note: ``min_lines`` set to zero disables the duplicate code check entirely.
+         """
++        # Setting the minimum number of similar lines to zero is the documented
++        # way of disabling the duplicate code check. Return early instead of
++        # relying on the hashing step, which cannot compute a hash over zero
++        # consecutive lines.
++        if self.min_lines == 0:
++            return
++
+         hash_to_index_1: HashToIndex_T
+         hash_to_index_2: HashToIndex_T
+         index_to_lines_1: IndexToLines_T
+@@ -739,7 +750,8 @@ class SimilarChecker(BaseChecker, Similar, MapReduceMixin):
+                 "default": DEFAULT_MIN_SIMILARITY_LINE,
+                 "type": "int",
+                 "metavar": "<int>",
+-                "help": "Minimum lines number of a similarity.",
++                "help": "Minimum lines number of a similarity. "
++                "Set to 0 to disable the duplicate code check.",
+             },
+         ),
+         (
+diff --git a/tests/checkers/unittest_similar.py b/tests/checkers/unittest_similar.py
+index 4ddf2029..60b660eb 100644
+--- a/tests/checkers/unittest_similar.py
++++ b/tests/checkers/unittest_similar.py
+@@ -371,6 +371,20 @@ TOTAL lines=50 duplicates=14 percent=28.00
+     )
+ 
+ 
++def test_set_min_similarity_lines_to_zero() -> None:
++    """Setting min-similarity-lines to 0 disables the duplicate code check."""
++    output = StringIO()
++    with redirect_stdout(output), pytest.raises(SystemExit) as ex:
++        similar.Run(["--duplicates=0", SIMILAR1, SIMILAR2])
++    assert ex.value.code == 0
++    assert (
++        output.getvalue().strip()
++        == """
++TOTAL lines=62 duplicates=0 percent=0.00
++""".strip()
++    )
++
++
+ def test_help() -> None:
+     output = StringIO()
+     with redirect_stdout(output):
+diff --git a/tests/test_self.py b/tests/test_self.py
+index 9c044415..02e55fd6 100644
+--- a/tests/test_self.py
++++ b/tests/test_self.py
+@@ -1112,6 +1112,15 @@ class TestRunTC:
+             expected_output=expected_output,
+         )
+ 
++    def test_duplicate_code_disabled_with_zero_similarity_lines(self) -> None:
++        # Setting min-similarity-lines to 0 disables the duplicate code check
++        # instead of reporting a similarity for every single line.
++        path = join(HERE, "regrtest_data", "duplicate_data_raw_strings")
++        self._test_output(
++            [path, "--disable=all", "--enable=duplicate-code", "--min-similarity-lines=0"],
++            expected_output="",
++        )
++
+     def test_regression_parallel_mode_without_filepath(self) -> None:
+         # Test that parallel mode properly passes filepath
+         # https://github.com/PyCQA/pylint/issues/3564

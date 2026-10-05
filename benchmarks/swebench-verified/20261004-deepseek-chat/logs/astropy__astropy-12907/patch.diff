@@ -1,0 +1,52 @@
+diff --git a/astropy/modeling/separable.py b/astropy/modeling/separable.py
+index a308e2729..45bea3608 100644
+--- a/astropy/modeling/separable.py
++++ b/astropy/modeling/separable.py
+@@ -242,7 +242,7 @@ def _cstack(left, right):
+         cright = _coord_matrix(right, 'right', noutp)
+     else:
+         cright = np.zeros((noutp, right.shape[1]))
+-        cright[-right.shape[0]:, -right.shape[1]:] = 1
++        cright[-right.shape[0]:, -right.shape[1]:] = right
+ 
+     return np.hstack([cleft, cright])
+ 
+diff --git a/astropy/modeling/tests/test_separable.py b/astropy/modeling/tests/test_separable.py
+index 8dfe5c862..f80c78c24 100644
+--- a/astropy/modeling/tests/test_separable.py
++++ b/astropy/modeling/tests/test_separable.py
+@@ -52,6 +52,13 @@ compound_models = {
+     'cm7': (map2 | p2 & sh1,
+             (np.array([False, True]),
+              np.array([[True, False], [False, True]]))
++            ),
++    'cm8': (rot & (sh1 & sh2),
++            (np.array([False, False, True, True]),
++             np.array([[True, True, False, False],
++                       [True, True, False, False],
++                       [False, False, True, False],
++                       [False, False, False, True]]))
+             )
+ }
+ 
+@@ -113,6 +120,20 @@ def test_cstack():
+                     )
+ 
+ 
++def test_cstack_ndarray_keeps_structure():
++    # Regression test for nesting CompoundModels with '&' (gh-12907):
++    # when an operand is the coord_matrix of a nested compound model,
++    # its internal structure must be preserved, not flattened to ones.
++    cm = sh1 & sh2
++    result = _cstack(rot, separability_matrix(cm))
++    assert_allclose(result,
++                    np.array([[1, 1, 0, 0],
++                              [1, 1, 0, 0],
++                              [0, 0, 1, 0],
++                              [0, 0, 0, 1]])
++                    )
++
++
+ def test_arith_oper():
+     # Models as inputs
+     result = _arith_oper(sh1, scl1)

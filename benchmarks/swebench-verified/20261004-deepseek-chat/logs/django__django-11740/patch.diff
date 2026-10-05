@@ -1,0 +1,68 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 0dc1c77c53..fa1c14805a 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -963,6 +963,12 @@ class MigrationAutodetector:
+                             preserve_default = False
+                     else:
+                         field = new_field
++                    dependencies = []
++                    if (
++                        not old_field.is_relation
++                        and new_field.is_relation
++                    ):
++                        dependencies.extend(self._get_dependencies_for_foreign_key(new_field))
+                     self.add_operation(
+                         app_label,
+                         operations.AlterField(
+@@ -970,7 +976,8 @@ class MigrationAutodetector:
+                             name=field_name,
+                             field=field,
+                             preserve_default=preserve_default,
+-                        )
++                        ),
++                        dependencies=dependencies,
+                     )
+                 else:
+                     # We cannot alter between m2m and concrete fields
+diff --git a/tests/migrations/test_autodetector.py b/tests/migrations/test_autodetector.py
+index e9926ba3bf..e4f6a7e009 100644
+--- a/tests/migrations/test_autodetector.py
++++ b/tests/migrations/test_autodetector.py
+@@ -726,6 +726,36 @@ class AutodetectorTests(TestCase):
+         self.assertOperationTypes(changes, 'testapp', 0, ["AlterField"])
+         self.assertOperationAttributes(changes, "testapp", 0, 0, name="name", preserve_default=True)
+ 
++    def test_alter_field_to_fk_dependency(self):
++        """
++        Altering a field to a FK adds the referenced app's migration as a
++        dependency (#30017).
++        """
++        before = [
++            ModelState("testapp", "EntityA", [
++                ("id", models.AutoField(primary_key=True)),
++                ("entity_b", models.UUIDField(null=True, blank=True)),
++            ]),
++            ModelState("otherapp", "EntityB", [
++                ("id", models.AutoField(primary_key=True)),
++            ]),
++        ]
++        after = [
++            ModelState("testapp", "EntityA", [
++                ("id", models.AutoField(primary_key=True)),
++                ("entity_b", models.ForeignKey("otherapp.EntityB", models.SET_NULL, null=True, blank=True)),
++            ]),
++            ModelState("otherapp", "EntityB", [
++                ("id", models.AutoField(primary_key=True)),
++            ]),
++        ]
++        changes = self.get_changes(before, after)
++        self.assertNumberMigrations(changes, "testapp", 1)
++        self.assertOperationTypes(changes, "testapp", 0, ["AlterField"])
++        self.assertMigrationDependencies(changes, "testapp", 0, [
++            ("otherapp", "__first__"),
++        ])
++
+     def test_supports_functools_partial(self):
+         def _content_file_name(instance, filename, key, **kwargs):
+             return '{}/{}'.format(instance, filename)

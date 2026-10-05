@@ -1,0 +1,127 @@
+2026-10-04 17:27:20,986 - INFO - Creating container for django__django-10554...
+2026-10-04 17:27:21,031 - INFO - Container for django__django-10554 created: f210d241ccfcd211a42d1600e1e7ea5aae371c4d282da972a62e1c8d7bacffcd
+2026-10-04 17:27:21,224 - INFO - Container for django__django-10554 started: f210d241ccfcd211a42d1600e1e7ea5aae371c4d282da972a62e1c8d7bacffcd
+2026-10-04 17:27:21,224 - INFO - Intermediate patch for django__django-10554 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-10554/patch.diff, now applying to container...
+2026-10-04 17:27:21,338 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:27:22,495 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:27:22,907 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:27:23,305 - INFO - >>>>> Applied Patch:
+patching file django/db/models/sql/compiler.py
+patching file django/db/models/sql/query.py
+patching file tests/queries/test_qs_combinators.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 153 with fuzz 1.
+
+2026-10-04 17:27:23,370 - INFO - Git diff before:
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index a791908caf..a14f1254aa 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -356,7 +356,12 @@ class SQLCompiler:
+                         resolved.set_source_expressions([RawSQL('%d' % (idx + 1), ())])
+                         break
+                 else:
+-                    raise DatabaseError('ORDER BY term does not match any column in the result set.')
++                    if col_alias:
++                        raise DatabaseError('ORDER BY term does not match any column in the result set.')
++                    # Add column used in ORDER BY clause without an alias to
++                    # the selected columns.
++                    self.query.add_select_col(src)
++                    resolved.set_source_expressions([RawSQL('%d' % len(self.query.select), ())])
+             sql, params = self.compile(resolved)
+             # Don't add the same column twice, but the order direction is
+             # not taken into account so we strip it. When this entire method
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 08d7faf194..fc08442193 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1774,6 +1774,10 @@ class Query(BaseExpression):
+         self.select = ()
+         self.values_select = ()
+ 
++    def add_select_col(self, col):
++        self.select += col,
++        self.values_select += col.output_field.name,
++
+     def set_select(self, cols):
+         self.default_cols = False
+         self.select = tuple(cols)
+diff --git a/tests/queries/test_qs_combinators.py b/tests/queries/test_qs_combinators.py
+index 227972e8c4..6d1ac9c2bf 100644
+--- a/tests/queries/test_qs_combinators.py
++++ b/tests/queries/test_qs_combinators.py
+@@ -153,6 +153,29 @@ class QuerySetSetOperationTests(TestCase):
+         qs2 = Number.objects.filter(num=9)
+         self.assertCountEqual(qs1.union(qs2).values_list('num', flat=True), [1, 9])
+ 
++    def test_union_with_values_list_and_order(self):
++        ReservedName.objects.bulk_create([
++            ReservedName(name='rn1', order=7),
++            ReservedName(name='rn2', order=5),
++            ReservedName(name='rn0', order=6),
++            ReservedName(name='rn9', order=-1),
++        ])
++        qs1 = ReservedName.objects.filter(order__gte=6)
++        qs2 = ReservedName.objects.filter(order__lte=5)
++        union_qs = qs1.union(qs2)
++        for qs, expected_result in (
++            # Order by a single column.
++            (union_qs.order_by('-pk').values_list('order', flat=True), [-1, 6, 5, 7]),
++            (union_qs.order_by('pk').values_list('order', flat=True), [7, 5, 6, -1]),
++            (union_qs.values_list('order', flat=True).order_by('-pk'), [-1, 6, 5, 7]),
++            (union_qs.values_list('order', flat=True).order_by('pk'), [7, 5, 6, -1]),
++            # Order by multiple columns.
++            (union_qs.order_by('-name', 'pk').values_list('order', flat=True), [-1, 5, 7, 6]),
++            (union_qs.values_list('order', flat=True).order_by('-name', 'pk'), [-1, 5, 7, 6]),
++        ):
++            with self.subTest(qs=qs):
++                self.assertEqual(list(qs), expected_result)
++
+     def test_count_union(self):
+         qs1 = Number.objects.filter(num__lte=1).values('num')
+         qs2 = Number.objects.filter(num__gte=2, num__lte=3).values('num')
+2026-10-04 17:27:23,371 - INFO - Eval script for django__django-10554 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-10554/eval.sh; copying to container...
+2026-10-04 17:27:30,525 - INFO - Test runtime: 7.10 seconds
+2026-10-04 17:27:30,525 - INFO - Test output for django__django-10554 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-10554/test_output.txt
+2026-10-04 17:27:30,597 - INFO - Git diff after:
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index a791908caf..a14f1254aa 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -356,7 +356,12 @@ class SQLCompiler:
+                         resolved.set_source_expressions([RawSQL('%d' % (idx + 1), ())])
+                         break
+                 else:
+-                    raise DatabaseError('ORDER BY term does not match any column in the result set.')
++                    if col_alias:
++                        raise DatabaseError('ORDER BY term does not match any column in the result set.')
++                    # Add column used in ORDER BY clause without an alias to
++                    # the selected columns.
++                    self.query.add_select_col(src)
++                    resolved.set_source_expressions([RawSQL('%d' % len(self.query.select), ())])
+             sql, params = self.compile(resolved)
+             # Don't add the same column twice, but the order direction is
+             # not taken into account so we strip it. When this entire method
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 08d7faf194..fc08442193 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1774,6 +1774,10 @@ class Query(BaseExpression):
+         self.select = ()
+         self.values_select = ()
+ 
++    def add_select_col(self, col):
++        self.select += col,
++        self.values_select += col.output_field.name,
++
+     def set_select(self, cols):
+         self.default_cols = False
+         self.select = tuple(cols)
+2026-10-04 17:27:30,597 - INFO - Git diff changed after running eval script
+2026-10-04 17:27:30,597 - INFO - Grading answer for django__django-10554...
+2026-10-04 17:27:30,599 - INFO - report: {'django__django-10554': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_union_with_values_list_and_order (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_union_with_values_list_on_annotated_and_unannotated (queries.test_qs_combinators.QuerySetSetOperationTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_combining_multiple_models (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_count_difference (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_count_intersection (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_count_union (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_count_union_empty_result (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_difference_with_empty_qs (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_difference_with_values (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_intersection_with_empty_qs (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_intersection_with_values (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_limits (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_order_raises_on_non_selected_column (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_ordering (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_ordering_by_f_expression (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_qs_with_subcompound_qs (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_simple_difference (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_simple_intersection (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_simple_union (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_union_distinct (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_union_with_empty_qs (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_union_with_extra_and_values_list (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_union_with_two_annotated_values_list (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_union_with_values (queries.test_qs_combinators.QuerySetSetOperationTests)', 'test_unsupported_ordering_slicing_raises_db_error (queries.test_qs_combinators.QuerySetSetOperationTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-10554: resolved: True
+2026-10-04 17:27:30,599 - INFO - Attempting to stop container sweb.eval.django__django-10554.wescode-v3...
+2026-10-04 17:27:45,752 - INFO - Container sweb.eval.django__django-10554.wescode-v3 stopped successfully.
+2026-10-04 17:27:45,752 - INFO - Attempting to remove container sweb.eval.django__django-10554.wescode-v3...
+2026-10-04 17:27:45,927 - INFO - Container sweb.eval.django__django-10554.wescode-v3 removed successfully.

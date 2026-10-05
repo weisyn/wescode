@@ -1,0 +1,64 @@
+diff --git a/lib/matplotlib/axes/_axes.py b/lib/matplotlib/axes/_axes.py
+index 5369eadbd..bc076d168 100644
+--- a/lib/matplotlib/axes/_axes.py
++++ b/lib/matplotlib/axes/_axes.py
+@@ -4847,8 +4847,8 @@ default: :rc:`scatter.edgecolors`
+         yscale : {'linear', 'log'}, default: 'linear'
+             Use a linear or log10 scale on the vertical axis.
+ 
+-        mincnt : int > 0, default: *None*
+-            If not *None*, only display cells with more than *mincnt*
++        mincnt : int >= 0, default: *None*
++            If not *None*, only display cells with at least *mincnt*
+             number of points in the cell.
+ 
+         marginals : bool, default: *False*
+@@ -5014,7 +5014,7 @@ default: :rc:`scatter.edgecolors`
+             if mincnt is None:
+                 mincnt = 0
+             accum = np.array(
+-                [reduce_C_function(acc) if len(acc) > mincnt else np.nan
++                [reduce_C_function(acc) if len(acc) >= mincnt else np.nan
+                  for Cs_at_i in [Cs_at_i1, Cs_at_i2]
+                  for acc in Cs_at_i[1:]],  # [1:] drops out-of-range points.
+                 float)
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index 065d17f95..aba0fd44e 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -950,6 +950,35 @@ def test_hexbin_empty():
+     ax.hexbin([], [], bins='log')
+ 
+ 
++def test_hexbin_mincnt_behavior_upon_C():
++    # From #12926: mincnt must be handled consistently whether or not C is
++    # given, i.e. a cell is kept when the number of points is >= mincnt.
++    np.random.seed(42)
++    x, y = np.random.multivariate_normal(
++        [0.0, 0.0], [[1.0, 0.1], [0.1, 1.0]], size=250).T
++    c = np.ones_like(x)
++    kwargs = dict(extent=[-3., 3., -3., 3.], gridsize=(7, 7))
++
++    counts = {}
++    for mincnt in (0, 1, 2):
++        fig, ax = plt.subplots()
++        pc = ax.hexbin(x, y, mincnt=mincnt, **kwargs)
++        counts[('C=None', mincnt)] = np.count_nonzero(~np.isnan(pc.get_array()))
++        plt.close(fig)
++
++        fig, ax = plt.subplots()
++        pc = ax.hexbin(x, y, C=c, reduce_C_function=np.sum, mincnt=mincnt, **kwargs)
++        counts[('C', mincnt)] = np.count_nonzero(~np.isnan(pc.get_array()))
++        plt.close(fig)
++
++    # mincnt=1 must select the same cells with and without C (issue #12926).
++    assert counts[('C', 1)] == counts[('C=None', 1)]
++    # Boundary: mincnt=N keeps cells with exactly N points.
++    assert counts[('C', 0)] == counts[('C=None', 0)]
++    assert counts[('C', 2)] == counts[('C=None', 2)]
++    assert counts[('C', 0)] > counts[('C', 1)] > counts[('C', 2)]
++
++
+ def test_hexbin_pickable():
+     # From #1973: Test that picking a hexbin collection works
+     fig, ax = plt.subplots()

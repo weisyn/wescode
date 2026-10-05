@@ -1,0 +1,72 @@
+diff --git a/doc/whats_new/v1.3.rst b/doc/whats_new/v1.3.rst
+index dac97146b..0b7fa2d11 100644
+--- a/doc/whats_new/v1.3.rst
++++ b/doc/whats_new/v1.3.rst
+@@ -202,6 +202,10 @@ Changelog
+ :mod:`sklearn.ensemble`
+ .......................
+ 
++- |Fix| :class:`ensemble.IsolationForest` no longer warns about invalid feature
++  names when fitted on a dataframe with a non-default `contamination` value.
++  :pr:`25931` by :user:`Yao Xiao <Charlie-XIAO>`.
++
+ - |Feature| :class:`ensemble.HistGradientBoostingRegressor` now supports
+   the Gamma deviance loss via `loss="gamma"`.
+   Using the Gamma deviance as loss function comes in handy for modelling skewed
+diff --git a/sklearn/ensemble/_iforest.py b/sklearn/ensemble/_iforest.py
+index 4d6c1c3f0..6deea7cde 100644
+--- a/sklearn/ensemble/_iforest.py
++++ b/sklearn/ensemble/_iforest.py
+@@ -345,7 +345,9 @@ class IsolationForest(OutlierMixin, BaseBagging):
+             return self
+ 
+         # else, define offset_ wrt contamination parameter
+-        self.offset_ = np.percentile(self.score_samples(X), 100.0 * self.contamination)
++        # To avoid validating the input data twice, we use the private
++        # `_score_samples` since `X` is already validated.
++        self.offset_ = np.percentile(self._score_samples(X), 100.0 * self.contamination)
+ 
+         return self
+ 
+@@ -435,6 +437,15 @@ class IsolationForest(OutlierMixin, BaseBagging):
+         # Check data
+         X = self._validate_data(X, accept_sparse="csr", dtype=np.float32, reset=False)
+ 
++        return self._score_samples(X)
++
++    def _score_samples(self, X):
++        """Private version of score_samples without any data validation.
++
++        This is useful to call this method during fit since X is already
++        validated and we do not want the validation to complain about
++        potentially inconsistent feature names between X and the fitted data.
++        """
+         # Take the opposite of the scores as bigger is better (here less
+         # abnormal)
+         return -self._compute_chunked_score_samples(X)
+diff --git a/sklearn/ensemble/tests/test_iforest.py b/sklearn/ensemble/tests/test_iforest.py
+index 5f046540f..3777517c6 100644
+--- a/sklearn/ensemble/tests/test_iforest.py
++++ b/sklearn/ensemble/tests/test_iforest.py
+@@ -326,6 +326,21 @@ def test_iforest_with_n_jobs_does_not_segfault():
+     IsolationForest(n_estimators=10, max_samples=256, n_jobs=2).fit(X)
+ 
+ 
++def test_iforest_dataframe_feature_names_no_warning():
++    """Check that fitting on a DataFrame with a non-default contamination
++    does not raise a warning about invalid feature names.
++
++    Non-regression test for #25844.
++    """
++    pd = pytest.importorskip("pandas")
++
++    X = pd.DataFrame({"a": [-1.1, 0.3, 0.5, 100]})
++
++    with warnings.catch_warnings():
++        warnings.simplefilter("error", UserWarning)
++        IsolationForest(random_state=0, contamination=0.05).fit(X)
++
++
+ # TODO(1.4): remove in 1.4
+ def test_base_estimator_property_deprecated():
+     X = np.array([[1, 2], [3, 4]])

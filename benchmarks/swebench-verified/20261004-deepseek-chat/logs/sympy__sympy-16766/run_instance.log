@@ -1,0 +1,120 @@
+2026-10-04 19:47:54,172 - INFO - Creating container for sympy__sympy-16766...
+2026-10-04 19:47:54,207 - INFO - Container for sympy__sympy-16766 created: 3df8197b0ad69a43ea12e535afc48176b2daca9f68a668dd45b50360ddeed91a
+2026-10-04 19:47:54,405 - INFO - Container for sympy__sympy-16766 started: 3df8197b0ad69a43ea12e535afc48176b2daca9f68a668dd45b50360ddeed91a
+2026-10-04 19:47:54,406 - INFO - Intermediate patch for sympy__sympy-16766 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-16766/patch.diff, now applying to container...
+2026-10-04 19:47:54,512 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:47:54,681 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:47:54,787 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:47:54,894 - INFO - >>>>> Applied Patch:
+patching file sympy/printing/pycode.py
+patching file sympy/printing/tests/test_pycode.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 36 with fuzz 1.
+
+2026-10-04 19:47:54,951 - INFO - Git diff before:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index a3f031073..6fdfc133c 100755
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -269,6 +269,29 @@ def _print_ITE(self, expr):
+         from sympy.functions.elementary.piecewise import Piecewise
+         return self._print(expr.rewrite(Piecewise))
+ 
++    def _print_Indexed(self, expr):
++        # calculate index for 1d array
++        dims = getattr(expr.base, 'shape', [])
++        if not dims:
++            return "%s[%s]" % (
++                self._print(expr.base.label),
++                ', '.join(self._print(ind) for ind in expr.indices))
++        elem = S.Zero
++        offset = S.One
++        for i in reversed(range(expr.rank)):
++            elem += expr.indices[i]*offset
++            offset *= dims[i]
++        return "%s[%s]" % (
++            self._print(expr.base.label),
++            self._print(elem)
++        )
++
++    def _print_Idx(self, expr):
++        return self._print(expr.label)
++
++    def _print_IndexedBase(self, expr):
++        return self._print(expr.label)
++
+     def _print_Sum(self, expr):
+         loops = (
+             'for {i} in range({a}, {b}+1)'.format(
+diff --git a/sympy/printing/tests/test_pycode.py b/sympy/printing/tests/test_pycode.py
+index f1a9a3789..0153d9258 100755
+--- a/sympy/printing/tests/test_pycode.py
++++ b/sympy/printing/tests/test_pycode.py
+@@ -8,6 +8,7 @@
+ from sympy.functions import acos, Piecewise, sign
+ from sympy.logic import And, Or
+ from sympy.matrices import SparseMatrix, MatrixSymbol
++from sympy.tensor import IndexedBase
+ from sympy.printing.pycode import (
+     MpmathPrinter, NumPyPrinter, PythonCodePrinter, pycode, SciPyPrinter
+ )
+@@ -35,6 +36,13 @@ def test_PythonCodePrinter():
+                                                         ' (3) if (x > 0) else None)'
+     assert prntr.doprint(sign(x)) == '(0.0 if x == 0 else math.copysign(1, x))'
+ 
++    p = IndexedBase("p")
++    assert prntr.doprint(p[0]) == 'p[0]'
++    assert prntr.doprint(p[1, 2]) == 'p[1, 2]'
++    assert prntr.doprint(p[1, 2, 3]) == 'p[1, 2, 3]'
++    A = IndexedBase("A", (2, 3))
++    assert prntr.doprint(A[1, 2]) == 'A[5]'
++
+ 
+ def test_MpmathPrinter():
+     p = MpmathPrinter()
+2026-10-04 19:47:54,951 - INFO - Eval script for sympy__sympy-16766 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-16766/eval.sh; copying to container...
+2026-10-04 19:48:00,115 - INFO - Test runtime: 5.11 seconds
+2026-10-04 19:48:00,116 - INFO - Test output for sympy__sympy-16766 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-16766/test_output.txt
+2026-10-04 19:48:00,174 - INFO - Git diff after:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index a3f031073..6fdfc133c 100755
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -269,6 +269,29 @@ def _print_ITE(self, expr):
+         from sympy.functions.elementary.piecewise import Piecewise
+         return self._print(expr.rewrite(Piecewise))
+ 
++    def _print_Indexed(self, expr):
++        # calculate index for 1d array
++        dims = getattr(expr.base, 'shape', [])
++        if not dims:
++            return "%s[%s]" % (
++                self._print(expr.base.label),
++                ', '.join(self._print(ind) for ind in expr.indices))
++        elem = S.Zero
++        offset = S.One
++        for i in reversed(range(expr.rank)):
++            elem += expr.indices[i]*offset
++            offset *= dims[i]
++        return "%s[%s]" % (
++            self._print(expr.base.label),
++            self._print(elem)
++        )
++
++    def _print_Idx(self, expr):
++        return self._print(expr.label)
++
++    def _print_IndexedBase(self, expr):
++        return self._print(expr.label)
++
+     def _print_Sum(self, expr):
+         loops = (
+             'for {i} in range({a}, {b}+1)'.format(
+2026-10-04 19:48:00,174 - INFO - Git diff changed after running eval script
+2026-10-04 19:48:00,174 - INFO - Grading answer for sympy__sympy-16766...
+2026-10-04 19:48:00,175 - INFO - report: {'sympy__sympy-16766': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_PythonCodePrinter'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_MpmathPrinter', 'test_NumPyPrinter', 'test_SciPyPrinter', 'test_pycode_reserved_words', 'test_printmethod', 'test_codegen_ast_nodes', 'test_issue_14283'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-16766: resolved: True
+2026-10-04 19:48:00,176 - INFO - Attempting to stop container sweb.eval.sympy__sympy-16766.wescode-v3...
+2026-10-04 19:48:15,336 - INFO - Container sweb.eval.sympy__sympy-16766.wescode-v3 stopped successfully.
+2026-10-04 19:48:15,338 - INFO - Attempting to remove container sweb.eval.sympy__sympy-16766.wescode-v3...
+2026-10-04 19:48:15,364 - INFO - Container sweb.eval.sympy__sympy-16766.wescode-v3 removed successfully.

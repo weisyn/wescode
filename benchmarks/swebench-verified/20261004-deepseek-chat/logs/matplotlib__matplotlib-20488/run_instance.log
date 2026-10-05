@@ -1,0 +1,157 @@
+2026-10-04 18:23:14,846 - INFO - Creating container for matplotlib__matplotlib-20488...
+2026-10-04 18:23:14,895 - INFO - Container for matplotlib__matplotlib-20488 created: dcd9f5e0361c7e3fbf3bc442d5b31630b5fcdac8d6a928246a46b858c9b557eb
+2026-10-04 18:23:15,085 - INFO - Container for matplotlib__matplotlib-20488 started: dcd9f5e0361c7e3fbf3bc442d5b31630b5fcdac8d6a928246a46b858c9b557eb
+2026-10-04 18:23:15,085 - INFO - Intermediate patch for matplotlib__matplotlib-20488 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/matplotlib__matplotlib-20488/patch.diff, now applying to container...
+2026-10-04 18:23:15,193 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:23:16,111 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:23:17,199 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:23:17,323 - INFO - >>>>> Applied Patch:
+patching file lib/matplotlib/colors.py
+patching file lib/matplotlib/image.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 537 with fuzz 1.
+
+2026-10-04 18:23:17,376 - INFO - Git diff before:
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index e0c42c5b6..1e8c542f4 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -1471,7 +1471,19 @@ def _make_norm_from_scale(scale_cls, base_norm_cls=None, *, init=None):
+                 clip = self.clip
+             if clip:
+                 value = np.clip(value, self.vmin, self.vmax)
+-            t_value = self._trf.transform(value).reshape(np.shape(value))
++            # The transform may not be defined for some values (e.g. the log of
++            # non-positive numbers); fill masked values so that the transform
++            # does not raise on them (the mask is restored afterwards).
++            masked_values = value.mask if value.mask is not np.ma.nomask \
++                else np.ma.nomask
++            with np.errstate(invalid="ignore"):
++                t_value = self._trf.transform(
++                    np.ma.filled(value, self.vmin).astype(float))
++            t_value = np.ma.masked_invalid(
++                t_value.reshape(np.shape(value)), copy=False)
++            if masked_values is not np.ma.nomask:
++                t_value.mask = t_value.mask | np.broadcast_to(
++                    masked_values, t_value.shape)
+             t_vmin, t_vmax = self._trf.transform([self.vmin, self.vmax])
+             if not np.isfinite([t_vmin, t_vmax]).all():
+                 raise ValueError("Invalid vmin or vmax")
+@@ -1551,6 +1563,10 @@ class LogNorm(Normalize):
+         # docstring inherited.
+         super().autoscale_None(np.ma.masked_less_equal(A, 0, copy=False))
+ 
++    def scaled(self):
++        # docstring inherited.
++        return super().scaled() and not np.ma.getmask(self.vmin)
++
+ 
+ @_make_norm_from_scale(
+     scale.SymmetricalLogScale,
+diff --git a/lib/matplotlib/image.py b/lib/matplotlib/image.py
+index 95bb42d75..e671d1616 100644
+--- a/lib/matplotlib/image.py
++++ b/lib/matplotlib/image.py
+@@ -470,7 +470,9 @@ class _ImageBase(martist.Artist, cm.ScalarMappable):
+                 # have values close or equal to the boundaries end up on the
+                 # wrong side.
+                 vmin, vmax = self.norm.vmin, self.norm.vmax
+-                if vmin is np.ma.masked:
++                if not self.norm.scaled():
++                    # The norm has not been scaled yet (e.g. no data was
++                    # passed to it); fall back to the data limits.
+                     vmin, vmax = a_min, a_max
+                 vrange = np.array([vmin, vmax], dtype=scaled_dtype)
+ 
+@@ -535,11 +537,14 @@ class _ImageBase(martist.Artist, cm.ScalarMappable):
+                 if isinstance(self.norm, mcolors.LogNorm):
+                     if s_vmin < 0:
+                         s_vmin = max(s_vmin, np.finfo(scaled_dtype).eps)
++                mask = np.ma.getmaskarray(resampled_masked)
++                resampled_masked = np.ma.filled(resampled_masked, 0)
+                 with cbook._setattr_cm(self.norm,
+                                        vmin=s_vmin,
+                                        vmax=s_vmax,
+                                        ):
+                     output = self.norm(resampled_masked)
++                output = np.ma.masked_array(output, mask)
+             else:
+                 if A.shape[2] == 3:
+                     A = _rgb_to_rgba(A)
+2026-10-04 18:23:17,376 - INFO - Eval script for matplotlib__matplotlib-20488 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/matplotlib__matplotlib-20488/eval.sh; copying to container...
+2026-10-04 18:24:43,572 - INFO - Test runtime: 86.14 seconds
+2026-10-04 18:24:43,573 - INFO - Test output for matplotlib__matplotlib-20488 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/matplotlib__matplotlib-20488/test_output.txt
+2026-10-04 18:24:43,631 - INFO - Git diff after:
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index e0c42c5b6..1e8c542f4 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -1471,7 +1471,19 @@ def _make_norm_from_scale(scale_cls, base_norm_cls=None, *, init=None):
+                 clip = self.clip
+             if clip:
+                 value = np.clip(value, self.vmin, self.vmax)
+-            t_value = self._trf.transform(value).reshape(np.shape(value))
++            # The transform may not be defined for some values (e.g. the log of
++            # non-positive numbers); fill masked values so that the transform
++            # does not raise on them (the mask is restored afterwards).
++            masked_values = value.mask if value.mask is not np.ma.nomask \
++                else np.ma.nomask
++            with np.errstate(invalid="ignore"):
++                t_value = self._trf.transform(
++                    np.ma.filled(value, self.vmin).astype(float))
++            t_value = np.ma.masked_invalid(
++                t_value.reshape(np.shape(value)), copy=False)
++            if masked_values is not np.ma.nomask:
++                t_value.mask = t_value.mask | np.broadcast_to(
++                    masked_values, t_value.shape)
+             t_vmin, t_vmax = self._trf.transform([self.vmin, self.vmax])
+             if not np.isfinite([t_vmin, t_vmax]).all():
+                 raise ValueError("Invalid vmin or vmax")
+@@ -1551,6 +1563,10 @@ class LogNorm(Normalize):
+         # docstring inherited.
+         super().autoscale_None(np.ma.masked_less_equal(A, 0, copy=False))
+ 
++    def scaled(self):
++        # docstring inherited.
++        return super().scaled() and not np.ma.getmask(self.vmin)
++
+ 
+ @_make_norm_from_scale(
+     scale.SymmetricalLogScale,
+diff --git a/lib/matplotlib/image.py b/lib/matplotlib/image.py
+index 95bb42d75..e671d1616 100644
+--- a/lib/matplotlib/image.py
++++ b/lib/matplotlib/image.py
+@@ -470,7 +470,9 @@ class _ImageBase(martist.Artist, cm.ScalarMappable):
+                 # have values close or equal to the boundaries end up on the
+                 # wrong side.
+                 vmin, vmax = self.norm.vmin, self.norm.vmax
+-                if vmin is np.ma.masked:
++                if not self.norm.scaled():
++                    # The norm has not been scaled yet (e.g. no data was
++                    # passed to it); fall back to the data limits.
+                     vmin, vmax = a_min, a_max
+                 vrange = np.array([vmin, vmax], dtype=scaled_dtype)
+ 
+@@ -535,11 +537,14 @@ class _ImageBase(martist.Artist, cm.ScalarMappable):
+                 if isinstance(self.norm, mcolors.LogNorm):
+                     if s_vmin < 0:
+                         s_vmin = max(s_vmin, np.finfo(scaled_dtype).eps)
++                mask = np.ma.getmaskarray(resampled_masked)
++                resampled_masked = np.ma.filled(resampled_masked, 0)
+                 with cbook._setattr_cm(self.norm,
+                                        vmin=s_vmin,
+                                        vmax=s_vmax,
+                                        ):
+                     output = self.norm(resampled_masked)
++                output = np.ma.masked_array(output, mask)
+             else:
+                 if A.shape[2] == 3:
+                     A = _rgb_to_rgba(A)
+2026-10-04 18:24:43,631 - INFO - Grading answer for matplotlib__matplotlib-20488...
+2026-10-04 18:24:43,633 - INFO - report: {'matplotlib__matplotlib-20488': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['lib/matplotlib/tests/test_image.py::test_huge_range_log[png--1]']}, 'PASS_TO_PASS': {'success': ['lib/matplotlib/tests/test_image.py::test_image_interps[png]', 'lib/matplotlib/tests/test_image.py::test_image_interps[pdf]', 'lib/matplotlib/tests/test_image.py::test_alpha_interp[png]', 'lib/matplotlib/tests/test_image.py::test_figimage[png-False]', 'lib/matplotlib/tests/test_image.py::test_figimage[png-True]', 'lib/matplotlib/tests/test_image.py::test_figimage[pdf-False]', 'lib/matplotlib/tests/test_image.py::test_figimage[pdf-True]', 'lib/matplotlib/tests/test_image.py::test_image_python_io', 'lib/matplotlib/tests/test_image.py::test_imshow_antialiased[png-5-2-hanning]', 'lib/matplotlib/tests/test_image.py::test_imshow_antialiased[png-5-5-nearest]', 'lib/matplotlib/tests/test_image.py::test_imshow_antialiased[png-5-10-nearest]', 'lib/matplotlib/tests/test_image.py::test_imshow_antialiased[png-3-2.9-hanning]', 'lib/matplotlib/tests/test_image.py::test_imshow_antialiased[png-3-9.1-nearest]', 'lib/matplotlib/tests/test_image.py::test_imshow_zoom[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_pil[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_pil[pdf]', 'lib/matplotlib/tests/test_image.py::test_imread_pil_uint16', 'lib/matplotlib/tests/test_image.py::test_imread_fspath', 'lib/matplotlib/tests/test_image.py::test_imsave[png]', 'lib/matplotlib/tests/test_image.py::test_imsave[jpg]', 'lib/matplotlib/tests/test_image.py::test_imsave[jpeg]', 'lib/matplotlib/tests/test_image.py::test_imsave[tiff]', 'lib/matplotlib/tests/test_image.py::test_imsave_fspath[png]', 'lib/matplotlib/tests/test_image.py::test_imsave_fspath[pdf]', 'lib/matplotlib/tests/test_image.py::test_imsave_fspath[ps]', 'lib/matplotlib/tests/test_image.py::test_imsave_fspath[eps]', 'lib/matplotlib/tests/test_image.py::test_imsave_fspath[svg]', 'lib/matplotlib/tests/test_image.py::test_imsave_color_alpha', 'lib/matplotlib/tests/test_image.py::test_imsave_pil_kwargs_png', 'lib/matplotlib/tests/test_image.py::test_imsave_pil_kwargs_tiff', 'lib/matplotlib/tests/test_image.py::test_image_alpha[png]', 'lib/matplotlib/tests/test_image.py::test_image_alpha[pdf]', 'lib/matplotlib/tests/test_image.py::test_cursor_data', 'lib/matplotlib/tests/test_image.py::test_format_cursor_data[data0-[1e+04]-[10001]]', 'lib/matplotlib/tests/test_image.py::test_format_cursor_data[data1-[0.123]-[0.123]]', 'lib/matplotlib/tests/test_image.py::test_image_clip[png]', 'lib/matplotlib/tests/test_image.py::test_image_cliprect[png]', 'lib/matplotlib/tests/test_image.py::test_imshow[png]', 'lib/matplotlib/tests/test_image.py::test_imshow[pdf]', 'lib/matplotlib/tests/test_image.py::test_imshow_10_10_1[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_10_10_2', 'lib/matplotlib/tests/test_image.py::test_imshow_10_10_5', 'lib/matplotlib/tests/test_image.py::test_no_interpolation_origin[png]', 'lib/matplotlib/tests/test_image.py::test_no_interpolation_origin[pdf]', 'lib/matplotlib/tests/test_image.py::test_image_shift[pdf]', 'lib/matplotlib/tests/test_image.py::test_image_edges', 'lib/matplotlib/tests/test_image.py::test_image_composite_background[png]', 'lib/matplotlib/tests/test_image.py::test_image_composite_alpha[png]', 'lib/matplotlib/tests/test_image.py::test_image_composite_alpha[pdf]', 'lib/matplotlib/tests/test_image.py::test_clip_path_disables_compositing[pdf]', 'lib/matplotlib/tests/test_image.py::test_bbox_image_inverted[png]', 'lib/matplotlib/tests/test_image.py::test_get_window_extent_for_AxisImage', 'lib/matplotlib/tests/test_image.py::test_zoom_and_clip_upper_origin[png]', 'lib/matplotlib/tests/test_image.py::test_nonuniformimage_setcmap', 'lib/matplotlib/tests/test_image.py::test_nonuniformimage_setnorm', 'lib/matplotlib/tests/test_image.py::test_jpeg_2d', 'lib/matplotlib/tests/test_image.py::test_jpeg_alpha', 'lib/matplotlib/tests/test_image.py::test_axesimage_setdata', 'lib/matplotlib/tests/test_image.py::test_figureimage_setdata', 'lib/matplotlib/tests/test_image.py::test_setdata_xya[NonUniformImage-x0-y0-a0]', 'lib/matplotlib/tests/test_image.py::test_setdata_xya[PcolorImage-x1-y1-a1]', 'lib/matplotlib/tests/test_image.py::test_minimized_rasterized', 'lib/matplotlib/tests/test_image.py::test_load_from_url', 'lib/matplotlib/tests/test_image.py::test_log_scale_image[png]', 'lib/matplotlib/tests/test_image.py::test_log_scale_image[pdf]', 'lib/matplotlib/tests/test_image.py::test_rotate_image[png]', 'lib/matplotlib/tests/test_image.py::test_rotate_image[pdf]', 'lib/matplotlib/tests/test_image.py::test_image_preserve_size', 'lib/matplotlib/tests/test_image.py::test_image_preserve_size2', 'lib/matplotlib/tests/test_image.py::test_mask_image_over_under[png]', 'lib/matplotlib/tests/test_image.py::test_mask_image[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_endianess[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_masked_interpolation[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_masked_interpolation[pdf]', 'lib/matplotlib/tests/test_image.py::test_imshow_no_warn_invalid', 'lib/matplotlib/tests/test_image.py::test_imshow_clips_rgb_to_valid_range[dtype0]', 'lib/matplotlib/tests/test_image.py::test_imshow_clips_rgb_to_valid_range[dtype1]', 'lib/matplotlib/tests/test_image.py::test_imshow_clips_rgb_to_valid_range[dtype2]', 'lib/matplotlib/tests/test_image.py::test_imshow_clips_rgb_to_valid_range[dtype3]', 'lib/matplotlib/tests/test_image.py::test_imshow_clips_rgb_to_valid_range[dtype4]', 'lib/matplotlib/tests/test_image.py::test_imshow_clips_rgb_to_valid_range[dtype5]', 'lib/matplotlib/tests/test_image.py::test_imshow_clips_rgb_to_valid_range[dtype6]', 'lib/matplotlib/tests/test_image.py::test_imshow_flatfield[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_bignumbers[png]', 'lib/matplotlib/tests/test_image.py::test_imshow_bignumbers_real[png]', 'lib/matplotlib/tests/test_image.py::test_empty_imshow[Normalize]', 'lib/matplotlib/tests/test_image.py::test_empty_imshow[LogNorm]', 'lib/matplotlib/tests/test_image.py::test_empty_imshow[<lambda>0]', 'lib/matplotlib/tests/test_image.py::test_empty_imshow[<lambda>1]', 'lib/matplotlib/tests/test_image.py::test_imshow_float16', 'lib/matplotlib/tests/test_image.py::test_imshow_float128', 'lib/matplotlib/tests/test_image.py::test_imshow_bool', 'lib/matplotlib/tests/test_image.py::test_composite[True-1-ps-', 'lib/matplotlib/tests/test_image.py::test_composite[True-1-svg-<image]', 'lib/matplotlib/tests/test_image.py::test_composite[False-2-ps-', 'lib/matplotlib/tests/test_image.py::test_composite[False-2-svg-<image]', 'lib/matplotlib/tests/test_image.py::test_relim', 'lib/matplotlib/tests/test_image.py::test_unclipped', 'lib/matplotlib/tests/test_image.py::test_respects_bbox', 'lib/matplotlib/tests/test_image.py::test_image_cursor_formatting', 'lib/matplotlib/tests/test_image.py::test_image_array_alpha[png]', 'lib/matplotlib/tests/test_image.py::test_image_array_alpha[pdf]', 'lib/matplotlib/tests/test_image.py::test_image_array_alpha_validation', 'lib/matplotlib/tests/test_image.py::test_exact_vmin', 'lib/matplotlib/tests/test_image.py::test_https_imread_smoketest', 'lib/matplotlib/tests/test_image.py::test_quantitynd', 'lib/matplotlib/tests/test_image.py::test_huge_range_log[png-1]', 'lib/matplotlib/tests/test_image.py::test_spy_box[png]', 'lib/matplotlib/tests/test_image.py::test_spy_box[pdf]', 'lib/matplotlib/tests/test_image.py::test_nonuniform_and_pcolor[png]'], 'failure': ['lib/matplotlib/tests/test_image.py::test_mask_image_all']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for matplotlib__matplotlib-20488: resolved: False
+2026-10-04 18:24:43,633 - INFO - Attempting to stop container sweb.eval.matplotlib__matplotlib-20488.wescode-v3...
+2026-10-04 18:24:58,867 - INFO - Container sweb.eval.matplotlib__matplotlib-20488.wescode-v3 stopped successfully.
+2026-10-04 18:24:58,867 - INFO - Attempting to remove container sweb.eval.matplotlib__matplotlib-20488.wescode-v3...
+2026-10-04 18:24:58,972 - INFO - Container sweb.eval.matplotlib__matplotlib-20488.wescode-v3 removed successfully.

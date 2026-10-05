@@ -1,0 +1,45 @@
+diff --git a/django/db/migrations/executor.py b/django/db/migrations/executor.py
+index 57042a8690..6033107fce 100644
+--- a/django/db/migrations/executor.py
++++ b/django/db/migrations/executor.py
+@@ -277,6 +277,8 @@ class MigrationExecutor:
+             all_applied = all(m in applied for m in migration.replaces)
+             if all_applied and key not in applied:
+                 self.recorder.record_applied(*key)
++            elif not all_applied and key in applied:
++                self.recorder.record_unapplied(*key)
+ 
+     def detect_soft_applied(self, project_state, migration):
+         """
+diff --git a/tests/migrations/test_executor.py b/tests/migrations/test_executor.py
+index e61d8f1276..b96b91d806 100644
+--- a/tests/migrations/test_executor.py
++++ b/tests/migrations/test_executor.py
+@@ -653,6 +653,27 @@ class ExecutorTests(MigrationTestBase):
+             recorder.applied_migrations(),
+         )
+ 
++    @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations_squashed"})
++    def test_unapply_all_replaced_marks_replacement_as_unapplied(self):
++        """
++        Unapplying the replaced migrations marks the replacement as unapplied
++        (#24543).
++        """
++        recorder = MigrationRecorder(connection)
++        # Record all replaced migrations and their squash as applied.
++        recorder.record_applied("migrations", "0001_initial")
++        recorder.record_applied("migrations", "0002_second")
++        recorder.record_applied("migrations", "0001_squashed_0002")
++        executor = MigrationExecutor(connection)
++        executor.migrate([("migrations", None)], fake=True)
++
++        # Because 0001 and 0002 are no longer applied, their squashed
++        # replacement should also be marked as unapplied.
++        self.assertNotIn(
++            ("migrations", "0001_squashed_0002"),
++            recorder.applied_migrations(),
++        )
++
+     # When the feature is False, the operation and the record won't be
+     # performed in a transaction and the test will systematically pass.
+     @skipUnlessDBFeature('can_rollback_ddl')

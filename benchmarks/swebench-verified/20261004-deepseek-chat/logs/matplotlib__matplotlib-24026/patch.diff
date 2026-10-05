@@ -1,0 +1,89 @@
+diff --git a/lib/matplotlib/stackplot.py b/lib/matplotlib/stackplot.py
+index c580043ee..262959368 100644
+--- a/lib/matplotlib/stackplot.py
++++ b/lib/matplotlib/stackplot.py
+@@ -6,6 +6,8 @@ https://stackoverflow.com/q/2225995/
+ (https://stackoverflow.com/users/66549/doug)
+ """
+ 
++import itertools
++
+ import numpy as np
+ 
+ from matplotlib import _api
+@@ -66,11 +68,13 @@ def stackplot(axes, x, *args,
+         stacked area plot.
+     """
+ 
+-    y = np.row_stack(args)
++    y = np.vstack(args)
+ 
+     labels = iter(labels)
+     if colors is not None:
+-        axes.set_prop_cycle(color=colors)
++        colors = itertools.cycle(colors)
++    else:
++        colors = (axes._get_lines.get_next_color() for _ in y)
+ 
+     # Assume data passed has not been 'stacked', so stack it here.
+     # We'll need a float buffer for the upcoming calculations.
+@@ -108,17 +112,16 @@ def stackplot(axes, x, *args,
+         stack += first_line
+ 
+     # Color between x = 0 and the first array.
+-    color = axes._get_lines.get_next_color()
+     coll = axes.fill_between(x, first_line, stack[0, :],
+-                             facecolor=color, label=next(labels, None),
++                             facecolor=next(colors), label=next(labels, None),
+                              **kwargs)
+     coll.sticky_edges.y[:] = [0]
+     r = [coll]
+ 
+     # Color between array i-1 and array i
+     for i in range(len(y) - 1):
+-        color = axes._get_lines.get_next_color()
+         r.append(axes.fill_between(x, stack[i, :], stack[i + 1, :],
+-                                   facecolor=color, label=next(labels, None),
++                                   facecolor=next(colors),
++                                   label=next(labels, None),
+                                    **kwargs))
+     return r
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index 0d7d360ff..85145b6d5 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -2892,6 +2892,34 @@ def test_stackplot_baseline():
+     axs[1, 1].stackplot(range(100), d.T, baseline='weighted_wiggle')
+ 
+ 
++@pytest.mark.parametrize('colors', ['C0', 'C1', 'C2'])
++def test_stackplot_color_cycle_not_mutated(colors):
++    # stackplot must not change the Axes property cycle (issue #14221).
++    fig, ax = plt.subplots()
++    ax.plot([0, 1], [0, 1])  # advance the cycle by one
++    cycle_before = [dict(entry).get('color')
++                    for entry in ax._get_lines._cycler_items]
++
++    ax.stackplot([1, 2, 3], [[1, 1, 1], [1, 2, 3], [4, 3, 2]],
++                 colors=[colors])
++
++    cycle_after = [dict(entry).get('color')
++                   for entry in ax._get_lines._cycler_items]
++    assert cycle_before == cycle_after
++
++
++def test_stackplot_cycle_references_accepted():
++    # Colors given as single-letter cycle references (e.g. 'C2') must be
++    # accepted and resolved, without mutating the Axes cycle.
++    fig, ax = plt.subplots()
++    stacks = ax.stackplot([1, 2, 3], [[1, 1, 1], [1, 2, 3], [4, 3, 2]],
++                          colors=['C2', 'C3', 'C4'])
++    expected = [mcolors.to_rgba(c) for c in ['C2', 'C3', 'C4']]
++    assert [tuple(c.get_facecolor()[0]) for c in stacks] == expected
++    # The cycle is untouched: the next line gets the first default color.
++    assert ax.plot([0, 1], [0, 1])[0].get_color() == '#1f77b4'
++
++
+ def _bxp_test_helper(
+         stats_kwargs={}, transform_stats=lambda s: s, bxp_kwargs={}):
+     np.random.seed(937)

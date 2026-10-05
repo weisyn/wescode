@@ -1,0 +1,73 @@
+diff --git a/django/db/backends/ddl_references.py b/django/db/backends/ddl_references.py
+index 44e49806f8..a2f440056b 100644
+--- a/django/db/backends/ddl_references.py
++++ b/django/db/backends/ddl_references.py
+@@ -84,9 +84,10 @@ class Columns(TableColumns):
+     def __str__(self):
+         def col_str(column, idx):
+             try:
+-                return self.quote_name(column) + self.col_suffixes[idx]
++                suffix = self.col_suffixes[idx]
+             except IndexError:
+-                return self.quote_name(column)
++                suffix = ''
++            return self.quote_name(column) + ((' ' + suffix) if suffix else '')
+ 
+         return ', '.join(col_str(column, idx) for idx, column in enumerate(self.columns))
+ 
+@@ -110,13 +111,19 @@ class IndexColumns(Columns):
+ 
+     def __str__(self):
+         def col_str(column, idx):
++            try:
++                suffix = self.col_suffixes[idx]
++            except IndexError:
++                suffix = ''
++            col = self.quote_name(column) + ((' ' + suffix) if suffix else '')
+             # Index.__init__() guarantees that self.opclasses is the same
+             # length as self.columns.
+-            col = '{} {}'.format(self.quote_name(column), self.opclasses[idx])
+             try:
+-                col = '{} {}'.format(col, self.col_suffixes[idx])
++                opclass = self.opclasses[idx]
+             except IndexError:
+-                pass
++                opclass = ''
++            if opclass:
++                col = '%s %s' % (col, opclass)
+             return col
+ 
+         return ', '.join(col_str(column, idx) for idx, column in enumerate(self.columns))
+diff --git a/tests/indexes/tests.py b/tests/indexes/tests.py
+index 588feaddff..770710e2b9 100644
+--- a/tests/indexes/tests.py
++++ b/tests/indexes/tests.py
+@@ -151,6 +151,16 @@ class SchemaIndexesPostgreSQLTests(TransactionTestCase):
+             cursor.execute(self.get_opclass_query % 'test_ops_class')
+             self.assertEqual(cursor.fetchall(), [('varchar_pattern_ops', 'test_ops_class')])
+ 
++    def test_ops_class_whitespace(self):
++        index = Index(
++            name='test_ops_class_whitespace',
++            fields=['-headline'],
++            opclasses=['varchar_pattern_ops'],
++        )
++        with connection.schema_editor() as editor:
++            sql = str(index.create_sql(IndexedArticle2, editor))
++        self.assertIn('"headline" DESC varchar_pattern_ops', sql)
++
+     def test_ops_class_multiple_columns(self):
+         index = Index(
+             name='test_ops_class_multiple',
+@@ -269,6 +279,11 @@ class PartialIndexTests(TransactionTestCase):
+     # Schema editor is used to create the index to test that it works.
+     available_apps = ['indexes']
+ 
++    def test_index_with_ordering(self):
++        index = Index(fields=['-headline'])
++        sql = str(index.create_sql(Article, connection.schema_editor()))
++        self.assertIn('"headline" DESC', sql)
++
+     def test_partial_index(self):
+         with connection.schema_editor() as editor:
+             index = Index(

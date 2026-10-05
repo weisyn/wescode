@@ -1,0 +1,36 @@
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 23c3a08c67..a4e35db6f4 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -3,7 +3,7 @@ import random as random_module
+ import re
+ import types
+ import warnings
+-from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation
++from decimal import ROUND_HALF_UP, Context, Decimal, InvalidOperation, getcontext
+ from functools import wraps
+ from inspect import unwrap
+ from operator import itemgetter
+@@ -184,6 +184,7 @@ def floatformat(text, arg=-1):
+     units = len(tupl[1])
+     units += -tupl[2] if m else tupl[2]
+     prec = abs(p) + units + 1
++    prec = max(getcontext().prec, prec)
+ 
+     # Avoid conversion to scientific notation by accessing `sign`, `digits`,
+     # and `exponent` from Decimal.as_tuple() directly.
+diff --git a/tests/template_tests/filter_tests/test_floatformat.py b/tests/template_tests/filter_tests/test_floatformat.py
+index 361a888ce3..db573bef76 100644
+--- a/tests/template_tests/filter_tests/test_floatformat.py
++++ b/tests/template_tests/filter_tests/test_floatformat.py
+@@ -111,6 +111,10 @@ class FunctionTests(SimpleTestCase):
+         self.assertEqual(
+             floatformat(0.000000000000000000015, 20), "0.00000000000000000002"
+         )
++        self.assertEqual(floatformat("0.0000", 2), "0.00")
++        self.assertEqual(floatformat(Decimal("0.0000"), 2), "0.00")
++        self.assertEqual(floatformat("0.000000", 4), "0.0000")
++        self.assertEqual(floatformat(Decimal("0.000000"), 4), "0.0000")
+ 
+     def test_negative_zero_values(self):
+         tests = [

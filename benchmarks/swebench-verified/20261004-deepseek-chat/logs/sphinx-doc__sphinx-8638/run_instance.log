@@ -1,0 +1,114 @@
+2026-10-04 19:37:34,503 - INFO - Creating container for sphinx-doc__sphinx-8638...
+2026-10-04 19:37:34,540 - INFO - Container for sphinx-doc__sphinx-8638 created: d343071b47e2aae7cc0b048ce681133910ca6818b57effb3dd77ac23c2e4d3fa
+2026-10-04 19:37:34,740 - INFO - Container for sphinx-doc__sphinx-8638 started: d343071b47e2aae7cc0b048ce681133910ca6818b57effb3dd77ac23c2e4d3fa
+2026-10-04 19:37:34,740 - INFO - Intermediate patch for sphinx-doc__sphinx-8638 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8638/patch.diff, now applying to container...
+2026-10-04 19:37:34,855 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:37:35,120 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:37:35,231 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:37:35,352 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/domains/python.py
+patching file tests/test_domain_py.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 838 with fuzz 1.
+
+2026-10-04 19:37:35,438 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index 9c889420f..d8a067583 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -22,6 +22,8 @@ Incompatible changes
+   ``<div>``
+ * #8508: LaTeX: uplatex becomes a default setting of latex_engine for Japanese
+   documents
++* #5977: py domain: ``:var:``, ``:cvar:`` and ``:ivar:`` fields do not create
++  cross-references
+ 
+ Deprecated
+ ----------
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 000e2e8d3..5afe2993a 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -354,7 +354,7 @@ class PyObject(ObjectDescription):
+                             'keyword', 'kwarg', 'kwparam'),
+                      typerolename='class', typenames=('paramtype', 'type'),
+                      can_collapse=True),
+-        PyTypedField('variable', label=_('Variables'), rolename='obj',
++        PyTypedField('variable', label=_('Variables'),
+                      names=('var', 'ivar', 'cvar'),
+                      typerolename='class', typenames=('vartype',),
+                      can_collapse=True),
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index e0c690518..d08cf8961 100755
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -838,6 +838,30 @@ def test_info_field_list(app):
+                 **{"py:module": "example", "py:class": "Class"})
+ 
+ 
++@pytest.mark.sphinx(freshenv=True)
++def test_info_field_list_var(app):
++    text = (".. py:module:: example\n"
++            ".. py:class:: Class\n"
++            "\n"
++            "   :var int attr: blah blah\n")
++    doctree = restructuredtext.parse(app, text)
++
++    assert_node(doctree[3][1][0][0],
++                ([nodes.field_name, "Variables"],
++                 [nodes.field_body, nodes.paragraph]))
++
++    # :var int attr:
++    assert_node(doctree[3][1][0][0][1][0],
++                ([addnodes.literal_strong, "attr"],
++                 " (",
++                 [pending_xref, addnodes.literal_emphasis, "int"],
++                 ")",
++                 " -- ",
++                 "blah blah"))
++    assert_node(doctree[3][1][0][0][1][0][2], pending_xref,
++                refdomain="py", reftype="class", reftarget="int", **{"py:class": "Class"})
++
++
+ @pytest.mark.sphinx(freshenv=True)
+ def test_module_index(app):
+     text = (".. py:module:: docutils\n"
+2026-10-04 19:37:35,438 - INFO - Eval script for sphinx-doc__sphinx-8638 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8638/eval.sh; copying to container...
+2026-10-04 19:37:41,987 - INFO - Test runtime: 6.49 seconds
+2026-10-04 19:37:41,988 - INFO - Test output for sphinx-doc__sphinx-8638 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8638/test_output.txt
+2026-10-04 19:37:42,047 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index 9c889420f..d8a067583 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -22,6 +22,8 @@ Incompatible changes
+   ``<div>``
+ * #8508: LaTeX: uplatex becomes a default setting of latex_engine for Japanese
+   documents
++* #5977: py domain: ``:var:``, ``:cvar:`` and ``:ivar:`` fields do not create
++  cross-references
+ 
+ Deprecated
+ ----------
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 000e2e8d3..5afe2993a 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -354,7 +354,7 @@ class PyObject(ObjectDescription):
+                             'keyword', 'kwarg', 'kwparam'),
+                      typerolename='class', typenames=('paramtype', 'type'),
+                      can_collapse=True),
+-        PyTypedField('variable', label=_('Variables'), rolename='obj',
++        PyTypedField('variable', label=_('Variables'),
+                      names=('var', 'ivar', 'cvar'),
+                      typerolename='class', typenames=('vartype',),
+                      can_collapse=True),
+2026-10-04 19:37:42,047 - INFO - Git diff changed after running eval script
+2026-10-04 19:37:42,048 - INFO - Grading answer for sphinx-doc__sphinx-8638...
+2026-10-04 19:37:42,056 - INFO - report: {'sphinx-doc__sphinx-8638': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_domain_py.py::test_info_field_list_var'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_domain_py.py::test_function_signatures', 'tests/test_domain_py.py::test_domain_py_xrefs', 'tests/test_domain_py.py::test_domain_py_objects', 'tests/test_domain_py.py::test_resolve_xref_for_properties', 'tests/test_domain_py.py::test_domain_py_find_obj', 'tests/test_domain_py.py::test_get_full_qualified_name', 'tests/test_domain_py.py::test_parse_annotation', 'tests/test_domain_py.py::test_pyfunction_signature', 'tests/test_domain_py.py::test_pyfunction_signature_full', 'tests/test_domain_py.py::test_pyfunction_signature_full_py38', 'tests/test_domain_py.py::test_pyfunction_with_number_literals', 'tests/test_domain_py.py::test_optional_pyfunction_signature', 'tests/test_domain_py.py::test_pyexception_signature', 'tests/test_domain_py.py::test_exceptions_module_is_ignored', 'tests/test_domain_py.py::test_pydata_signature', 'tests/test_domain_py.py::test_pydata_signature_old', 'tests/test_domain_py.py::test_pyobject_prefix', 'tests/test_domain_py.py::test_pydata', 'tests/test_domain_py.py::test_pyfunction', 'tests/test_domain_py.py::test_pyclass_options', 'tests/test_domain_py.py::test_pymethod_options', 'tests/test_domain_py.py::test_pyclassmethod', 'tests/test_domain_py.py::test_pystaticmethod', 'tests/test_domain_py.py::test_pyattribute', 'tests/test_domain_py.py::test_pydecorator_signature', 'tests/test_domain_py.py::test_pydecoratormethod_signature', 'tests/test_domain_py.py::test_canonical', 'tests/test_domain_py.py::test_info_field_list', 'tests/test_domain_py.py::test_module_index', 'tests/test_domain_py.py::test_module_index_submodule', 'tests/test_domain_py.py::test_module_index_not_collapsed', 'tests/test_domain_py.py::test_modindex_common_prefix', 'tests/test_domain_py.py::test_noindexentry', 'tests/test_domain_py.py::test_warn_missing_reference'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-8638: resolved: True
+2026-10-04 19:37:42,057 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-8638.wescode-v3...
+2026-10-04 19:37:57,189 - INFO - Container sweb.eval.sphinx-doc__sphinx-8638.wescode-v3 stopped successfully.
+2026-10-04 19:37:57,189 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-8638.wescode-v3...
+2026-10-04 19:37:57,227 - INFO - Container sweb.eval.sphinx-doc__sphinx-8638.wescode-v3 removed successfully.

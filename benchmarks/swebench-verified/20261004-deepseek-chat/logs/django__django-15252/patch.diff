@@ -1,0 +1,93 @@
+diff --git a/django/db/migrations/recorder.py b/django/db/migrations/recorder.py
+index 1a37c6b7d0..49783927a8 100644
+--- a/django/db/migrations/recorder.py
++++ b/django/db/migrations/recorder.py
+@@ -1,7 +1,7 @@
+ from django.apps.registry import Apps
+ from django.db import DatabaseError, models
++from django.db.models.functions import Now
+ from django.utils.functional import classproperty
+-from django.utils.timezone import now
+ 
+ from .exceptions import MigrationSchemaMissing
+ 
+@@ -30,7 +30,7 @@ class MigrationRecorder:
+             class Migration(models.Model):
+                 app = models.CharField(max_length=255)
+                 name = models.CharField(max_length=255)
+-                applied = models.DateTimeField(default=now)
++                applied = models.DateTimeField(default=Now)
+ 
+                 class Meta:
+                     apps = Apps()
+@@ -45,6 +45,7 @@ class MigrationRecorder:
+ 
+     def __init__(self, connection):
+         self.connection = connection
++        self._has_table = False
+ 
+     @property
+     def migration_qs(self):
+@@ -52,6 +53,10 @@ class MigrationRecorder:
+ 
+     def has_table(self):
+         """Return True if the django_migrations table exists."""
++        # If the migrations table has already been confirmed to exist, don't
++        # recheck it.
++        if self._has_table:
++            return True
+         with self.connection.cursor() as cursor:
+             tables = self.connection.introspection.table_names(cursor)
+         return self.Migration._meta.db_table in tables
+@@ -68,6 +73,7 @@ class MigrationRecorder:
+                 editor.create_model(self.Migration)
+         except DatabaseError as exc:
+             raise MigrationSchemaMissing("Unable to create the django_migrations table (%s)" % exc)
++        self._has_table = True
+ 
+     def applied_migrations(self):
+         """
+diff --git a/tests/migrations/test_commands.py b/tests/migrations/test_commands.py
+index bf78b60a85..901c919582 100644
+--- a/tests/migrations/test_commands.py
++++ b/tests/migrations/test_commands.py
+@@ -1167,6 +1167,39 @@ class MakeMigrationsTests(MigrationTestBase):
+                 self.assertEqual(called_aliases, set(connections))
+                 self.assertEqual(has_table.call_count, 4)
+ 
++    @override_settings(
++        INSTALLED_APPS=['migrations', 'migrations2'],
++        DATABASE_ROUTERS=['migrations.routers.TestRouter'],
++    )
++    def test_makemigrations_has_table_cached(self):
++        """
++        MigrationRecorder.ensure_schema() caches the fact that it created the
++        table so that a subsequent has_table() doesn't introspect the
++        connection again.
++        """
++        recorder = MigrationRecorder(connection)
++        # The test database is set up by the test runner with the table
++        # already present; drop its record so the recorder has to create it.
++        with connection.cursor() as cursor:
++            cursor.execute('DROP TABLE %s' % recorder.Migration._meta.db_table)
++        self.assertFalse(recorder.has_table())
++
++        introspection_calls = []
++        original_table_names = connection.introspection.table_names
++
++        def patched_table_names(cursor, **kwargs):
++            introspection_calls.append(1)
++            return original_table_names(cursor, **kwargs)
++
++        with mock.patch.object(
++                connection.introspection, 'table_names',
++                side_effect=patched_table_names):
++            recorder.ensure_schema()
++            self.assertEqual(len(introspection_calls), 1)
++            # The cached result means no further introspection is performed.
++            self.assertTrue(recorder.has_table())
++            self.assertEqual(len(introspection_calls), 1)
++
+     def test_failing_migration(self):
+         # If a migration fails to serialize, it shouldn't generate an empty file. #21280
+         apps.register_model('migrations', UnserializableModel)

@@ -1,0 +1,606 @@
+2026-10-04 19:46:58,514 - INFO - Creating container for sympy__sympy-15976...
+2026-10-04 19:46:58,551 - INFO - Container for sympy__sympy-15976 created: 60f1b9c358576a7c67768345ed19c0e01182df1b07b5fc3ef2fa36dad14cd4c7
+2026-10-04 19:46:58,746 - INFO - Container for sympy__sympy-15976 started: 60f1b9c358576a7c67768345ed19c0e01182df1b07b5fc3ef2fa36dad14cd4c7
+2026-10-04 19:46:58,746 - INFO - Intermediate patch for sympy__sympy-15976 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15976/patch.diff, now applying to container...
+2026-10-04 19:46:58,855 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:46:59,019 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:46:59,124 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:46:59,231 - INFO - >>>>> Applied Patch:
+patching file sympy/printing/mathml.py
+patching file sympy/printing/tests/test_mathml.py
+patch unexpectedly ends in middle of line
+Hunk #4 succeeded at 931 with fuzz 1.
+
+2026-10-04 19:46:59,304 - INFO - Git diff before:
+diff --git a/sympy/printing/mathml.py b/sympy/printing/mathml.py
+index 3f8b8d49e..06020e5e4 100755
+--- a/sympy/printing/mathml.py
++++ b/sympy/printing/mathml.py
+@@ -423,10 +423,14 @@ def _print_Derivative(self, e):
+         if requires_partial(e):
+             diff_symbol = 'partialdiff'
+         x.appendChild(self.dom.createElement(diff_symbol))
+-
+         x_1 = self.dom.createElement('bvar')
+-        for sym in e.variables:
++
++        for sym, times in reversed(e.variable_count):
+             x_1.appendChild(self._print(sym))
++            if times > 1:
++                degree = self.dom.createElement('degree')
++                degree.appendChild(self._print(sympify(times)))
++                x_1.appendChild(degree)
+ 
+         x.appendChild(x_1)
+         x.appendChild(self._print(e.expr))
+@@ -588,7 +592,6 @@ def _print_Add(self, expr, order=None):
+         return mrow
+ 
+     def _print_MatrixBase(self, m):
+-        brac = self.dom.createElement('mfenced')
+         table = self.dom.createElement('mtable')
+         for i in range(m.rows):
+             x = self.dom.createElement('mtr')
+@@ -597,6 +600,12 @@ def _print_MatrixBase(self, m):
+                 y.appendChild(self._print(m[i, j]))
+                 x.appendChild(y)
+             table.appendChild(x)
++        if self._settings["mat_delim"] == '':
++            return table
++        brac = self.dom.createElement('mfenced')
++        if self._settings["mat_delim"] == "[":
++            brac.setAttribute('open', '[')
++            brac.setAttribute('close', ']')
+         brac.appendChild(table)
+         return brac
+ 
+@@ -743,11 +752,6 @@ def _print_Sum(self, e):
+         return mrow
+ 
+     def _print_Symbol(self, sym, style='plain'):
+-        x = self.dom.createElement('mi')
+-
+-        if style == 'bold':
+-            x.setAttribute('mathvariant', 'bold')
+-
+         def join(items):
+             if len(items) > 1:
+                 mrow = self.dom.createElement('mrow')
+@@ -781,24 +785,24 @@ def translate(s):
+         mname.appendChild(self.dom.createTextNode(name))
+         if len(supers) == 0:
+             if len(subs) == 0:
+-                x.appendChild(self.dom.createTextNode(name))
++                x = mname
+             else:
+-                msub = self.dom.createElement('msub')
+-                msub.appendChild(mname)
+-                msub.appendChild(join(subs))
+-                x.appendChild(msub)
++                x = self.dom.createElement('msub')
++                x.appendChild(mname)
++                x.appendChild(join(subs))
+         else:
+             if len(subs) == 0:
+-                msup = self.dom.createElement('msup')
+-                msup.appendChild(mname)
+-                msup.appendChild(join(supers))
+-                x.appendChild(msup)
++                x = self.dom.createElement('msup')
++                x.appendChild(mname)
++                x.appendChild(join(supers))
+             else:
+-                msubsup = self.dom.createElement('msubsup')
+-                msubsup.appendChild(mname)
+-                msubsup.appendChild(join(subs))
+-                msubsup.appendChild(join(supers))
+-                x.appendChild(msubsup)
++                x = self.dom.createElement('msubsup')
++                x.appendChild(mname)
++                x.appendChild(join(subs))
++                x.appendChild(join(supers))
++        # Set bold font?
++        if style == 'bold':
++            x.setAttribute('mathvariant', 'bold')
+         return x
+ 
+     def _print_MatrixSymbol(self, sym):
+@@ -839,39 +843,52 @@ def _print_Number(self, e):
+         return x
+ 
+     def _print_Derivative(self, e):
+-        mrow = self.dom.createElement('mrow')
+-        x = self.dom.createElement('mo')
++
+         if requires_partial(e):
+-            x.appendChild(self.dom.createTextNode('&#x2202;'))
+-            y = self.dom.createElement('mo')
+-            y.appendChild(self.dom.createTextNode('&#x2202;'))
++            d = '&#x2202;'
+         else:
+-            x.appendChild(self.dom.createTextNode(self.mathml_tag(e)))
+-            y = self.dom.createElement('mo')
+-            y.appendChild(self.dom.createTextNode(self.mathml_tag(e)))
+-
+-        brac = self.dom.createElement('mfenced')
+-        brac.appendChild(self._print(e.expr))
+-        mrow = self.dom.createElement('mrow')
+-        mrow.appendChild(x)
+-        mrow.appendChild(brac)
+-
+-        for sym in e.variables:
+-            frac = self.dom.createElement('mfrac')
+-            m = self.dom.createElement('mrow')
+-            x = self.dom.createElement('mo')
+-            if requires_partial(e):
+-                x.appendChild(self.dom.createTextNode('&#x2202;'))
++            d = self.mathml_tag(e)
++
++        # Determine denominator
++        m = self.dom.createElement('mrow')
++        dim = 0 # Total diff dimension, for numerator
++        for sym, num in reversed(e.variable_count):
++            dim += num
++            if num >= 2:
++                x = self.dom.createElement('msup')
++                xx = self.dom.createElement('mo')
++                xx.appendChild(self.dom.createTextNode(d))
++                x.appendChild(xx)
++                x.appendChild(self._print(num))
+             else:
+-                x.appendChild(self.dom.createTextNode(self.mathml_tag(e)))
+-            y = self._print(sym)
++                x = self.dom.createElement('mo')
++                x.appendChild(self.dom.createTextNode(d))
+             m.appendChild(x)
++            y = self._print(sym)
+             m.appendChild(y)
+-            frac.appendChild(mrow)
+-            frac.appendChild(m)
+-            mrow = frac
+ 
+-        return frac
++        mnum = self.dom.createElement('mrow')
++        if dim >= 2:
++            x = self.dom.createElement('msup')
++            xx = self.dom.createElement('mo')
++            xx.appendChild(self.dom.createTextNode(d))
++            x.appendChild(xx)
++            x.appendChild(self._print(dim))
++        else:
++            x = self.dom.createElement('mo')
++            x.appendChild(self.dom.createTextNode(d))
++
++        mnum.appendChild(x)
++        mrow = self.dom.createElement('mrow')
++        frac = self.dom.createElement('mfrac')
++        frac.appendChild(mnum)
++        frac.appendChild(m)
++        mrow.appendChild(frac)
++
++        # Print function
++        mrow.appendChild(self._print(e.expr))
++
++        return mrow
+ 
+     def _print_Function(self, e):
+         mrow = self.dom.createElement('mrow')
+diff --git a/sympy/printing/tests/test_mathml.py b/sympy/printing/tests/test_mathml.py
+index 70c23a407..90a0dbb9c 100755
+--- a/sympy/printing/tests/test_mathml.py
++++ b/sympy/printing/tests/test_mathml.py
+@@ -1,11 +1,10 @@
+ from sympy import diff, Integral, Limit, sin, Symbol, Integer, Rational, cos, \
+     tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, E, I, oo, \
+     pi, GoldenRatio, EulerGamma, Sum, Eq, Ne, Ge, Lt, Float, Matrix, Basic, S, \
+-    MatrixSymbol
++    MatrixSymbol, Function, Derivative
+ from sympy.stats.rv import RandomSymbol
+ from sympy.printing.mathml import mathml, MathMLContentPrinter, MathMLPresentationPrinter, \
+     MathMLPrinter
+-
+ from sympy.utilities.pytest import raises
+ 
+ x = Symbol('x')
+@@ -508,22 +507,28 @@ def test_presentation_mathml_functions():
+         ].childNodes[0].nodeValue == 'x'
+ 
+     mml_2 = mpp._print(diff(sin(x), x, evaluate=False))
+-    assert mml_2.nodeName == 'mfrac'
++    assert mml_2.nodeName == 'mrow'
+     assert mml_2.childNodes[0].childNodes[0
+-        ].childNodes[0].nodeValue == '&dd;'
+-    assert mml_2.childNodes[0].childNodes[1
++        ].childNodes[0].childNodes[0].nodeValue == '&dd;'
++    assert mml_2.childNodes[1].childNodes[1
+         ].nodeName == 'mfenced'
+-    assert mml_2.childNodes[1].childNodes[
+-        0].childNodes[0].nodeValue == '&dd;'
++    assert mml_2.childNodes[0].childNodes[1
++        ].childNodes[0].childNodes[0].nodeValue == '&dd;'
+ 
+     mml_3 = mpp._print(diff(cos(x*y), x, evaluate=False))
+-    assert mml_3.nodeName == 'mfrac'
++    assert mml_3.childNodes[0].nodeName == 'mfrac'
+     assert mml_3.childNodes[0].childNodes[0
+-        ].childNodes[0].nodeValue == '&#x2202;'
+-    assert mml_2.childNodes[0].childNodes[1
+-        ].nodeName == 'mfenced'
+-    assert mml_3.childNodes[1].childNodes[
+-        0].childNodes[0].nodeValue == '&#x2202;'
++        ].childNodes[0].childNodes[0].nodeValue == '&#x2202;'
++    assert mml_3.childNodes[1].childNodes[0
++        ].childNodes[0].nodeValue == 'cos'
++
++
++def test_print_derivative():
++    f = Function('f')
++    z = Symbol('z')
++    d = Derivative(f(x, y, z), x, z, x, z, z, y)
++    assert mathml(d) == r'<apply><partialdiff/><bvar><ci>y</ci><ci>z</ci><degree><cn>2</cn></degree><ci>x</ci><ci>z</ci><ci>x</ci></bvar><apply><f/><ci>x</ci><ci>y</ci><ci>z</ci></apply></apply>'
++    assert mathml(d, printer='presentation') == r'<mrow><mfrac><mrow><msup><mo>&#x2202;</mo><mn>6</mn></msup></mrow><mrow><mo>&#x2202;</mo><mi>y</mi><msup><mo>&#x2202;</mo><mn>2</mn></msup><mi>z</mi><mo>&#x2202;</mo><mi>x</mi><mo>&#x2202;</mo><mi>z</mi><mo>&#x2202;</mo><mi>x</mi></mrow></mfrac><mrow><mi>f</mi><mfenced><mi>x</mi><mi>y</mi><mi>z</mi></mfenced></mrow></mrow>'
+ 
+ 
+ def test_presentation_mathml_limits():
+@@ -735,103 +740,86 @@ def test_presentation_symbol():
+     del mml
+ 
+     mml = mpp._print(Symbol("x^2"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msup'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeValue == '2'
++    assert mml.nodeName == 'msup'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].nodeValue == '2'
+     del mml
+ 
+     mml = mpp._print(Symbol("x__2"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msup'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeValue == '2'
++    assert mml.nodeName == 'msup'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].nodeValue == '2'
+     del mml
+ 
+     mml = mpp._print(Symbol("x_2"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msub'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeValue == '2'
++    assert mml.nodeName == 'msub'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].nodeValue == '2'
+     del mml
+ 
+     mml = mpp._print(Symbol("x^3_2"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msubsup'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeValue == '2'
+-    assert mml.childNodes[0].childNodes[2].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[2].childNodes[0].nodeValue == '3'
++    assert mml.nodeName == 'msubsup'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].nodeValue == '2'
++    assert mml.childNodes[2].nodeName == 'mi'
++    assert mml.childNodes[2].childNodes[0].nodeValue == '3'
+     del mml
+ 
+     mml = mpp._print(Symbol("x__3_2"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msubsup'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeValue == '2'
+-    assert mml.childNodes[0].childNodes[2].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[2].childNodes[0].nodeValue == '3'
++    assert mml.nodeName == 'msubsup'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].nodeValue == '2'
++    assert mml.childNodes[2].nodeName == 'mi'
++    assert mml.childNodes[2].childNodes[0].nodeValue == '3'
+     del mml
+ 
+     mml = mpp._print(Symbol("x_2_a"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msub'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mrow'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].childNodes[
+-        0].nodeValue == '2'
+-    assert mml.childNodes[0].childNodes[1].childNodes[1].nodeName == 'mo'
+-    assert mml.childNodes[0].childNodes[1].childNodes[1].childNodes[
+-        0].nodeValue == ' '
+-    assert mml.childNodes[0].childNodes[1].childNodes[2].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[2].childNodes[
+-        0].nodeValue == 'a'
++    assert mml.nodeName == 'msub'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mrow'
++    assert mml.childNodes[1].childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].childNodes[0].nodeValue == '2'
++    assert mml.childNodes[1].childNodes[1].nodeName == 'mo'
++    assert mml.childNodes[1].childNodes[1].childNodes[0].nodeValue == ' '
++    assert mml.childNodes[1].childNodes[2].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[2].childNodes[0].nodeValue == 'a'
+     del mml
+ 
+     mml = mpp._print(Symbol("x^2^a"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msup'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mrow'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].childNodes[
+-        0].nodeValue == '2'
+-    assert mml.childNodes[0].childNodes[1].childNodes[1].nodeName == 'mo'
+-    assert mml.childNodes[0].childNodes[1].childNodes[1].childNodes[
+-        0].nodeValue == ' '
+-    assert mml.childNodes[0].childNodes[1].childNodes[2].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[2].childNodes[
+-        0].nodeValue == 'a'
++    assert mml.nodeName == 'msup'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mrow'
++    assert mml.childNodes[1].childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].childNodes[0].nodeValue == '2'
++    assert mml.childNodes[1].childNodes[1].nodeName == 'mo'
++    assert mml.childNodes[1].childNodes[1].childNodes[0].nodeValue == ' '
++    assert mml.childNodes[1].childNodes[2].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[2].childNodes[0].nodeValue == 'a'
+     del mml
+ 
+     mml = mpp._print(Symbol("x__2__a"))
+-    assert mml.nodeName == 'mi'
+-    assert mml.childNodes[0].nodeName == 'msup'
+-    assert mml.childNodes[0].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[0].childNodes[0].nodeValue == 'x'
+-    assert mml.childNodes[0].childNodes[1].nodeName == 'mrow'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[0].childNodes[
+-        0].nodeValue == '2'
+-    assert mml.childNodes[0].childNodes[1].childNodes[1].nodeName == 'mo'
+-    assert mml.childNodes[0].childNodes[1].childNodes[1].childNodes[
+-        0].nodeValue == ' '
+-    assert mml.childNodes[0].childNodes[1].childNodes[2].nodeName == 'mi'
+-    assert mml.childNodes[0].childNodes[1].childNodes[2].childNodes[
+-        0].nodeValue == 'a'
++    assert mml.nodeName == 'msup'
++    assert mml.childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[0].childNodes[0].nodeValue == 'x'
++    assert mml.childNodes[1].nodeName == 'mrow'
++    assert mml.childNodes[1].childNodes[0].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[0].childNodes[0].nodeValue == '2'
++    assert mml.childNodes[1].childNodes[1].nodeName == 'mo'
++    assert mml.childNodes[1].childNodes[1].childNodes[0].nodeValue == ' '
++    assert mml.childNodes[1].childNodes[2].nodeName == 'mi'
++    assert mml.childNodes[1].childNodes[2].childNodes[0].nodeValue == 'a'
+     del mml
+ 
+ 
+@@ -943,6 +931,13 @@ def test_print_basic():
+     assert mp.doprint(expr) == '<basic><cn>1</cn><cn>2</cn></basic>'
+ 
+ 
++def test_mat_delim_print():
++    expr = Matrix([[1, 2], [3, 4]])
++    assert mathml(expr, printer='presentation', mat_delim='[') == '<mfenced close="]" open="["><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable></mfenced>'
++    assert mathml(expr, printer='presentation', mat_delim='(') == '<mfenced><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable></mfenced>'
++    assert mathml(expr, printer='presentation', mat_delim='') == '<mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr><mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr></mtable>'
++
++
+ def test_root_notation_print():
+     assert mathml(x**(S(1)/3), printer='presentation') == '<mroot><mi>x</mi><mn>3</mn></mroot>'
+     assert mathml(x**(S(1)/3), printer='presentation', root_notation=False) == '<msup><mi>x</mi><mfrac><mn>1</mn><mn>3</mn></mfrac></msup>'
+2026-10-04 19:46:59,304 - INFO - Eval script for sympy__sympy-15976 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15976/eval.sh; copying to container...
+2026-10-04 19:47:04,489 - INFO - Test runtime: 5.13 seconds
+2026-10-04 19:47:04,489 - INFO - Test output for sympy__sympy-15976 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15976/test_output.txt
+2026-10-04 19:47:04,547 - INFO - Git diff after:
+diff --git a/sympy/printing/mathml.py b/sympy/printing/mathml.py
+index 3f8b8d49e..06020e5e4 100755
+--- a/sympy/printing/mathml.py
++++ b/sympy/printing/mathml.py
+@@ -423,10 +423,14 @@ def _print_Derivative(self, e):
+         if requires_partial(e):
+             diff_symbol = 'partialdiff'
+         x.appendChild(self.dom.createElement(diff_symbol))
+-
+         x_1 = self.dom.createElement('bvar')
+-        for sym in e.variables:
++
++        for sym, times in reversed(e.variable_count):
+             x_1.appendChild(self._print(sym))
++            if times > 1:
++                degree = self.dom.createElement('degree')
++                degree.appendChild(self._print(sympify(times)))
++                x_1.appendChild(degree)
+ 
+         x.appendChild(x_1)
+         x.appendChild(self._print(e.expr))
+@@ -588,7 +592,6 @@ def _print_Add(self, expr, order=None):
+         return mrow
+ 
+     def _print_MatrixBase(self, m):
+-        brac = self.dom.createElement('mfenced')
+         table = self.dom.createElement('mtable')
+         for i in range(m.rows):
+             x = self.dom.createElement('mtr')
+@@ -597,6 +600,12 @@ def _print_MatrixBase(self, m):
+                 y.appendChild(self._print(m[i, j]))
+                 x.appendChild(y)
+             table.appendChild(x)
++        if self._settings["mat_delim"] == '':
++            return table
++        brac = self.dom.createElement('mfenced')
++        if self._settings["mat_delim"] == "[":
++            brac.setAttribute('open', '[')
++            brac.setAttribute('close', ']')
+         brac.appendChild(table)
+         return brac
+ 
+@@ -743,11 +752,6 @@ def _print_Sum(self, e):
+         return mrow
+ 
+     def _print_Symbol(self, sym, style='plain'):
+-        x = self.dom.createElement('mi')
+-
+-        if style == 'bold':
+-            x.setAttribute('mathvariant', 'bold')
+-
+         def join(items):
+             if len(items) > 1:
+                 mrow = self.dom.createElement('mrow')
+@@ -781,24 +785,24 @@ def translate(s):
+         mname.appendChild(self.dom.createTextNode(name))
+         if len(supers) == 0:
+             if len(subs) == 0:
+-                x.appendChild(self.dom.createTextNode(name))
++                x = mname
+             else:
+-                msub = self.dom.createElement('msub')
+-                msub.appendChild(mname)
+-                msub.appendChild(join(subs))
+-                x.appendChild(msub)
++                x = self.dom.createElement('msub')
++                x.appendChild(mname)
++                x.appendChild(join(subs))
+         else:
+             if len(subs) == 0:
+-                msup = self.dom.createElement('msup')
+-                msup.appendChild(mname)
+-                msup.appendChild(join(supers))
+-                x.appendChild(msup)
++                x = self.dom.createElement('msup')
++                x.appendChild(mname)
++                x.appendChild(join(supers))
+             else:
+-                msubsup = self.dom.createElement('msubsup')
+-                msubsup.appendChild(mname)
+-                msubsup.appendChild(join(subs))
+-                msubsup.appendChild(join(supers))
+-                x.appendChild(msubsup)
++                x = self.dom.createElement('msubsup')
++                x.appendChild(mname)
++                x.appendChild(join(subs))
++                x.appendChild(join(supers))
++        # Set bold font?
++        if style == 'bold':
++            x.setAttribute('mathvariant', 'bold')
+         return x
+ 
+     def _print_MatrixSymbol(self, sym):
+@@ -839,39 +843,52 @@ def _print_Number(self, e):
+         return x
+ 
+     def _print_Derivative(self, e):
+-        mrow = self.dom.createElement('mrow')
+-        x = self.dom.createElement('mo')
++
+         if requires_partial(e):
+-            x.appendChild(self.dom.createTextNode('&#x2202;'))
+-            y = self.dom.createElement('mo')
+-            y.appendChild(self.dom.createTextNode('&#x2202;'))
++            d = '&#x2202;'
+         else:
+-            x.appendChild(self.dom.createTextNode(self.mathml_tag(e)))
+-            y = self.dom.createElement('mo')
+-            y.appendChild(self.dom.createTextNode(self.mathml_tag(e)))
+-
+-        brac = self.dom.createElement('mfenced')
+-        brac.appendChild(self._print(e.expr))
+-        mrow = self.dom.createElement('mrow')
+-        mrow.appendChild(x)
+-        mrow.appendChild(brac)
+-
+-        for sym in e.variables:
+-            frac = self.dom.createElement('mfrac')
+-            m = self.dom.createElement('mrow')
+-            x = self.dom.createElement('mo')
+-            if requires_partial(e):
+-                x.appendChild(self.dom.createTextNode('&#x2202;'))
++            d = self.mathml_tag(e)
++
++        # Determine denominator
++        m = self.dom.createElement('mrow')
++        dim = 0 # Total diff dimension, for numerator
++        for sym, num in reversed(e.variable_count):
++            dim += num
++            if num >= 2:
++                x = self.dom.createElement('msup')
++                xx = self.dom.createElement('mo')
++                xx.appendChild(self.dom.createTextNode(d))
++                x.appendChild(xx)
++                x.appendChild(self._print(num))
+             else:
+-                x.appendChild(self.dom.createTextNode(self.mathml_tag(e)))
+-            y = self._print(sym)
++                x = self.dom.createElement('mo')
++                x.appendChild(self.dom.createTextNode(d))
+             m.appendChild(x)
++            y = self._print(sym)
+             m.appendChild(y)
+-            frac.appendChild(mrow)
+-            frac.appendChild(m)
+-            mrow = frac
+ 
+-        return frac
++        mnum = self.dom.createElement('mrow')
++        if dim >= 2:
++            x = self.dom.createElement('msup')
++            xx = self.dom.createElement('mo')
++            xx.appendChild(self.dom.createTextNode(d))
++            x.appendChild(xx)
++            x.appendChild(self._print(dim))
++        else:
++            x = self.dom.createElement('mo')
++            x.appendChild(self.dom.createTextNode(d))
++
++        mnum.appendChild(x)
++        mrow = self.dom.createElement('mrow')
++        frac = self.dom.createElement('mfrac')
++        frac.appendChild(mnum)
++        frac.appendChild(m)
++        mrow.appendChild(frac)
++
++        # Print function
++        mrow.appendChild(self._print(e.expr))
++
++        return mrow
+ 
+     def _print_Function(self, e):
+         mrow = self.dom.createElement('mrow')
+2026-10-04 19:47:04,547 - INFO - Git diff changed after running eval script
+2026-10-04 19:47:04,547 - INFO - Grading answer for sympy__sympy-15976...
+2026-10-04 19:47:04,549 - INFO - report: {'sympy__sympy-15976': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_presentation_symbol'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_mathml_printer', 'test_content_printmethod', 'test_content_mathml_core', 'test_content_mathml_functions', 'test_content_mathml_limits', 'test_content_mathml_integrals', 'test_content_mathml_matrices', 'test_content_mathml_sums', 'test_content_mathml_tuples', 'test_content_mathml_add', 'test_content_mathml_Rational', 'test_content_mathml_constants', 'test_content_mathml_trig', 'test_content_mathml_relational', 'test_content_symbol', 'test_content_mathml_greek', 'test_content_mathml_order', 'test_content_settings', 'test_presentation_printmethod', 'test_presentation_mathml_core', 'test_presentation_mathml_limits', 'test_presentation_mathml_integrals', 'test_presentation_mathml_matrices', 'test_presentation_mathml_sums', 'test_presentation_mathml_add', 'test_presentation_mathml_Rational', 'test_presentation_mathml_constants', 'test_presentation_mathml_trig', 'test_presentation_mathml_relational', 'test_presentation_mathml_greek', 'test_presentation_mathml_order', 'test_presentation_settings', 'test_toprettyxml_hooking', 'test_print_basic', 'test_root_notation_print', 'test_print_matrix_symbol'], 'failure': ['test_presentation_mathml_functions']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-15976: resolved: False
+2026-10-04 19:47:04,549 - INFO - Attempting to stop container sweb.eval.sympy__sympy-15976.wescode-v3...
+2026-10-04 19:47:19,707 - INFO - Container sweb.eval.sympy__sympy-15976.wescode-v3 stopped successfully.
+2026-10-04 19:47:19,707 - INFO - Attempting to remove container sweb.eval.sympy__sympy-15976.wescode-v3...
+2026-10-04 19:47:19,734 - INFO - Container sweb.eval.sympy__sympy-15976.wescode-v3 removed successfully.

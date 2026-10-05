@@ -1,0 +1,58 @@
+diff --git a/sympy/physics/quantum/tensorproduct.py b/sympy/physics/quantum/tensorproduct.py
+index 9dd10d219e..f02386850a 100644
+--- a/sympy/physics/quantum/tensorproduct.py
++++ b/sympy/physics/quantum/tensorproduct.py
+@@ -345,6 +345,24 @@ def tensor_product_simp_Mul(e):
+         return e
+ 
+ 
++def tensor_product_simp_Pow(e):
++    """Evaluates ``Pow`` expressions whose base is ``TensorProduct``
++
++    Examples
++    ========
++
++    >>> from sympy.physics.quantum.tensorproduct import tensor_product_simp_Pow
++    >>> from sympy.physics.quantum import TensorProduct
++    >>> from sympy import Pow, Symbol
++    >>> A = Symbol('A',commutative=False)
++    >>> B = Symbol('B',commutative=False)
++    >>> tensor_product_simp_Pow(Pow(TensorProduct(A, B), 2))
++    (A**2)x(B**2)
++
++    """
++    return TensorProduct(*(x**e.exp for x in e.base.args))
++
++
+ def tensor_product_simp(e, **hints):
+     """Try to simplify and combine TensorProducts.
+ 
+@@ -376,13 +394,13 @@ def tensor_product_simp(e, **hints):
+     commutators and anticommutators as well:
+ 
+     >>> tensor_product_simp(e**2)
+-    (A*C)x(B*D)**2
++    (AxB**2)x(CxD**2)
+ 
+     """
+     if isinstance(e, Add):
+         return Add(*[tensor_product_simp(arg) for arg in e.args])
+     elif isinstance(e, Pow):
+-        return tensor_product_simp(e.base) ** e.exp
++        return tensor_product_simp_Pow(e)
+     elif isinstance(e, Mul):
+         return tensor_product_simp_Mul(e)
+     elif isinstance(e, Commutator):
+diff --git a/sympy/physics/quantum/tests/test_tensorproduct.py b/sympy/physics/quantum/tests/test_tensorproduct.py
+index 9f65844c85..141d929a11 100644
+--- a/sympy/physics/quantum/tests/test_tensorproduct.py
++++ b/sympy/physics/quantum/tests/test_tensorproduct.py
+@@ -47,6 +47,8 @@ def test_tensor_product_commutator():
+ 
+ def test_tensor_product_simp():
+     assert tensor_product_simp(TP(A, B)*TP(B, C)) == TP(A*B, B*C)
++    assert tensor_product_simp(TP(A, B)**2) == TP(A**2, B**2)
++    assert tensor_product_simp(TP(A, B)**x) == TP(A**x, B**x)
+ 
+ 
+ def test_issue_5923():

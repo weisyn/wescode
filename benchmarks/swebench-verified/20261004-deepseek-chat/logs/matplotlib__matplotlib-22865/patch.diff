@@ -1,0 +1,29 @@
+diff --git a/lib/matplotlib/colorbar.py b/lib/matplotlib/colorbar.py
+index c59b0ac81..9d4153773 100644
+--- a/lib/matplotlib/colorbar.py
++++ b/lib/matplotlib/colorbar.py
+@@ -651,8 +651,22 @@ class Colorbar:
+             if not self.drawedges:
+                 if len(self._y) >= self.n_rasterize:
+                     self.solids.set_rasterized(True)
+-        self.dividers.set_segments(
+-            np.dstack([X, Y])[1:-1] if self.drawedges else [])
++        self._set_dividers(X, Y)
++
++    def _set_dividers(self, X, Y):
++        """Set the segments used by the dividers LineCollection."""
++        if not self.drawedges:
++            self.dividers.set_segments([])
++            return
++        # The mesh rows are ordered by increasing boundary value, independent of
++        # the orientation or whether the axes are inverted.  The outermost rows
++        # only need to be skipped for extremities without an extension, where
++        # they coincide with the axes spine (already drawn by the outline).  If
++        # an extremity is extended, its outermost row is shared with the
++        # extension triangle and marks the edge at that end of the colorbar.
++        start = 0 if self._extend_lower() else 1
++        stop = None if self._extend_upper() else -1
++        self.dividers.set_segments(np.dstack([X, Y])[start:stop])
+ 
+     def _add_solids_patches(self, X, Y, C, mappable):
+         hatches = mappable.hatches * len(C)  # Have enough hatches.

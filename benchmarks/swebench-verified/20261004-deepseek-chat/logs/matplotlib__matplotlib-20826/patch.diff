@@ -1,0 +1,107 @@
+diff --git a/lib/matplotlib/axes/_base.py b/lib/matplotlib/axes/_base.py
+index 802fd3c99..3616bab84 100644
+--- a/lib/matplotlib/axes/_base.py
++++ b/lib/matplotlib/axes/_base.py
+@@ -650,37 +650,6 @@ class _AxesBase(martist.Artist):
+                 axis.callbacks.connect(
+                     'units', self._unit_change_handler(name)))
+ 
+-        rcParams = mpl.rcParams
+-        self.tick_params(
+-            top=rcParams['xtick.top'] and rcParams['xtick.minor.top'],
+-            bottom=rcParams['xtick.bottom'] and rcParams['xtick.minor.bottom'],
+-            labeltop=(rcParams['xtick.labeltop'] and
+-                      rcParams['xtick.minor.top']),
+-            labelbottom=(rcParams['xtick.labelbottom'] and
+-                         rcParams['xtick.minor.bottom']),
+-            left=rcParams['ytick.left'] and rcParams['ytick.minor.left'],
+-            right=rcParams['ytick.right'] and rcParams['ytick.minor.right'],
+-            labelleft=(rcParams['ytick.labelleft'] and
+-                       rcParams['ytick.minor.left']),
+-            labelright=(rcParams['ytick.labelright'] and
+-                        rcParams['ytick.minor.right']),
+-            which='minor')
+-
+-        self.tick_params(
+-            top=rcParams['xtick.top'] and rcParams['xtick.major.top'],
+-            bottom=rcParams['xtick.bottom'] and rcParams['xtick.major.bottom'],
+-            labeltop=(rcParams['xtick.labeltop'] and
+-                      rcParams['xtick.major.top']),
+-            labelbottom=(rcParams['xtick.labelbottom'] and
+-                         rcParams['xtick.major.bottom']),
+-            left=rcParams['ytick.left'] and rcParams['ytick.major.left'],
+-            right=rcParams['ytick.right'] and rcParams['ytick.major.right'],
+-            labelleft=(rcParams['ytick.labelleft'] and
+-                       rcParams['ytick.major.left']),
+-            labelright=(rcParams['ytick.labelright'] and
+-                        rcParams['ytick.major.right']),
+-            which='major')
+-
+     def __getstate__(self):
+         # The renderer should be re-created by the figure, and then cached at
+         # that point.
+@@ -1309,6 +1278,17 @@ class _AxesBase(martist.Artist):
+             self.yaxis.set_visible(yaxis_visible)
+             self.patch.set_visible(patch_visible)
+ 
++        # Re-initialize the tick parameters from rcParams, as Axis.clear()
++        # above dropped them.  Only do this for axes that do not share the
++        # corresponding axis: for shared axes the parameters are broadcast
++        # from the parent, and re-applying rcParams here would override the
++        # settings that sharing intentionally suppresses (e.g. hiding the
++        # tick labels of inner subplots).
++        if self._sharex is None:
++            self.xaxis._set_tick_params_from_rc()
++        if self._sharey is None:
++            self.yaxis._set_tick_params_from_rc()
++
+         self.stale = True
+ 
+     class ArtistList(MutableSequence):
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index 887cf97ef..fd18bc733 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -785,6 +785,42 @@ class Axis(martist.Artist):
+                 mpl.rcParams['axes.grid'] and
+                 mpl.rcParams['axes.grid.which'] in ('both', 'minor'))
+ 
++    def _set_tick_params_from_rc(self):
++        # Re-apply the tick parameters that depend on rcParams.  This is
++        # needed after clear() because that drops the tick keyword
++        # dictionaries; without it, newly created ticks would fall back to
++        # the Tick defaults instead of the rcParams-derived settings (e.g.
++        # whether ticks/labels are shown on the top and right sides).
++        rcParams = mpl.rcParams
++        self.set_tick_params(
++            top=rcParams['xtick.top'] and rcParams['xtick.minor.top'],
++            bottom=rcParams['xtick.bottom'] and rcParams['xtick.minor.bottom'],
++            labeltop=(rcParams['xtick.labeltop'] and
++                      rcParams['xtick.minor.top']),
++            labelbottom=(rcParams['xtick.labelbottom'] and
++                         rcParams['xtick.minor.bottom']),
++            left=rcParams['ytick.left'] and rcParams['ytick.minor.left'],
++            right=rcParams['ytick.right'] and rcParams['ytick.minor.right'],
++            labelleft=(rcParams['ytick.labelleft'] and
++                       rcParams['ytick.minor.left']),
++            labelright=(rcParams['ytick.labelright'] and
++                        rcParams['ytick.minor.right']),
++            which='minor')
++        self.set_tick_params(
++            top=rcParams['xtick.top'] and rcParams['xtick.major.top'],
++            bottom=rcParams['xtick.bottom'] and rcParams['xtick.major.bottom'],
++            labeltop=(rcParams['xtick.labeltop'] and
++                      rcParams['xtick.major.top']),
++            labelbottom=(rcParams['xtick.labelbottom'] and
++                         rcParams['xtick.major.bottom']),
++            left=rcParams['ytick.left'] and rcParams['ytick.major.left'],
++            right=rcParams['ytick.right'] and rcParams['ytick.major.right'],
++            labelleft=(rcParams['ytick.labelleft'] and
++                       rcParams['ytick.major.left']),
++            labelright=(rcParams['ytick.labelright'] and
++                        rcParams['ytick.major.right']),
++            which='major')
++
+     def clear(self):
+         """
+         Clear the axis.

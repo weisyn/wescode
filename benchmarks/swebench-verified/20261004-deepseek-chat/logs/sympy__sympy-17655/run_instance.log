@@ -1,0 +1,120 @@
+2026-10-04 19:50:22,705 - INFO - Creating container for sympy__sympy-17655...
+2026-10-04 19:50:22,737 - INFO - Container for sympy__sympy-17655 created: d0a9a40e13b053788548846d0aef6d6edd744050a35dede0348e68d6e03d3b5a
+2026-10-04 19:50:22,936 - INFO - Container for sympy__sympy-17655 started: d0a9a40e13b053788548846d0aef6d6edd744050a35dede0348e68d6e03d3b5a
+2026-10-04 19:50:22,936 - INFO - Intermediate patch for sympy__sympy-17655 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-17655/patch.diff, now applying to container...
+2026-10-04 19:50:23,048 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:50:23,213 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:50:23,319 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:50:23,423 - INFO - >>>>> Applied Patch:
+patching file sympy/geometry/point.py
+patching file sympy/geometry/tests/test_point.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 352 with fuzz 1.
+
+2026-10-04 19:50:23,483 - INFO - Git diff before:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..9223b20967 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -105,6 +105,12 @@ class Point(GeometryEntity):
+ 
+     is_Point = True
+ 
++    # Note that the lower priority of the `Expr` subclasses is
++    # intentionally overridden here so that the reverse multiplication
++    # is dispatched to `Point.__rmul__` instead of building a `Mul`
++    # (see `call_highest_priority`).
++    _op_priority = 11.0
++
+     def __new__(cls, *args, **kwargs):
+         evaluate = kwargs.get('evaluate', global_evaluate[0])
+         on_morph = kwargs.get('on_morph', 'ignore')
+@@ -278,6 +284,22 @@ def __mul__(self, factor):
+         coords = [simplify(x*factor) for x in self.args]
+         return Point(coords, evaluate=False)
+ 
++    def __rmul__(self, factor):
++        """Multiply point's coordinates by a factor.
++
++        Although the same as `__mul__`, this method is needed so that
++        the multiplication by a scalar works regardless of the order
++        of the operands, e.g. `2*Point(1, 2)` and `Point(1, 2)*2`.
++
++        Examples
++        ========
++
++        >>> from sympy.geometry.point import Point
++        >>> 2*Point(1, 2)
++        Point2D(2, 4)
++        """
++        return self.__mul__(factor)
++
+     def __neg__(self):
+         """Negate the point."""
+         coords = [-x for x in self.args]
+diff --git a/sympy/geometry/tests/test_point.py b/sympy/geometry/tests/test_point.py
+index 475d1d403f..235c40e47d 100755
+--- a/sympy/geometry/tests/test_point.py
++++ b/sympy/geometry/tests/test_point.py
+@@ -352,6 +352,9 @@ def test_arguments():
+     assert a/10.0 == Point(0, 0.1, evaluate=False)
+     a = Point(0, 1)
+     assert a*10.0 == Point(0.0, 10.0, evaluate=False)
++    a = Point(0, 1)
++    assert 10.0*a == Point(0.0, 10.0, evaluate=False)
++    assert 10*a == Point(0, 10)
+ 
+     # test evaluate=False when changing dimensions
+     u = Point(.1, .2, evaluate=False)
+2026-10-04 19:50:23,484 - INFO - Eval script for sympy__sympy-17655 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-17655/eval.sh; copying to container...
+2026-10-04 19:50:44,142 - INFO - Test runtime: 20.60 seconds
+2026-10-04 19:50:44,143 - INFO - Test output for sympy__sympy-17655 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-17655/test_output.txt
+2026-10-04 19:50:44,198 - INFO - Git diff after:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..9223b20967 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -105,6 +105,12 @@ class Point(GeometryEntity):
+ 
+     is_Point = True
+ 
++    # Note that the lower priority of the `Expr` subclasses is
++    # intentionally overridden here so that the reverse multiplication
++    # is dispatched to `Point.__rmul__` instead of building a `Mul`
++    # (see `call_highest_priority`).
++    _op_priority = 11.0
++
+     def __new__(cls, *args, **kwargs):
+         evaluate = kwargs.get('evaluate', global_evaluate[0])
+         on_morph = kwargs.get('on_morph', 'ignore')
+@@ -278,6 +284,22 @@ def __mul__(self, factor):
+         coords = [simplify(x*factor) for x in self.args]
+         return Point(coords, evaluate=False)
+ 
++    def __rmul__(self, factor):
++        """Multiply point's coordinates by a factor.
++
++        Although the same as `__mul__`, this method is needed so that
++        the multiplication by a scalar works regardless of the order
++        of the operands, e.g. `2*Point(1, 2)` and `Point(1, 2)*2`.
++
++        Examples
++        ========
++
++        >>> from sympy.geometry.point import Point
++        >>> 2*Point(1, 2)
++        Point2D(2, 4)
++        """
++        return self.__mul__(factor)
++
+     def __neg__(self):
+         """Negate the point."""
+         coords = [-x for x in self.args]
+2026-10-04 19:50:44,198 - INFO - Git diff changed after running eval script
+2026-10-04 19:50:44,198 - INFO - Grading answer for sympy__sympy-17655...
+2026-10-04 19:50:44,200 - INFO - report: {'sympy__sympy-17655': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_point', 'test_point3D'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_Point2D', 'test_issue_9214', 'test_issue_11617', 'test_transform', 'test_concyclic_doctest_bug', 'test_arguments', 'test_unit', 'test_dot', 'test__normalize_dimension'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-17655: resolved: True
+2026-10-04 19:50:44,200 - INFO - Attempting to stop container sweb.eval.sympy__sympy-17655.wescode-v3...
+2026-10-04 19:50:59,327 - INFO - Container sweb.eval.sympy__sympy-17655.wescode-v3 stopped successfully.
+2026-10-04 19:50:59,327 - INFO - Attempting to remove container sweb.eval.sympy__sympy-17655.wescode-v3...
+2026-10-04 19:50:59,357 - INFO - Container sweb.eval.sympy__sympy-17655.wescode-v3 removed successfully.

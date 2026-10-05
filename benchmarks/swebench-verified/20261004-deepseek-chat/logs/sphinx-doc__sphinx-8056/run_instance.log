@@ -1,0 +1,165 @@
+2026-10-04 19:29:20,542 - INFO - Creating container for sphinx-doc__sphinx-8056...
+2026-10-04 19:29:20,583 - INFO - Container for sphinx-doc__sphinx-8056 created: 8a394b9356e1bc6a6ee980c8a6275c264333f1d691157c266dd92851fd0fd67d
+2026-10-04 19:29:20,780 - INFO - Container for sphinx-doc__sphinx-8056 started: 8a394b9356e1bc6a6ee980c8a6275c264333f1d691157c266dd92851fd0fd67d
+2026-10-04 19:29:20,780 - INFO - Intermediate patch for sphinx-doc__sphinx-8056 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8056/patch.diff, now applying to container...
+2026-10-04 19:29:20,891 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:29:21,151 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:29:21,265 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:29:21,382 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/ext/napoleon/docstring.py
+patching file tests/test_ext_napoleon_docstring.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1337 with fuzz 2.
+
+2026-10-04 19:29:21,454 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index 235e34852..5d50da739 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -80,6 +80,8 @@ Bugs fixed
+   module has submodules 
+ * #4258: napoleon: decorated special methods are not shown
+ * #7799: napoleon: parameters are not escaped for combined params in numpydoc
++* #7780: napoleon: multiple paramaters declaration in numpydoc was wrongly
++  recognized when napoleon_use_params=True
+ * #7715: LaTeX: ``numfig_secnum_depth > 1`` leads to wrong figure links
+ * #7846: html theme: XML-invalid files were generated
+ * #7894: gettext: Wrong source info is shown when using rst_epilog
+diff --git a/sphinx/ext/napoleon/docstring.py b/sphinx/ext/napoleon/docstring.py
+index b3daa06f1..52abf9753 100755
+--- a/sphinx/ext/napoleon/docstring.py
++++ b/sphinx/ext/napoleon/docstring.py
+@@ -266,13 +266,16 @@ class GoogleDocstring:
+         _descs = self.__class__(_descs, self._config).lines()
+         return _name, _type, _descs
+ 
+-    def _consume_fields(self, parse_type: bool = True, prefer_type: bool = False
+-                        ) -> List[Tuple[str, str, List[str]]]:
++    def _consume_fields(self, parse_type: bool = True, prefer_type: bool = False,
++                        multiple: bool = False) -> List[Tuple[str, str, List[str]]]:
+         self._consume_empty()
+         fields = []
+         while not self._is_section_break():
+             _name, _type, _desc = self._consume_field(parse_type, prefer_type)
+-            if _name or _type or _desc:
++            if multiple and _name:
++                for name in _name.split(","):
++                    fields.append((name.strip(), _type, _desc))
++            elif _name or _type or _desc:
+                 fields.append((_name, _type, _desc,))
+         return fields
+ 
+@@ -681,10 +684,12 @@ class GoogleDocstring:
+         return self._format_fields(_('Other Parameters'), self._consume_fields())
+ 
+     def _parse_parameters_section(self, section: str) -> List[str]:
+-        fields = self._consume_fields()
+         if self._config.napoleon_use_param:
++            # Allow to declare multiple parameters at once (ex: x, y: int)
++            fields = self._consume_fields(multiple=True)
+             return self._format_docutils_params(fields)
+         else:
++            fields = self._consume_fields()
+             return self._format_fields(_('Parameters'), fields)
+ 
+     def _parse_raises_section(self, section: str) -> List[str]:
+diff --git a/tests/test_ext_napoleon_docstring.py b/tests/test_ext_napoleon_docstring.py
+index bf3c878a8..9cb7dd5c4 100755
+--- a/tests/test_ext_napoleon_docstring.py
++++ b/tests/test_ext_napoleon_docstring.py
+@@ -1337,6 +1337,32 @@ param1 : :class:`MyClass <name.space.MyClass>` instance
+         expected = """\
+ :param param1:
+ :type param1: :class:`MyClass <name.space.MyClass>` instance
++"""
++        self.assertEqual(expected, actual)
++
++    def test_multiple_parameters(self):
++        docstring = """\
++Parameters
++----------
++x1, x2 : array_like
++    Input arrays, description of ``x1``, ``x2``.
++
++"""
++
++        config = Config(napoleon_use_param=False)
++        actual = str(NumpyDocstring(docstring, config))
++        expected = """\
++:Parameters: **x1, x2** (:class:`array_like`) -- Input arrays, description of ``x1``, ``x2``.
++"""
++        self.assertEqual(expected, actual)
++
++        config = Config(napoleon_use_param=True)
++        actual = str(NumpyDocstring(dedent(docstring), config))
++        expected = """\
++:param x1: Input arrays, description of ``x1``, ``x2``.
++:type x1: :class:`array_like`
++:param x2: Input arrays, description of ``x1``, ``x2``.
++:type x2: :class:`array_like`
+ """
+         self.assertEqual(expected, actual)
+2026-10-04 19:29:21,455 - INFO - Eval script for sphinx-doc__sphinx-8056 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8056/eval.sh; copying to container...
+2026-10-04 19:29:26,618 - INFO - Test runtime: 5.11 seconds
+2026-10-04 19:29:26,619 - INFO - Test output for sphinx-doc__sphinx-8056 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8056/test_output.txt
+2026-10-04 19:29:26,672 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index 235e34852..5d50da739 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -80,6 +80,8 @@ Bugs fixed
+   module has submodules 
+ * #4258: napoleon: decorated special methods are not shown
+ * #7799: napoleon: parameters are not escaped for combined params in numpydoc
++* #7780: napoleon: multiple paramaters declaration in numpydoc was wrongly
++  recognized when napoleon_use_params=True
+ * #7715: LaTeX: ``numfig_secnum_depth > 1`` leads to wrong figure links
+ * #7846: html theme: XML-invalid files were generated
+ * #7894: gettext: Wrong source info is shown when using rst_epilog
+diff --git a/sphinx/ext/napoleon/docstring.py b/sphinx/ext/napoleon/docstring.py
+index b3daa06f1..52abf9753 100755
+--- a/sphinx/ext/napoleon/docstring.py
++++ b/sphinx/ext/napoleon/docstring.py
+@@ -266,13 +266,16 @@ class GoogleDocstring:
+         _descs = self.__class__(_descs, self._config).lines()
+         return _name, _type, _descs
+ 
+-    def _consume_fields(self, parse_type: bool = True, prefer_type: bool = False
+-                        ) -> List[Tuple[str, str, List[str]]]:
++    def _consume_fields(self, parse_type: bool = True, prefer_type: bool = False,
++                        multiple: bool = False) -> List[Tuple[str, str, List[str]]]:
+         self._consume_empty()
+         fields = []
+         while not self._is_section_break():
+             _name, _type, _desc = self._consume_field(parse_type, prefer_type)
+-            if _name or _type or _desc:
++            if multiple and _name:
++                for name in _name.split(","):
++                    fields.append((name.strip(), _type, _desc))
++            elif _name or _type or _desc:
+                 fields.append((_name, _type, _desc,))
+         return fields
+ 
+@@ -681,10 +684,12 @@ class GoogleDocstring:
+         return self._format_fields(_('Other Parameters'), self._consume_fields())
+ 
+     def _parse_parameters_section(self, section: str) -> List[str]:
+-        fields = self._consume_fields()
+         if self._config.napoleon_use_param:
++            # Allow to declare multiple parameters at once (ex: x, y: int)
++            fields = self._consume_fields(multiple=True)
+             return self._format_docutils_params(fields)
+         else:
++            fields = self._consume_fields()
+             return self._format_fields(_('Parameters'), fields)
+ 
+     def _parse_raises_section(self, section: str) -> List[str]:
+2026-10-04 19:29:26,672 - INFO - Git diff changed after running eval script
+2026-10-04 19:29:26,672 - INFO - Grading answer for sphinx-doc__sphinx-8056...
+2026-10-04 19:29:26,675 - INFO - report: {'sphinx-doc__sphinx-8056': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_multiple_parameters'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_ext_napoleon_docstring.py::NamedtupleSubclassTest::test_attributes_docstring', 'tests/test_ext_napoleon_docstring.py::InlineAttributeTest::test_class_data_member', 'tests/test_ext_napoleon_docstring.py::InlineAttributeTest::test_class_data_member_inline', 'tests/test_ext_napoleon_docstring.py::InlineAttributeTest::test_class_data_member_inline_no_type', 'tests/test_ext_napoleon_docstring.py::InlineAttributeTest::test_class_data_member_inline_ref_in_type', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_attributes_with_class_reference', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_code_block_in_returns_section', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_colon_in_return_type', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_custom_generic_sections', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_docstrings', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_keywords_with_types', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_kwargs_in_arguments', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_list_in_parameter_description', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_noindex', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_parameters_with_class_reference', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_raises_types', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_section_header_formatting', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_sphinx_admonitions', 'tests/test_ext_napoleon_docstring.py::GoogleDocstringTest::test_xrefs_in_return_type', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_colon_in_return_type', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_convert_numpy_type_spec', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_docstrings', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_list_in_parameter_description', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_parameter_types', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_parameters_with_class_reference', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_parameters_without_class_reference', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_raises_types', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_recombine_set_tokens', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_recombine_set_tokens_invalid', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_section_header_underline_length', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_see_also_refs', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_sphinx_admonitions', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_token_type', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_tokenize_type_spec', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_underscore_in_attribute', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_underscore_in_attribute_strip_signature_backslash', 'tests/test_ext_napoleon_docstring.py::NumpyDocstringTest::test_xrefs_in_return_type', 'tests/test_ext_napoleon_docstring.py::TestNumpyDocstring::test_escape_args_and_kwargs[x,', 'tests/test_ext_napoleon_docstring.py::TestNumpyDocstring::test_escape_args_and_kwargs[*args,', 'tests/test_ext_napoleon_docstring.py::TestNumpyDocstring::test_escape_args_and_kwargs[*x,'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-8056: resolved: True
+2026-10-04 19:29:26,676 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-8056.wescode-v3...
+2026-10-04 19:29:41,806 - INFO - Container sweb.eval.sphinx-doc__sphinx-8056.wescode-v3 stopped successfully.
+2026-10-04 19:29:41,806 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-8056.wescode-v3...
+2026-10-04 19:29:41,834 - INFO - Container sweb.eval.sphinx-doc__sphinx-8056.wescode-v3 removed successfully.

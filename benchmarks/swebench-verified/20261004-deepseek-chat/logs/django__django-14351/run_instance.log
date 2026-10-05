@@ -1,0 +1,156 @@
+2026-10-04 17:57:51,278 - INFO - Creating container for django__django-14351...
+2026-10-04 17:57:51,323 - INFO - Container for django__django-14351 created: 47f0b42743528d09bdc998cb1ba2445751c482e4de5e6f9dc3ddfbbcc803426b
+2026-10-04 17:57:51,521 - INFO - Container for django__django-14351 started: 47f0b42743528d09bdc998cb1ba2445751c482e4de5e6f9dc3ddfbbcc803426b
+2026-10-04 17:57:51,521 - INFO - Intermediate patch for django__django-14351 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14351/patch.diff, now applying to container...
+2026-10-04 17:57:51,639 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:57:52,853 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:57:53,469 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:57:53,676 - INFO - >>>>> Applied Patch:
+patching file django/db/models/fields/related_lookups.py
+patching file django/db/models/lookups.py
+patching file tests/aggregation_regress/tests.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1557 with fuzz 1.
+
+2026-10-04 17:57:53,742 - INFO - Git diff before:
+diff --git a/django/db/models/fields/related_lookups.py b/django/db/models/fields/related_lookups.py
+index d745ecd5f9..36ccbfd7a5 100644
+--- a/django/db/models/fields/related_lookups.py
++++ b/django/db/models/fields/related_lookups.py
+@@ -100,6 +100,25 @@ class RelatedIn(In):
+                 self.rhs.add_fields([target_field], True)
+             return super().as_sql(compiler, connection)
+ 
++    def get_group_by_cols(self, alias=None):
++        cols = super().get_group_by_cols(alias)
++        if (hasattr(self.rhs, 'clear_select_clause') and
++                not getattr(self.lhs.field.target_field, 'primary_key', False)):
++            # The rhs is a query that is going to be used in an 'IN' clause, so
++            # only the related field is relevant. Its remaining selected columns
++            # must not leak into the outer query's GROUP BY clause.
++            self.rhs.clear_select_clause()
++            if (getattr(self.lhs.output_field, 'primary_key', False) and
++                    self.lhs.output_field.model == self.rhs.model):
++                # A case like Restaurant.objects.filter(place__in=restaurant_qs),
++                # where place is a OneToOneField and the primary key of
++                # Restaurant.
++                target_field = self.lhs.field.name
++            else:
++                target_field = self.lhs.field.target_field.name
++            self.rhs.add_fields([target_field], True)
++        return cols
++
+ 
+ class RelatedLookupMixin:
+     def get_prep_lookup(self):
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index 5089737034..58cd7de349 100644
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -406,6 +406,16 @@ class In(FieldGetDbPrepValueIterableMixin, BuiltinLookup):
+                 self.rhs.add_fields(['pk'])
+             return super().process_rhs(compiler, connection)
+ 
++    def get_group_by_cols(self, alias=None):
++        cols = super().get_group_by_cols(alias)
++        if hasattr(self.rhs, 'clear_select_clause'):
++            # The rhs is a query that is going to be used in an 'IN' clause, so
++            # only its primary key is relevant. Its remaining selected columns
++            # must not leak into the outer query's GROUP BY clause.
++            self.rhs.clear_select_clause()
++            self.rhs.add_fields(['pk'])
++        return cols
++
+     def get_rhs_op(self, connection, rhs):
+         return 'IN %s' % rhs
+ 
+diff --git a/tests/aggregation_regress/tests.py b/tests/aggregation_regress/tests.py
+index 877e7b49a7..9220d19af8 100644
+--- a/tests/aggregation_regress/tests.py
++++ b/tests/aggregation_regress/tests.py
+@@ -1557,6 +1557,23 @@ class JoinPromotionTests(TestCase):
+         qs = Book.objects.annotate(Count('contact__name'))
+         self.assertIn(' INNER JOIN ', str(qs.query))
+ 
++    def test_filter_q_object_with_queryset_in_lookup_and_annotation(self):
++        # Combining a filter using a queryset in an 'IN' lookup with an
++        # annotation must not leak the subquery's selected columns into the
++        # outer query's GROUP BY clause (which results in a "subquery must
++        # return only one column" error).
++        p1 = Publisher.objects.create(name='Apress', num_awards=3)
++        a1 = Author.objects.create(name='Adrian', age=29)
++        b1 = Book.objects.create(
++            isbn='159059725', name='The Definitive Guide to Django',
++            pages=447, rating=4.0, price=30, publisher=p1,
++            pubdate=datetime.date(2007, 12, 6), contact=a1,
++        )
++        b1.authors.add(a1)
++        qs = Book.objects.annotate(Count('authors')).filter(
++            Q(authors__in=Author.objects.all()) | Q(authors__count=0)
++        ).distinct()
++        self.assertSequenceEqual(qs, [b1])
+ 
+ class SelfReferentialFKTests(TestCase):
+     def test_ticket_24748(self):
+2026-10-04 17:57:53,742 - INFO - Eval script for django__django-14351 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14351/eval.sh; copying to container...
+2026-10-04 17:58:01,149 - INFO - Test runtime: 7.34 seconds
+2026-10-04 17:58:01,149 - INFO - Test output for django__django-14351 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14351/test_output.txt
+2026-10-04 17:58:01,218 - INFO - Git diff after:
+diff --git a/django/db/models/fields/related_lookups.py b/django/db/models/fields/related_lookups.py
+index d745ecd5f9..36ccbfd7a5 100644
+--- a/django/db/models/fields/related_lookups.py
++++ b/django/db/models/fields/related_lookups.py
+@@ -100,6 +100,25 @@ class RelatedIn(In):
+                 self.rhs.add_fields([target_field], True)
+             return super().as_sql(compiler, connection)
+ 
++    def get_group_by_cols(self, alias=None):
++        cols = super().get_group_by_cols(alias)
++        if (hasattr(self.rhs, 'clear_select_clause') and
++                not getattr(self.lhs.field.target_field, 'primary_key', False)):
++            # The rhs is a query that is going to be used in an 'IN' clause, so
++            # only the related field is relevant. Its remaining selected columns
++            # must not leak into the outer query's GROUP BY clause.
++            self.rhs.clear_select_clause()
++            if (getattr(self.lhs.output_field, 'primary_key', False) and
++                    self.lhs.output_field.model == self.rhs.model):
++                # A case like Restaurant.objects.filter(place__in=restaurant_qs),
++                # where place is a OneToOneField and the primary key of
++                # Restaurant.
++                target_field = self.lhs.field.name
++            else:
++                target_field = self.lhs.field.target_field.name
++            self.rhs.add_fields([target_field], True)
++        return cols
++
+ 
+ class RelatedLookupMixin:
+     def get_prep_lookup(self):
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index 5089737034..58cd7de349 100644
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -406,6 +406,16 @@ class In(FieldGetDbPrepValueIterableMixin, BuiltinLookup):
+                 self.rhs.add_fields(['pk'])
+             return super().process_rhs(compiler, connection)
+ 
++    def get_group_by_cols(self, alias=None):
++        cols = super().get_group_by_cols(alias)
++        if hasattr(self.rhs, 'clear_select_clause'):
++            # The rhs is a query that is going to be used in an 'IN' clause, so
++            # only its primary key is relevant. Its remaining selected columns
++            # must not leak into the outer query's GROUP BY clause.
++            self.rhs.clear_select_clause()
++            self.rhs.add_fields(['pk'])
++        return cols
++
+     def get_rhs_op(self, connection, rhs):
+         return 'IN %s' % rhs
+2026-10-04 17:58:01,219 - INFO - Git diff changed after running eval script
+2026-10-04 17:58:01,219 - INFO - Grading answer for django__django-14351...
+2026-10-04 17:58:01,220 - INFO - report: {'django__django-14351': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_having_subquery_select (aggregation_regress.tests.AggregationTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_ticket_24748 (aggregation_regress.tests.SelfReferentialFKTests)', 'test_existing_join_not_promoted (aggregation_regress.tests.JoinPromotionTests)', 'test_non_nullable_fk_not_promoted (aggregation_regress.tests.JoinPromotionTests)', 'test_ticket_21150 (aggregation_regress.tests.JoinPromotionTests)', 'test_aggregate (aggregation_regress.tests.AggregationTests)', 'test_aggregate_annotation (aggregation_regress.tests.AggregationTests)', 'test_aggregate_fexpr (aggregation_regress.tests.AggregationTests)', 'test_aggregate_on_relation (aggregation_regress.tests.AggregationTests)', 'Regression test for #12822: DatabaseError: aggregates not allowed in', 'Regression test for #10870:  Aggregates with joins ignore extra', 'test_allow_distinct (aggregation_regress.tests.AggregationTests)', 'test_annotate_and_join (aggregation_regress.tests.AggregationTests)', 'test_annotate_distinct_aggregate (aggregation_regress.tests.AggregationTests)', "The base table's join isn't promoted to LOUTER. This could", 'test_annotate_on_relation (aggregation_regress.tests.AggregationTests)', 'Regression #18333 - Ensure annotated column name is properly quoted.', 'Find ages that are shared by at least two authors.', 'Regression test for #11916: Extra params + aggregation creates', 'test_annotated_conditional_aggregate (aggregation_regress.tests.AggregationTests)', 'test_annotation (aggregation_regress.tests.AggregationTests)', 'test_annotation_disjunction (aggregation_regress.tests.AggregationTests)', 'test_annotation_with_value (aggregation_regress.tests.AggregationTests)', 'test_boolean_conversion (aggregation_regress.tests.AggregationTests)', 'test_conditional_aggregate (aggregation_regress.tests.AggregationTests)', 'test_conditional_aggregate_on_complex_condition (aggregation_regress.tests.AggregationTests)', 'test_db_col_table (aggregation_regress.tests.AggregationTests)', 'Filtering on an aggregate annotation with Decimal values should work.', 'test_distinct_conditional_aggregate (aggregation_regress.tests.AggregationTests)', 'test_duplicate_alias (aggregation_regress.tests.AggregationTests)', 'test_empty (aggregation_regress.tests.AggregationTests)', 'test_empty_filter_aggregate (aggregation_regress.tests.AggregationTests)', 'test_empty_filter_count (aggregation_regress.tests.AggregationTests)', 'test_f_expression_annotation (aggregation_regress.tests.AggregationTests)', 'test_field_error (aggregation_regress.tests.AggregationTests)', 'test_field_name_conflict (aggregation_regress.tests.AggregationTests)', 'test_filtering_by_annotation_name (aggregation_regress.tests.AggregationTests)', 'test_fk_attname_conflict (aggregation_regress.tests.AggregationTests)', 'An F() object referring to related column works correctly in group by.', 'test_having_group_by (aggregation_regress.tests.AggregationTests)', 'test_m2m_name_conflict (aggregation_regress.tests.AggregationTests)', 'test_more (aggregation_regress.tests.AggregationTests)', 'test_more_more (aggregation_regress.tests.AggregationTests)', 'test_more_more_more (aggregation_regress.tests.AggregationTests)', 'test_name_expressions (aggregation_regress.tests.AggregationTests)', 'test_name_filters (aggregation_regress.tests.AggregationTests)', 'test_negated_aggregation (aggregation_regress.tests.AggregationTests)', 'test_none_call_before_aggregate (aggregation_regress.tests.AggregationTests)', 'test_pickle (aggregation_regress.tests.AggregationTests)', 'test_quoting_aggregate_order_by (aggregation_regress.tests.AggregationTests)', 'test_reverse_join_trimming (aggregation_regress.tests.AggregationTests)', 'test_reverse_relation_name_conflict (aggregation_regress.tests.AggregationTests)', 'test_sliced_conditional_aggregate (aggregation_regress.tests.AggregationTests)', 'test_stddev (aggregation_regress.tests.AggregationTests)', 'test_ticket_11293 (aggregation_regress.tests.AggregationTests)', "Splitting a q object to parts for where/having doesn't alter", 'test_values_annotate_values (aggregation_regress.tests.AggregationTests)', 'Annotate *args ordering should be preserved in values_list results.', 'test_values_queryset_non_conflict (aggregation_regress.tests.AggregationTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14351: resolved: True
+2026-10-04 17:58:01,220 - INFO - Attempting to stop container sweb.eval.django__django-14351.wescode-v3...
+2026-10-04 17:58:16,396 - INFO - Container sweb.eval.django__django-14351.wescode-v3 stopped successfully.
+2026-10-04 17:58:16,396 - INFO - Attempting to remove container sweb.eval.django__django-14351.wescode-v3...
+2026-10-04 17:58:16,583 - INFO - Container sweb.eval.django__django-14351.wescode-v3 removed successfully.

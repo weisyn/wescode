@@ -1,0 +1,67 @@
+2026-10-04 18:10:30,767 - INFO - Creating container for django__django-15814...
+2026-10-04 18:10:30,819 - INFO - Container for django__django-15814 created: ea045bbd6040147493cc368058c35751d9729fc90aa4477b66d39527f49e01c4
+2026-10-04 18:10:31,018 - INFO - Container for django__django-15814 started: ea045bbd6040147493cc368058c35751d9729fc90aa4477b66d39527f49e01c4
+2026-10-04 18:10:31,018 - INFO - Intermediate patch for django__django-15814 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15814/patch.diff, now applying to container...
+2026-10-04 18:10:31,129 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:10:32,384 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:10:32,745 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:10:33,105 - INFO - >>>>> Applied Patch:
+patching file django/db/models/sql/query.py
+patching file tests/proxy_models/tests.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 390 with fuzz 1.
+
+2026-10-04 18:10:33,254 - INFO - Git diff before:
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 33cc636b22..cf7566d771 100755
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -748,6 +748,7 @@ class Query(BaseExpression):
+                     cur_model = source.related_model
+                 else:
+                     cur_model = source.remote_field.model
++                cur_model = cur_model._meta.concrete_model
+                 opts = cur_model._meta
+                 # Even if we're "just passing through" this model, we must add
+                 # both the current model's pk and the related reference field
+diff --git a/tests/proxy_models/tests.py b/tests/proxy_models/tests.py
+index f2f465678b..2081c0cbe3 100755
+--- a/tests/proxy_models/tests.py
++++ b/tests/proxy_models/tests.py
+@@ -390,6 +390,12 @@ class ProxyModelTests(TestCase):
+             repr(resp), "<ProxyImprovement: ProxyImprovement:improve that>"
+         )
+ 
++    def test_select_related_only(self):
++        user = ProxyTrackerUser.objects.create(name="Joe Doe", status="test")
++        issue = Issue.objects.create(summary="New issue", assignee=user)
++        qs = Issue.objects.select_related("assignee").only("assignee__status")
++        self.assertEqual(qs.get(), issue)
++
+     def test_proxy_load_from_fixture(self):
+         management.call_command("loaddata", "mypeople.json", verbosity=0)
+         p = MyPerson.objects.get(pk=100)
+2026-10-04 18:10:33,254 - INFO - Eval script for django__django-15814 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15814/eval.sh; copying to container...
+2026-10-04 18:10:43,616 - INFO - Test runtime: 10.31 seconds
+2026-10-04 18:10:43,617 - INFO - Test output for django__django-15814 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15814/test_output.txt
+2026-10-04 18:10:43,679 - INFO - Git diff after:
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 33cc636b22..cf7566d771 100755
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -748,6 +748,7 @@ class Query(BaseExpression):
+                     cur_model = source.related_model
+                 else:
+                     cur_model = source.remote_field.model
++                cur_model = cur_model._meta.concrete_model
+                 opts = cur_model._meta
+                 # Even if we're "just passing through" this model, we must add
+                 # both the current model's pk and the related reference field
+2026-10-04 18:10:43,679 - INFO - Git diff changed after running eval script
+2026-10-04 18:10:43,679 - INFO - Grading answer for django__django-15814...
+2026-10-04 18:10:43,686 - INFO - report: {'django__django-15814': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_select_related_only (proxy_models.tests.ProxyModelTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_abstract_base_with_model_fields (proxy_models.tests.ProxyModelTests)', 'Creating a Person makes them accessible through the MyPerson proxy.', 'A new MyPerson also shows up as a standard Person.', 'test_concrete_model (proxy_models.tests.ProxyModelTests)', 'test_content_type (proxy_models.tests.ProxyModelTests)', 'Correct type when querying a proxy of proxy', 'test_eq (proxy_models.tests.ProxyModelTests)', 'test_filter_proxy_relation_reverse (proxy_models.tests.ProxyModelTests)', "The StatusPerson models should have its own table (it's using ORM-level", 'test_myperson_manager (proxy_models.tests.ProxyModelTests)', 'test_new_fields (proxy_models.tests.ProxyModelTests)', 'test_no_base_classes (proxy_models.tests.ProxyModelTests)', 'Person is not proxied by StatusPerson subclass.', 'test_otherperson_manager (proxy_models.tests.ProxyModelTests)', 'test_permissions_created (proxy_models.tests.ProxyModelTests)', 'test_proxy_bug (proxy_models.tests.ProxyModelTests)', 'Proxy objects can be deleted', 'test_proxy_for_model (proxy_models.tests.ProxyModelTests)', "Proxy models are included in the ancestors for a model's DoesNotExist", 'test_proxy_load_from_fixture (proxy_models.tests.ProxyModelTests)', 'Test save signals for proxy models', 'test_proxy_update (proxy_models.tests.ProxyModelTests)', 'The MyPerson model should be generating the same database queries as', 'We can still use `select_related()` to include related models in our', 'test_swappable (proxy_models.tests.ProxyModelTests)', 'test_too_many_concrete_classes (proxy_models.tests.ProxyModelTests)', 'test_user_proxy_models (proxy_models.tests.ProxyModelTests)', 'Test if admin gives warning about cascade deleting models referenced', 'Test if the admin delete page shows the correct string representation'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-15814: resolved: True
+2026-10-04 18:10:43,686 - INFO - Attempting to stop container sweb.eval.django__django-15814.wescode-v3...
+2026-10-04 18:10:59,054 - INFO - Container sweb.eval.django__django-15814.wescode-v3 stopped successfully.
+2026-10-04 18:10:59,055 - INFO - Attempting to remove container sweb.eval.django__django-15814.wescode-v3...
+2026-10-04 18:10:59,249 - INFO - Container sweb.eval.django__django-15814.wescode-v3 removed successfully.

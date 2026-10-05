@@ -1,0 +1,102 @@
+2026-10-04 19:39:16,458 - INFO - Creating container for sphinx-doc__sphinx-9591...
+2026-10-04 19:39:16,498 - INFO - Container for sphinx-doc__sphinx-9591 created: 4b38f9f54e4298933adc7efc5a46d2799dea274bd5657f2e2046d08904581852
+2026-10-04 19:39:16,695 - INFO - Container for sphinx-doc__sphinx-9591 started: 4b38f9f54e4298933adc7efc5a46d2799dea274bd5657f2e2046d08904581852
+2026-10-04 19:39:16,695 - INFO - Intermediate patch for sphinx-doc__sphinx-9591 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-9591/patch.diff, now applying to container...
+2026-10-04 19:39:16,851 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:39:17,082 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:39:17,205 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:39:17,325 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/domains/python.py
+patching file tests/test_domain_py.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 833 with fuzz 1.
+
+2026-10-04 19:39:17,405 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index 4e98b2c8a..c7e781de8 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -38,6 +38,8 @@ Bugs fixed
+ * #9456: html search: abbreation marks are inserted to the search result if
+   failed to fetch the content of the page
+ * #9267: html theme: CSS and JS files added by theme were loaded twice
++* #9585: py domain: ``:type:`` option for :rst:dir:`py:property` directive does
++  not create a hyperlink
+ * #9535 comment: C++, fix parsing of defaulted function parameters that are
+   function pointers.
+ * #9564: smartquotes: don't adjust typography for text with
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index e8330e81c..9875a9f4b 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -861,7 +861,8 @@ class PyProperty(PyObject):
+ 
+         typ = self.options.get('type')
+         if typ:
+-            signode += addnodes.desc_annotation(typ, ': ' + typ)
++            annotations = _parse_annotation(typ, self.env)
++            signode += addnodes.desc_annotation(typ, '', nodes.Text(': '), *annotations)
+ 
+         return fullname, prefix
+ 
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index 8b72f8b7a..067febcf4 100755
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -833,13 +833,15 @@ def test_pyproperty(app):
+                 entries=[('single', 'prop1 (Class property)', 'Class.prop1', '', None)])
+     assert_node(doctree[1][1][1], ([desc_signature, ([desc_annotation, "abstract property "],
+                                                      [desc_name, "prop1"],
+-                                                     [desc_annotation, ": str"])],
++                                                     [desc_annotation, (": ",
++                                                                        [pending_xref, "str"])])],
+                                    [desc_content, ()]))
+     assert_node(doctree[1][1][2], addnodes.index,
+                 entries=[('single', 'prop2 (Class property)', 'Class.prop2', '', None)])
+     assert_node(doctree[1][1][3], ([desc_signature, ([desc_annotation, "class property "],
+                                                      [desc_name, "prop2"],
+-                                                     [desc_annotation, ": str"])],
++                                                     [desc_annotation, (": ",
++                                                                        [pending_xref, "str"])])],
+                                    [desc_content, ()]))
+     assert 'Class.prop1' in domain.objects
+     assert domain.objects['Class.prop1'] == ('index', 'Class.prop1', 'property', False)
+2026-10-04 19:39:17,406 - INFO - Eval script for sphinx-doc__sphinx-9591 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-9591/eval.sh; copying to container...
+2026-10-04 19:39:25,316 - INFO - Test runtime: 7.85 seconds
+2026-10-04 19:39:25,316 - INFO - Test output for sphinx-doc__sphinx-9591 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-9591/test_output.txt
+2026-10-04 19:39:25,380 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index 4e98b2c8a..c7e781de8 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -38,6 +38,8 @@ Bugs fixed
+ * #9456: html search: abbreation marks are inserted to the search result if
+   failed to fetch the content of the page
+ * #9267: html theme: CSS and JS files added by theme were loaded twice
++* #9585: py domain: ``:type:`` option for :rst:dir:`py:property` directive does
++  not create a hyperlink
+ * #9535 comment: C++, fix parsing of defaulted function parameters that are
+   function pointers.
+ * #9564: smartquotes: don't adjust typography for text with
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index e8330e81c..9875a9f4b 100755
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -861,7 +861,8 @@ class PyProperty(PyObject):
+ 
+         typ = self.options.get('type')
+         if typ:
+-            signode += addnodes.desc_annotation(typ, ': ' + typ)
++            annotations = _parse_annotation(typ, self.env)
++            signode += addnodes.desc_annotation(typ, '', nodes.Text(': '), *annotations)
+ 
+         return fullname, prefix
+2026-10-04 19:39:25,380 - INFO - Git diff changed after running eval script
+2026-10-04 19:39:25,380 - INFO - Grading answer for sphinx-doc__sphinx-9591...
+2026-10-04 19:39:25,388 - INFO - report: {'sphinx-doc__sphinx-9591': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_domain_py.py::test_pyproperty'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_domain_py.py::test_function_signatures', 'tests/test_domain_py.py::test_domain_py_xrefs', 'tests/test_domain_py.py::test_domain_py_xrefs_abbreviations', 'tests/test_domain_py.py::test_domain_py_objects', 'tests/test_domain_py.py::test_resolve_xref_for_properties', 'tests/test_domain_py.py::test_domain_py_find_obj', 'tests/test_domain_py.py::test_domain_py_canonical', 'tests/test_domain_py.py::test_get_full_qualified_name', 'tests/test_domain_py.py::test_parse_annotation', 'tests/test_domain_py.py::test_pyfunction_signature', 'tests/test_domain_py.py::test_pyfunction_signature_full', 'tests/test_domain_py.py::test_pyfunction_signature_full_py38', 'tests/test_domain_py.py::test_pyfunction_with_number_literals', 'tests/test_domain_py.py::test_pyfunction_with_union_type_operator', 'tests/test_domain_py.py::test_optional_pyfunction_signature', 'tests/test_domain_py.py::test_pyexception_signature', 'tests/test_domain_py.py::test_pydata_signature', 'tests/test_domain_py.py::test_pydata_signature_old', 'tests/test_domain_py.py::test_pydata_with_union_type_operator', 'tests/test_domain_py.py::test_pyobject_prefix', 'tests/test_domain_py.py::test_pydata', 'tests/test_domain_py.py::test_pyfunction', 'tests/test_domain_py.py::test_pyclass_options', 'tests/test_domain_py.py::test_pymethod_options', 'tests/test_domain_py.py::test_pyclassmethod', 'tests/test_domain_py.py::test_pystaticmethod', 'tests/test_domain_py.py::test_pyattribute', 'tests/test_domain_py.py::test_pydecorator_signature', 'tests/test_domain_py.py::test_pydecoratormethod_signature', 'tests/test_domain_py.py::test_canonical', 'tests/test_domain_py.py::test_canonical_definition_overrides', 'tests/test_domain_py.py::test_canonical_definition_skip', 'tests/test_domain_py.py::test_canonical_duplicated', 'tests/test_domain_py.py::test_info_field_list', 'tests/test_domain_py.py::test_info_field_list_piped_type', 'tests/test_domain_py.py::test_info_field_list_var', 'tests/test_domain_py.py::test_module_index', 'tests/test_domain_py.py::test_module_index_submodule', 'tests/test_domain_py.py::test_module_index_not_collapsed', 'tests/test_domain_py.py::test_modindex_common_prefix', 'tests/test_domain_py.py::test_noindexentry', 'tests/test_domain_py.py::test_python_python_use_unqualified_type_names', 'tests/test_domain_py.py::test_python_python_use_unqualified_type_names_disabled', 'tests/test_domain_py.py::test_warn_missing_reference'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-9591: resolved: True
+2026-10-04 19:39:25,389 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-9591.wescode-v3...
+2026-10-04 19:39:40,557 - INFO - Container sweb.eval.sphinx-doc__sphinx-9591.wescode-v3 stopped successfully.
+2026-10-04 19:39:40,557 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-9591.wescode-v3...
+2026-10-04 19:39:40,582 - INFO - Container sweb.eval.sphinx-doc__sphinx-9591.wescode-v3 removed successfully.

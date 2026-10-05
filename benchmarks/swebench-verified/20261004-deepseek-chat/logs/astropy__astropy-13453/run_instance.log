@@ -1,0 +1,104 @@
+2026-10-04 17:11:48,521 - INFO - Creating container for astropy__astropy-13453...
+2026-10-04 17:11:48,567 - INFO - Container for astropy__astropy-13453 created: ed1340c1aad057e72987b33206fe3116ef2724b389e42a4617f66bbd9cca93bb
+2026-10-04 17:11:48,758 - INFO - Container for astropy__astropy-13453 started: ed1340c1aad057e72987b33206fe3116ef2724b389e42a4617f66bbd9cca93bb
+2026-10-04 17:11:48,758 - INFO - Intermediate patch for astropy__astropy-13453 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-13453/patch.diff, now applying to container...
+2026-10-04 17:11:48,874 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:11:49,364 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:11:49,764 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:11:50,166 - INFO - >>>>> Applied Patch:
+patching file astropy/io/ascii/html.py
+patch unexpectedly ends in middle of line
+Hunk #3 succeeded at 441 with fuzz 1.
+
+2026-10-04 17:11:50,216 - INFO - Git diff before:
+diff --git a/astropy/io/ascii/html.py b/astropy/io/ascii/html.py
+index 266cf229c..789a6538e 100644
+--- a/astropy/io/ascii/html.py
++++ b/astropy/io/ascii/html.py
+@@ -215,6 +215,16 @@ class HTMLHeader(core.BaseHeader):
+ class HTMLData(core.BaseData):
+     splitter_class = HTMLSplitter
+ 
++    def _set_col_formats(self, cols):
++        """WRITE: set column formats for ``cols``.
++
++        The base class method operates on ``self.cols``, but the HTML writer
++        works with a local list of columns so it passes ``cols`` explicitly.
++        """
++        for col in cols:
++            if col.info.name in self.formats:
++                col.info.format = self.formats[col.info.name]
++
+     def start_line(self, lines):
+         """
+         Return the line number at which table data begins.
+@@ -354,6 +364,7 @@ class HTML(core.BaseReader):
+             self.data.fill_values = [self.data.fill_values]
+ 
+         self.data._set_fill_values(cols)
++        self.data._set_col_formats(cols)
+ 
+         lines = []
+ 
+@@ -430,6 +441,10 @@ class HTML(core.BaseReader):
+                                     # Split up multicolumns into separate columns
+                                     new_col = Column([el[i] for el in col])
+ 
++                                    # Copy the format from the original column
++                                    if col.info.format is not None:
++                                        new_col.info.format = col.info.format
++
+                                     new_col_iter_str_vals = self.fill_values(
+                                         col, new_col.info.iter_str_vals())
+                                     col_str_iters.append(new_col_iter_str_vals)
+2026-10-04 17:11:50,216 - INFO - Eval script for astropy__astropy-13453 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-13453/eval.sh; copying to container...
+2026-10-04 17:13:17,980 - INFO - Test runtime: 87.71 seconds
+2026-10-04 17:13:17,980 - INFO - Test output for astropy__astropy-13453 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-13453/test_output.txt
+2026-10-04 17:13:18,033 - INFO - Git diff after:
+diff --git a/astropy/io/ascii/html.py b/astropy/io/ascii/html.py
+index 266cf229c..789a6538e 100644
+--- a/astropy/io/ascii/html.py
++++ b/astropy/io/ascii/html.py
+@@ -215,6 +215,16 @@ class HTMLHeader(core.BaseHeader):
+ class HTMLData(core.BaseData):
+     splitter_class = HTMLSplitter
+ 
++    def _set_col_formats(self, cols):
++        """WRITE: set column formats for ``cols``.
++
++        The base class method operates on ``self.cols``, but the HTML writer
++        works with a local list of columns so it passes ``cols`` explicitly.
++        """
++        for col in cols:
++            if col.info.name in self.formats:
++                col.info.format = self.formats[col.info.name]
++
+     def start_line(self, lines):
+         """
+         Return the line number at which table data begins.
+@@ -354,6 +364,7 @@ class HTML(core.BaseReader):
+             self.data.fill_values = [self.data.fill_values]
+ 
+         self.data._set_fill_values(cols)
++        self.data._set_col_formats(cols)
+ 
+         lines = []
+ 
+@@ -430,6 +441,10 @@ class HTML(core.BaseReader):
+                                     # Split up multicolumns into separate columns
+                                     new_col = Column([el[i] for el in col])
+ 
++                                    # Copy the format from the original column
++                                    if col.info.format is not None:
++                                        new_col.info.format = col.info.format
++
+                                     new_col_iter_str_vals = self.fill_values(
+                                         col, new_col.info.iter_str_vals())
+                                     col_str_iters.append(new_col_iter_str_vals)
+2026-10-04 17:13:18,033 - INFO - Grading answer for astropy__astropy-13453...
+2026-10-04 17:13:18,035 - INFO - report: {'astropy__astropy-13453': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/io/ascii/tests/test_html.py::test_write_table_formatted_columns'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/io/ascii/tests/test_html.py::test_listwriter', 'astropy/io/ascii/tests/test_html.py::test_htmlinputter_no_bs4', 'astropy/io/ascii/tests/test_html.py::test_multicolumn_write', 'astropy/io/ascii/tests/test_html.py::test_write_no_multicols', 'astropy/io/ascii/tests/test_html.py::test_write_table_html_fill_values', 'astropy/io/ascii/tests/test_html.py::test_write_table_html_fill_values_optional_columns', 'astropy/io/ascii/tests/test_html.py::test_write_table_html_fill_values_masked', 'astropy/io/ascii/tests/test_html.py::test_multicolumn_table_html_fill_values', 'astropy/io/ascii/tests/test_html.py::test_multi_column_write_table_html_fill_values_masked'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-13453: resolved: True
+2026-10-04 17:13:18,036 - INFO - Attempting to stop container sweb.eval.astropy__astropy-13453.wescode-v3...
+2026-10-04 17:13:33,176 - INFO - Container sweb.eval.astropy__astropy-13453.wescode-v3 stopped successfully.
+2026-10-04 17:13:33,176 - INFO - Attempting to remove container sweb.eval.astropy__astropy-13453.wescode-v3...
+2026-10-04 17:13:33,239 - INFO - Container sweb.eval.astropy__astropy-13453.wescode-v3 removed successfully.

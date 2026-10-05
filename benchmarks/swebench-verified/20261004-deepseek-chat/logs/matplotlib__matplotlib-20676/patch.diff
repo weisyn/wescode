@@ -1,0 +1,68 @@
+diff --git a/lib/matplotlib/tests/test_widgets.py b/lib/matplotlib/tests/test_widgets.py
+index 71ebd176f..b1cfa1cb6 100644
+--- a/lib/matplotlib/tests/test_widgets.py
++++ b/lib/matplotlib/tests/test_widgets.py
+@@ -302,6 +302,26 @@ def test_tool_line_handle():
+     assert tool_line_handle.positions == positions
+ 
+ 
++def test_span_selector_limits():
++    # SpanSelector with interactive=True must not modify the axes limits, in
++    # particular it must not force 0 into the view limits (gh#20488).
++    ax = get_ax()
++    ax.plot([10, 20], [10, 20])
++    xlim = ax.get_xlim()
++    ylim = ax.get_ylim()
++
++    def onselect(vmin, vmax):
++        pass
++
++    widgets.SpanSelector(ax, onselect, 'horizontal', interactive=True)
++    assert ax.get_xlim() == xlim
++    assert ax.get_ylim() == ylim
++
++    widgets.SpanSelector(ax, onselect, 'vertical', interactive=True)
++    assert ax.get_xlim() == xlim
++    assert ax.get_ylim() == ylim
++
++
+ def check_lasso_selector(**kwargs):
+     ax = get_ax()
+ 
+diff --git a/lib/matplotlib/widgets.py b/lib/matplotlib/widgets.py
+index a199e45d4..0ef94cbb9 100644
+--- a/lib/matplotlib/widgets.py
++++ b/lib/matplotlib/widgets.py
+@@ -2156,7 +2156,12 @@ class SpanSelector(_SelectorWidget):
+             self.artists.append(self._rect)
+ 
+     def _setup_edge_handle(self, props):
+-        self._edge_handles = ToolLineHandles(self.ax, self.extents,
++        # Define initial position using the axis bounds to keep the same bounds
++        if self.direction == 'horizontal':
++            positions = self.ax.get_xbound()
++        else:
++            positions = self.ax.get_ybound()
++        self._edge_handles = ToolLineHandles(self.ax, positions,
+                                              direction=self.direction,
+                                              line_props=props,
+                                              useblit=self.useblit)
+@@ -2364,12 +2369,14 @@ class ToolLineHandles:
+ 
+         if line_props is None:
+             line_props = {}
+-        line_props.update({'visible': False, 'animated': useblit})
+-
+-        line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
++        line_props = {
++            'visible': False, 'animated': useblit, **line_props}
+         self._line_props = line_props
+ 
+-        self.artists = [line_fun(p, **line_props) for p in positions]
++        self.artists = [
++            Line2D([p, p], [0, 1], **line_props) for p in positions]
++        for artist in self.artists:
++            ax.add_line(artist)
+ 
+     @property
+     def positions(self):

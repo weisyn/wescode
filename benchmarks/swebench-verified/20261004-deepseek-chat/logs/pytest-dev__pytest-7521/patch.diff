@@ -1,0 +1,29 @@
+diff --git a/src/_pytest/capture.py b/src/_pytest/capture.py
+index 3f9c60fb9..f538b67ec 100644
+--- a/src/_pytest/capture.py
++++ b/src/_pytest/capture.py
+@@ -388,6 +388,7 @@ class FDCaptureBinary:
+                 TemporaryFile(buffering=0),  # type: ignore[arg-type]
+                 encoding="utf-8",
+                 errors="replace",
++                newline="",
+                 write_through=True,
+             )
+             if targetfd in patchsysdict:
+diff --git a/testing/test_capture.py b/testing/test_capture.py
+index a3bd4b623..bc89501c7 100644
+--- a/testing/test_capture.py
++++ b/testing/test_capture.py
+@@ -514,6 +514,12 @@ class TestCaptureFixture:
+         )
+         reprec.assertoutcome(passed=1)
+ 
++    @pytest.mark.parametrize("nl", ("\n", "\r\n", "\r"))
++    def test_cafd_preserves_newlines(self, capfd, nl):
++        print("test", end=nl)
++        out, err = capfd.readouterr()
++        assert out.endswith(nl)
++
+     def test_capfdbinary(self, testdir):
+         reprec = testdir.inline_runsource(
+             """\

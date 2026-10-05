@@ -1,0 +1,41 @@
+diff --git a/django/forms/boundfield.py b/django/forms/boundfield.py
+index 2ff8b0ee26..59987ee101 100644
+--- a/django/forms/boundfield.py
++++ b/django/forms/boundfield.py
+@@ -277,7 +277,7 @@ class BoundWidget:
+ 
+     @property
+     def id_for_label(self):
+-        return 'id_%s_%s' % (self.data['name'], self.data['index'])
++        return self.data['attrs'].get('id', 'id_%s_%s' % (self.data['name'], self.data['index']))
+ 
+     @property
+     def choice_label(self):
+diff --git a/tests/forms_tests/tests/test_forms.py b/tests/forms_tests/tests/test_forms.py
+index f3ee64ceda..792f96266b 100644
+--- a/tests/forms_tests/tests/test_forms.py
++++ b/tests/forms_tests/tests/test_forms.py
+@@ -3202,6 +3202,23 @@ Good luck picking a username that doesn&#x27;t already exist.</p>
+         self.assertEqual(form['field'].id_for_label, 'myCustomID')
+         self.assertEqual(form['field_none'].id_for_label, 'id_field_none')
+ 
++    def test_boundfield_subwidget_id_for_label(self):
++        """
++        The id of a subwidget's label is taken from the "id" HTML attribute
++        set by the widget, which accounts for a custom auto_id.
++        """
++        class SomeForm(Form):
++            field = ChoiceField(
++                choices=[('a', 'A'), ('b', 'B')],
++                widget=CheckboxSelectMultiple,
++            )
++
++        form = SomeForm(auto_id='custom_%s')
++        self.assertEqual(
++            [subwidget.id_for_label for subwidget in form['field']],
++            ['custom_field_0', 'custom_field_1'],
++        )
++
+     def test_boundfield_widget_type(self):
+         class SomeForm(Form):
+             first_name = CharField()

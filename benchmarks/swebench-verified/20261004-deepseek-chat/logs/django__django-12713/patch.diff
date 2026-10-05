@@ -1,0 +1,103 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 69a5fbf389..db7df891e3 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -249,16 +249,17 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+             return None
+         db = kwargs.get('using')
+ 
+-        autocomplete_fields = self.get_autocomplete_fields(request)
+-        if db_field.name in autocomplete_fields:
+-            kwargs['widget'] = AutocompleteSelectMultiple(db_field.remote_field, self.admin_site, using=db)
+-        elif db_field.name in self.raw_id_fields:
+-            kwargs['widget'] = widgets.ManyToManyRawIdWidget(db_field.remote_field, self.admin_site, using=db)
+-        elif db_field.name in [*self.filter_vertical, *self.filter_horizontal]:
+-            kwargs['widget'] = widgets.FilteredSelectMultiple(
+-                db_field.verbose_name,
+-                db_field.name in self.filter_vertical
+-            )
++        if 'widget' not in kwargs:
++            autocomplete_fields = self.get_autocomplete_fields(request)
++            if db_field.name in autocomplete_fields:
++                kwargs['widget'] = AutocompleteSelectMultiple(db_field.remote_field, self.admin_site, using=db)
++            elif db_field.name in self.raw_id_fields:
++                kwargs['widget'] = widgets.ManyToManyRawIdWidget(db_field.remote_field, self.admin_site, using=db)
++            elif db_field.name in [*self.filter_vertical, *self.filter_horizontal]:
++                kwargs['widget'] = widgets.FilteredSelectMultiple(
++                    db_field.verbose_name,
++                    db_field.name in self.filter_vertical
++                )
+ 
+         if 'queryset' not in kwargs:
+             queryset = self.get_field_queryset(db, db_field, request)
+diff --git a/tests/modeladmin/tests.py b/tests/modeladmin/tests.py
+index 6934bf2b3c..fc43ab4d5c 100644
+--- a/tests/modeladmin/tests.py
++++ b/tests/modeladmin/tests.py
+@@ -47,6 +47,66 @@ class ModelAdminTests(TestCase):
+         ma = ModelAdmin(Band, self.site)
+         self.assertEqual(str(ma), 'modeladmin.ModelAdmin')
+ 
++    def test_formfield_for_manytomany_override_widget(self):
++        class MySelect(Select):
++            pass
++
++        class BandAdmin(ModelAdmin):
++            filter_horizontal = ['featuring']
++            formfield_overrides = {
++                models.ManyToManyField: {'widget': MySelect},
++            }
++
++        ma = BandAdmin(Song, self.site)
++        self.assertIsInstance(
++            ma.get_form(request).base_fields['featuring'].widget.widget,
++            MySelect,
++        )
++
++        class BandAdmin2(ModelAdmin):
++            filter_horizontal = ['featuring']
++
++            def formfield_for_manytomany(self, db_field, request, **kwargs):
++                if db_field.name == 'featuring':
++                    kwargs['widget'] = MySelect
++                return super().formfield_for_manytomany(db_field, request, **kwargs)
++
++        ma = BandAdmin2(Song, self.site)
++        self.assertIsInstance(
++            ma.get_form(request).base_fields['featuring'].widget.widget,
++            MySelect,
++        )
++
++    def test_formfield_for_foreignkey_override_widget(self):
++        class MySelect(Select):
++            pass
++
++        class BandAdmin(ModelAdmin):
++            radio_fields = {'band': VERTICAL}
++            formfield_overrides = {
++                models.ForeignKey: {'widget': MySelect},
++            }
++
++        ma = BandAdmin(Song, self.site)
++        self.assertIsInstance(
++            ma.get_form(request).base_fields['band'].widget.widget,
++            MySelect,
++        )
++
++        class BandAdmin2(ModelAdmin):
++            radio_fields = {'band': VERTICAL}
++
++            def formfield_for_foreignkey(self, db_field, request, **kwargs):
++                if db_field.name == 'band':
++                    kwargs['widget'] = MySelect
++                return super().formfield_for_foreignkey(db_field, request, **kwargs)
++
++        ma = BandAdmin2(Song, self.site)
++        self.assertIsInstance(
++            ma.get_form(request).base_fields['band'].widget.widget,
++            MySelect,
++        )
++
+     # form/fields/fieldsets interaction ##############################
+ 
+     def test_default_fields(self):

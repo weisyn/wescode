@@ -1,0 +1,75 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 30616c0172..bbbacecaae 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -563,6 +563,26 @@ class MigrationAutodetector:
+                 if isinstance(base, str) and "." in base:
+                     base_app_label, base_name = base.split(".", 1)
+                     dependencies.append((base_app_label, base_name, None, True))
++                    # Depend on the removal of base fields if the new model has
++                    # a field with the same name.
++                    old_base_model_state = self.from_state.models.get(
++                        (base_app_label, base_name.lower())
++                    )
++                    new_base_model_state = self.to_state.models.get(
++                        (base_app_label, base_name.lower())
++                    )
++                    if old_base_model_state and new_base_model_state:
++                        removed_base_fields = (
++                            set(old_base_model_state.fields) - set(new_base_model_state.fields)
++                        )
++                        for removed_base_field in removed_base_fields:
++                            if removed_base_field in model_state.fields:
++                                dependencies.append((
++                                    base_app_label,
++                                    base_name,
++                                    removed_base_field,
++                                    False,
++                                ))
+             # Depend on the other end of the primary key if it's a relation
+             if primary_key_rel:
+                 dependencies.append((
+diff --git a/tests/migrations/test_autodetector.py b/tests/migrations/test_autodetector.py
+index daff57fc2c..e2e7fb5158 100644
+--- a/tests/migrations/test_autodetector.py
++++ b/tests/migrations/test_autodetector.py
+@@ -2454,3 +2454,39 @@ class AutodetectorTests(TestCase):
+         self.assertNumberMigrations(changes, 'app', 1)
+         self.assertOperationTypes(changes, 'app', 0, ['DeleteModel'])
+         self.assertOperationAttributes(changes, 'app', 0, 0, name='Dog')
++
++    def test_add_field_to_model_with_mti_inheritance(self):
++        """
++        #12754 - The fields must be removed from the base model before the
++        subclass that now owns them is created.
++        """
++        Readable = ModelState('app', 'Readable', [
++            ("id", models.AutoField(primary_key=True)),
++            ("title", models.CharField(max_length=200)),
++        ])
++        Readable_empty = ModelState('app', 'Readable', [
++            ("id", models.AutoField(primary_key=True)),
++        ])
++        Book = ModelState('app', 'Book', [
++            ("readable_ptr", models.OneToOneField(
++                "app.Readable", models.CASCADE, parent_link=True,
++                primary_key=True,
++            )),
++            ("title", models.CharField(max_length=200)),
++        ], bases=('app.Readable',))
++        Magazine = ModelState('app', 'Magazine', [
++            ("readable_ptr", models.OneToOneField(
++                "app.Readable", models.CASCADE, parent_link=True,
++                primary_key=True,
++            )),
++            ("title", models.CharField(max_length=200)),
++        ], bases=('app.Readable',))
++        changes = self.get_changes([Readable], [Readable_empty, Book, Magazine])
++        self.assertNumberMigrations(changes, 'app', 1)
++        self.assertOperationTypes(changes, 'app', 0, [
++            'RemoveField', 'CreateModel', 'CreateModel',
++        ])
++        self.assertOperationAttributes(changes, 'app', 0, 0, model_name='readable', name='title')
++        self.assertOperationAttributes(changes, 'app', 0, 1, name='Book')
++        self.assertOperationAttributes(changes, 'app', 0, 2, name='Magazine')
++

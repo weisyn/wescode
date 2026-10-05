@@ -1,0 +1,178 @@
+2026-10-04 17:41:51,441 - INFO - Creating container for django__django-12419...
+2026-10-04 17:41:51,489 - INFO - Container for django__django-12419 created: 286b01cf943baca64361e8d42d92861d9d7c7b8e71788c33e6a0049579c6a01b
+2026-10-04 17:41:51,705 - INFO - Container for django__django-12419 started: 286b01cf943baca64361e8d42d92861d9d7c7b8e71788c33e6a0049579c6a01b
+2026-10-04 17:41:51,705 - INFO - Intermediate patch for django__django-12419 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12419/patch.diff, now applying to container...
+2026-10-04 17:41:51,825 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:41:52,897 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:41:53,593 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:41:53,906 - INFO - >>>>> Applied Patch:
+patching file django/conf/global_settings.py
+patching file docs/ref/settings.txt
+patching file docs/releases/3.1.txt
+patching file tests/project_template/test_settings.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 38 with fuzz 1.
+
+2026-10-04 17:41:54,003 - INFO - Git diff before:
+diff --git a/django/conf/global_settings.py b/django/conf/global_settings.py
+index 09c9b95d26..8bb59a4037 100644
+--- a/django/conf/global_settings.py
++++ b/django/conf/global_settings.py
+@@ -637,6 +637,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+ SECURE_HSTS_PRELOAD = False
+ SECURE_HSTS_SECONDS = 0
+ SECURE_REDIRECT_EXEMPT = []
+-SECURE_REFERRER_POLICY = None
++SECURE_REFERRER_POLICY = 'same-origin'
+ SECURE_SSL_HOST = None
+ SECURE_SSL_REDIRECT = False
+diff --git a/docs/ref/settings.txt b/docs/ref/settings.txt
+index b4a5bdc48f..8c3f6f2b47 100644
+--- a/docs/ref/settings.txt
++++ b/docs/ref/settings.txt
+@@ -2395,12 +2395,16 @@ from URL paths, so patterns shouldn't include them, e.g.
+ 
+ .. versionadded:: 3.0
+ 
+-Default: ``None``
++Default: ``'same-origin'``
+ 
+ If configured, the :class:`~django.middleware.security.SecurityMiddleware` sets
+ the :ref:`referrer-policy` header on all responses that do not already have it
+ to the value provided.
+ 
++.. versionchanged:: 3.1
++
++    In older versions, the default value is ``None``.
++
+ .. setting:: SECURE_SSL_HOST
+ 
+ ``SECURE_SSL_HOST``
+diff --git a/docs/releases/3.1.txt b/docs/releases/3.1.txt
+index 4a165156e1..903e2510ba 100644
+--- a/docs/releases/3.1.txt
++++ b/docs/releases/3.1.txt
+@@ -285,6 +285,19 @@ Requests and Responses
+ * The new :meth:`.HttpRequest.accepts` method returns whether the request
+   accepts the given MIME type according to the ``Accept`` HTTP header.
+ 
++.. _whats-new-security-3.1:
++
++Security
++~~~~~~~~
++
++* The :setting:`SECURE_REFERRER_POLICY` setting now defaults to
++  ``'same-origin'``. With this configured,
++  :class:`~django.middleware.security.SecurityMiddleware` sets the
++  :ref:`referrer-policy` header to ``same-origin`` on all responses that do not
++  already have it. This prevents the ``Referer`` header being sent to other
++  origins. If you need the previous behavior, explicitly set
++  :setting:`SECURE_REFERRER_POLICY` to ``None``.
++
+ Serialization
+ ~~~~~~~~~~~~~
+ 
+@@ -452,6 +465,10 @@ Miscellaneous
+ * Providing a non-local remote field in the :attr:`.ForeignKey.to_field`
+   argument now raises :class:`~django.core.exceptions.FieldError`.
+ 
++* :setting:`SECURE_REFERRER_POLICY` now defaults to ``'same-origin'``. See the
++  *What's New* :ref:`Security section <whats-new-security-3.1>` above for more
++  details.
++
+ .. _deprecated-features-3.1:
+ 
+ Features deprecated in 3.1
+diff --git a/tests/project_template/test_settings.py b/tests/project_template/test_settings.py
+index 5617f4a943..e8d466938d 100644
+--- a/tests/project_template/test_settings.py
++++ b/tests/project_template/test_settings.py
+@@ -38,6 +38,7 @@ class TestStartProjectSettings(SimpleTestCase):
+             self.assertEqual(headers, [
+                 b'Content-Length: 0',
+                 b'Content-Type: text/html; charset=utf-8',
++                b'Referrer-Policy: same-origin',
+                 b'X-Content-Type-Options: nosniff',
+                 b'X-Frame-Options: DENY',
+             ])
+2026-10-04 17:41:54,003 - INFO - Eval script for django__django-12419 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12419/eval.sh; copying to container...
+2026-10-04 17:42:00,494 - INFO - Test runtime: 6.37 seconds
+2026-10-04 17:42:00,494 - INFO - Test output for django__django-12419 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12419/test_output.txt
+2026-10-04 17:42:00,560 - INFO - Git diff after:
+diff --git a/django/conf/global_settings.py b/django/conf/global_settings.py
+index 09c9b95d26..8bb59a4037 100644
+--- a/django/conf/global_settings.py
++++ b/django/conf/global_settings.py
+@@ -637,6 +637,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+ SECURE_HSTS_PRELOAD = False
+ SECURE_HSTS_SECONDS = 0
+ SECURE_REDIRECT_EXEMPT = []
+-SECURE_REFERRER_POLICY = None
++SECURE_REFERRER_POLICY = 'same-origin'
+ SECURE_SSL_HOST = None
+ SECURE_SSL_REDIRECT = False
+diff --git a/docs/ref/settings.txt b/docs/ref/settings.txt
+index b4a5bdc48f..8c3f6f2b47 100644
+--- a/docs/ref/settings.txt
++++ b/docs/ref/settings.txt
+@@ -2395,12 +2395,16 @@ from URL paths, so patterns shouldn't include them, e.g.
+ 
+ .. versionadded:: 3.0
+ 
+-Default: ``None``
++Default: ``'same-origin'``
+ 
+ If configured, the :class:`~django.middleware.security.SecurityMiddleware` sets
+ the :ref:`referrer-policy` header on all responses that do not already have it
+ to the value provided.
+ 
++.. versionchanged:: 3.1
++
++    In older versions, the default value is ``None``.
++
+ .. setting:: SECURE_SSL_HOST
+ 
+ ``SECURE_SSL_HOST``
+diff --git a/docs/releases/3.1.txt b/docs/releases/3.1.txt
+index 4a165156e1..903e2510ba 100644
+--- a/docs/releases/3.1.txt
++++ b/docs/releases/3.1.txt
+@@ -285,6 +285,19 @@ Requests and Responses
+ * The new :meth:`.HttpRequest.accepts` method returns whether the request
+   accepts the given MIME type according to the ``Accept`` HTTP header.
+ 
++.. _whats-new-security-3.1:
++
++Security
++~~~~~~~~
++
++* The :setting:`SECURE_REFERRER_POLICY` setting now defaults to
++  ``'same-origin'``. With this configured,
++  :class:`~django.middleware.security.SecurityMiddleware` sets the
++  :ref:`referrer-policy` header to ``same-origin`` on all responses that do not
++  already have it. This prevents the ``Referer`` header being sent to other
++  origins. If you need the previous behavior, explicitly set
++  :setting:`SECURE_REFERRER_POLICY` to ``None``.
++
+ Serialization
+ ~~~~~~~~~~~~~
+ 
+@@ -452,6 +465,10 @@ Miscellaneous
+ * Providing a non-local remote field in the :attr:`.ForeignKey.to_field`
+   argument now raises :class:`~django.core.exceptions.FieldError`.
+ 
++* :setting:`SECURE_REFERRER_POLICY` now defaults to ``'same-origin'``. See the
++  *What's New* :ref:`Security section <whats-new-security-3.1>` above for more
++  details.
++
+ .. _deprecated-features-3.1:
+ 
+ Features deprecated in 3.1
+2026-10-04 17:42:00,560 - INFO - Git diff changed after running eval script
+2026-10-04 17:42:00,560 - INFO - Grading answer for django__django-12419...
+2026-10-04 17:42:00,560 - INFO - report: {'django__django-12419': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_middleware_headers (project_template.test_settings.TestStartProjectSettings)'], 'failure': []}, 'PASS_TO_PASS': {'success': [], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12419: resolved: True
+2026-10-04 17:42:00,560 - INFO - Attempting to stop container sweb.eval.django__django-12419.wescode-v3...
+2026-10-04 17:42:15,879 - INFO - Container sweb.eval.django__django-12419.wescode-v3 stopped successfully.
+2026-10-04 17:42:15,879 - INFO - Attempting to remove container sweb.eval.django__django-12419.wescode-v3...
+2026-10-04 17:42:16,063 - INFO - Container sweb.eval.django__django-12419.wescode-v3 removed successfully.

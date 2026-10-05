@@ -1,0 +1,116 @@
+2026-10-04 19:21:49,996 - INFO - Creating container for scikit-learn__scikit-learn-14629...
+2026-10-04 19:21:50,035 - INFO - Container for scikit-learn__scikit-learn-14629 created: d75cc4bfdc9401f3b644030155944440091d0dc8d675b02dfdc7cae773d33c30
+2026-10-04 19:21:50,239 - INFO - Container for scikit-learn__scikit-learn-14629 started: d75cc4bfdc9401f3b644030155944440091d0dc8d675b02dfdc7cae773d33c30
+2026-10-04 19:21:50,239 - INFO - Intermediate patch for scikit-learn__scikit-learn-14629 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-14629/patch.diff, now applying to container...
+2026-10-04 19:21:50,342 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:21:50,526 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:21:50,629 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:21:50,733 - INFO - >>>>> Applied Patch:
+patching file sklearn/multioutput.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 328 with fuzz 1.
+
+2026-10-04 19:21:50,789 - INFO - Git diff before:
+diff --git a/sklearn/multioutput.py b/sklearn/multioutput.py
+index 463b72d40..be30b9a10 100755
+--- a/sklearn/multioutput.py
++++ b/sklearn/multioutput.py
+@@ -318,6 +318,9 @@ class MultiOutputClassifier(MultiOutputEstimator, ClassifierMixin):
+ 
+     Attributes
+     ----------
++    classes_ : array, shape (n_classes,)
++        Class labels.
++
+     estimators_ : list of ``n_output`` estimators
+         Estimators used for predictions.
+     """
+@@ -325,6 +328,31 @@ class MultiOutputClassifier(MultiOutputEstimator, ClassifierMixin):
+     def __init__(self, estimator, n_jobs=None):
+         super().__init__(estimator, n_jobs)
+ 
++    def fit(self, X, Y, sample_weight=None):
++        """ Fit the model to data matrix X and targets Y.
++
++        Parameters
++        ----------
++        X : array-like, shape (n_samples, n_features)
++            The input data.
++
++        Y : array-like, shape (n_samples, n_classes)
++            The target values.
++
++        sample_weight : array-like of shape (n_samples,) or None
++            Sample weights. If None, then samples are equally weighted.
++            Only supported if the underlying classifier supports sample
++            weights.
++
++        Returns
++        -------
++        self : object
++            Returns a fitted instance.
++        """
++        super().fit(X, Y, sample_weight)
++        self.classes_ = [estimator.classes_ for estimator in self.estimators_]
++        return self
++
+     def predict_proba(self, X):
+         """Probability estimates.
+         Returns prediction probabilities for each class of each output.
+2026-10-04 19:21:50,789 - INFO - Eval script for scikit-learn__scikit-learn-14629 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-14629/eval.sh; copying to container...
+2026-10-04 19:21:59,914 - INFO - Test runtime: 9.07 seconds
+2026-10-04 19:21:59,915 - INFO - Test output for scikit-learn__scikit-learn-14629 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-14629/test_output.txt
+2026-10-04 19:21:59,969 - INFO - Git diff after:
+diff --git a/sklearn/multioutput.py b/sklearn/multioutput.py
+index 463b72d40..be30b9a10 100755
+--- a/sklearn/multioutput.py
++++ b/sklearn/multioutput.py
+@@ -318,6 +318,9 @@ class MultiOutputClassifier(MultiOutputEstimator, ClassifierMixin):
+ 
+     Attributes
+     ----------
++    classes_ : array, shape (n_classes,)
++        Class labels.
++
+     estimators_ : list of ``n_output`` estimators
+         Estimators used for predictions.
+     """
+@@ -325,6 +328,31 @@ class MultiOutputClassifier(MultiOutputEstimator, ClassifierMixin):
+     def __init__(self, estimator, n_jobs=None):
+         super().__init__(estimator, n_jobs)
+ 
++    def fit(self, X, Y, sample_weight=None):
++        """ Fit the model to data matrix X and targets Y.
++
++        Parameters
++        ----------
++        X : array-like, shape (n_samples, n_features)
++            The input data.
++
++        Y : array-like, shape (n_samples, n_classes)
++            The target values.
++
++        sample_weight : array-like of shape (n_samples,) or None
++            Sample weights. If None, then samples are equally weighted.
++            Only supported if the underlying classifier supports sample
++            weights.
++
++        Returns
++        -------
++        self : object
++            Returns a fitted instance.
++        """
++        super().fit(X, Y, sample_weight)
++        self.classes_ = [estimator.classes_ for estimator in self.estimators_]
++        return self
++
+     def predict_proba(self, X):
+         """Probability estimates.
+         Returns prediction probabilities for each class of each output.
+2026-10-04 19:21:59,969 - INFO - Grading answer for scikit-learn__scikit-learn-14629...
+2026-10-04 19:21:59,970 - INFO - report: {'scikit-learn__scikit-learn-14629': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/tests/test_multioutput.py::test_multi_output_classes_[estimator1]'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/tests/test_multioutput.py::test_multi_target_regression', 'sklearn/tests/test_multioutput.py::test_multi_target_regression_partial_fit', 'sklearn/tests/test_multioutput.py::test_multi_target_regression_one_target', 'sklearn/tests/test_multioutput.py::test_multi_target_sparse_regression', 'sklearn/tests/test_multioutput.py::test_multi_target_sample_weights_api', 'sklearn/tests/test_multioutput.py::test_multi_target_sample_weight_partial_fit', 'sklearn/tests/test_multioutput.py::test_multi_target_sample_weights', 'sklearn/tests/test_multioutput.py::test_multi_output_classification_partial_fit_parallelism', 'sklearn/tests/test_multioutput.py::test_multi_output_predict_proba', 'sklearn/tests/test_multioutput.py::test_multi_output_classification_partial_fit', 'sklearn/tests/test_multioutput.py::test_multi_output_classification_partial_fit_no_first_classes_exception', 'sklearn/tests/test_multioutput.py::test_multi_output_classification', 'sklearn/tests/test_multioutput.py::test_multiclass_multioutput_estimator', 'sklearn/tests/test_multioutput.py::test_multiclass_multioutput_estimator_predict_proba', 'sklearn/tests/test_multioutput.py::test_multi_output_classification_sample_weights', 'sklearn/tests/test_multioutput.py::test_multi_output_classification_partial_fit_sample_weights', 'sklearn/tests/test_multioutput.py::test_multi_output_exceptions', 'sklearn/tests/test_multioutput.py::test_classifier_chain_fit_and_predict_with_linear_svc', 'sklearn/tests/test_multioutput.py::test_classifier_chain_fit_and_predict_with_sparse_data', 'sklearn/tests/test_multioutput.py::test_classifier_chain_vs_independent_models', 'sklearn/tests/test_multioutput.py::test_base_chain_fit_and_predict', 'sklearn/tests/test_multioutput.py::test_base_chain_fit_and_predict_with_sparse_data_and_cv', 'sklearn/tests/test_multioutput.py::test_base_chain_random_order', 'sklearn/tests/test_multioutput.py::test_base_chain_crossval_fit_and_predict', 'sklearn/tests/test_multioutput.py::test_multi_output_classes_[estimator0]', 'sklearn/tests/test_multioutput.py::test_multi_output_classes_[estimator2]'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-14629: resolved: True
+2026-10-04 19:21:59,971 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-14629.wescode-v3...
+2026-10-04 19:22:15,232 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14629.wescode-v3 stopped successfully.
+2026-10-04 19:22:15,232 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-14629.wescode-v3...
+2026-10-04 19:22:15,287 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14629.wescode-v3 removed successfully.

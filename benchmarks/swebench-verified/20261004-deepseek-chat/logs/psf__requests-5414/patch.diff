@@ -1,0 +1,30 @@
+diff --git a/requests/models.py b/requests/models.py
+index e7d292d5..3f6fa408 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -354,7 +354,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+         try:
+             host = idna.encode(host, uts46=True).decode('utf-8')
+         except idna.IDNAError:
+-            raise UnicodeError
++            raise UnicodeError from None
+         return host
+ 
+     def prepare_url(self, url, params):
+@@ -402,8 +402,14 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+             try:
+                 host = self._get_idna_encoded_host(host)
+             except UnicodeError:
+-                raise InvalidURL('URL has an invalid label.')
+-        elif host.startswith(u'*'):
++                raise InvalidURL('URL has an invalid label.') from None
++        elif host.startswith(u'*') or '..' in host or host.startswith('.'):
++            # An ASCII hostname is only valid if it does not start with a
++            # wildcard and does not contain an empty label, e.g.
++            # ``http://.example.com`` or ``http://example..com``. Letting
++            # such a host through would defer the error to the IDNA encoder
++            # used by the underlying HTTP library, surfacing as a raw
++            # ``UnicodeError`` instead of ``InvalidURL``.
+             raise InvalidURL('URL has an invalid label.')
+ 
+         # Carefully reconstruct the network location

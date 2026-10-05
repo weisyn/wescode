@@ -1,0 +1,80 @@
+diff --git a/CHANGES b/CHANGES
+index da8580fe6..5a180f41e 100644
+--- a/CHANGES
++++ b/CHANGES
+@@ -28,6 +28,7 @@ Features added
+ * #9195: autodoc: The arguments of ``typing.Literal`` are wrongly rendered
+ * #9185: autodoc: :confval:`autodoc_typehints` allows ``'both'`` setting to
+   allow typehints to be included both in the signature and description
++* #8061, #9218: autodoc: Support variable comment for alias classes
+ * #4257: autodoc: Add :confval:`autodoc_class_signature` to separate the class
+   entry and the definition of ``__init__()`` method
+ * #3257: autosummary: Support instance attributes for classes
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 1f4c98284..18fb0c92e 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1676,7 +1676,11 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+     def get_doc(self, ignore: int = None) -> Optional[List[List[str]]]:
+         if self.doc_as_attr:
+             # Don't show the docstring of the class when it is an alias.
+-            return None
++            comment = self.get_variable_comment()
++            if comment:
++                return []
++            else:
++                return None
+ 
+         lines = getattr(self, '_new_docstrings', None)
+         if lines is not None:
+@@ -1721,9 +1725,18 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+         tab_width = self.directive.state.document.settings.tab_width
+         return [prepare_docstring(docstring, ignore, tab_width) for docstring in docstrings]
+ 
++    def get_variable_comment(self) -> Optional[List[str]]:
++        try:
++            key = ('', '.'.join(self.objpath))
++            analyzer = ModuleAnalyzer.for_module(self.get_real_modname())
++            analyzer.analyze()
++            return list(self.analyzer.attr_docs.get(key, []))
++        except PycodeError:
++            return None
++
+     def add_content(self, more_content: Optional[StringList], no_docstring: bool = False
+                     ) -> None:
+-        if self.doc_as_attr:
++        if self.doc_as_attr and not self.get_variable_comment():
+             try:
+                 more_content = StringList([_('alias of %s') % restify(self.object)], source='')
+             except AttributeError:
+diff --git a/tests/roots/test-ext-autodoc/target/classes.py b/tests/roots/test-ext-autodoc/target/classes.py
+index a3b4c6477..7526e65bc 100644
+--- a/tests/roots/test-ext-autodoc/target/classes.py
++++ b/tests/roots/test-ext-autodoc/target/classes.py
+@@ -30,3 +30,6 @@ class Quux(List[Union[int, float]]):
+ 
+ 
+ Alias = Foo
++
++#: docstring
++OtherAlias = Bar
+diff --git a/tests/test_ext_autodoc_autoclass.py b/tests/test_ext_autodoc_autoclass.py
+index 096dc9397..ee0c00ae2 100644
+--- a/tests/test_ext_autodoc_autoclass.py
++++ b/tests/test_ext_autodoc_autoclass.py
+@@ -327,3 +327,15 @@ def test_class_alias(app):
+         '',
+         '   alias of :class:`target.classes.Foo`',
+     ]
++
++
++def test_class_alias_having_doccomment(app):
++    actual = do_autodoc(app, 'class', 'target.classes.OtherAlias')
++    assert list(actual) == [
++        '',
++        '.. py:attribute:: OtherAlias',
++        '   :module: target.classes',
++        '',
++        '   docstring',
++        '',
++    ]

@@ -1,0 +1,113 @@
+2026-10-04 19:58:39,665 - INFO - Creating container for sympy__sympy-23413...
+2026-10-04 19:58:39,705 - INFO - Container for sympy__sympy-23413 created: 31f0d166cefc62a07a78d674a0b48755bb9acadf8a69246c4cea40ce155aab00
+2026-10-04 19:58:39,912 - INFO - Container for sympy__sympy-23413 started: 31f0d166cefc62a07a78d674a0b48755bb9acadf8a69246c4cea40ce155aab00
+2026-10-04 19:58:39,913 - INFO - Intermediate patch for sympy__sympy-23413 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-23413/patch.diff, now applying to container...
+2026-10-04 19:58:40,034 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:58:40,227 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:58:40,347 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:58:40,470 - INFO - >>>>> Applied Patch:
+patching file sympy/matrices/tests/test_normalforms.py
+patching file sympy/polys/matrices/normalforms.py
+patching file sympy/polys/matrices/tests/test_normalforms.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 62 with fuzz 1.
+
+2026-10-04 19:58:40,546 - INFO - Git diff before:
+diff --git a/sympy/matrices/tests/test_normalforms.py b/sympy/matrices/tests/test_normalforms.py
+index 8e7dc0469d..0dbc484d6d 100755
+--- a/sympy/matrices/tests/test_normalforms.py
++++ b/sympy/matrices/tests/test_normalforms.py
+@@ -77,5 +77,11 @@ def test_hermite_normal():
+     assert hermite_normal_form(m) == hnf
+ 
+     m = Matrix([[2, 7], [0, 0], [0, 0]])
+-    hnf = Matrix(3, 0, [])
++    hnf = Matrix([[1], [0], [0]])
+     assert hermite_normal_form(m) == hnf
++
++
++def test_issue_23410():
++    A = Matrix([[1, 12], [0, 8], [0, 5]])
++    H = Matrix([[1, 0], [0, 8], [0, 5]])
++    assert hermite_normal_form(A) == H
+diff --git a/sympy/polys/matrices/normalforms.py b/sympy/polys/matrices/normalforms.py
+index 30f5534b08..e2c0546857 100755
+--- a/sympy/polys/matrices/normalforms.py
++++ b/sympy/polys/matrices/normalforms.py
+@@ -205,16 +205,19 @@ def _hermite_normal_form(A):
+     if not A.domain.is_ZZ:
+         raise DMDomainError('Matrix must be over domain ZZ.')
+     # We work one row at a time, starting from the bottom row, and working our
+-    # way up. The total number of rows we will consider is min(m, n), where
+-    # A is an m x n matrix.
++    # way up.
+     m, n = A.shape
+-    rows = min(m, n)
+     A = A.to_dense().rep.copy()
+     # Our goal is to put pivot entries in the rightmost columns.
+     # Invariant: Before processing each row, k should be the index of the
+     # leftmost column in which we have so far put a pivot.
+     k = n
+-    for i in range(m - 1, m - 1 - rows, -1):
++    for i in range(m - 1, -1, -1):
++        if k == 0:
++            # This case can arise when n < m and we've already found n pivots.
++            # We don't need to consider any more rows, because this is already
++            # the maximum possible number of pivots.
++            break
+         k -= 1
+         # k now points to the column in which we want to put a pivot.
+         # We want zeros in all entries to the left of the pivot column.
+diff --git a/sympy/polys/matrices/tests/test_normalforms.py b/sympy/polys/matrices/tests/test_normalforms.py
+index 1b6bdd0d6b..a3471400c8 100755
+--- a/sympy/polys/matrices/tests/test_normalforms.py
++++ b/sympy/polys/matrices/tests/test_normalforms.py
+@@ -62,7 +62,7 @@ def test_hermite_normal():
+     assert hermite_normal_form(m) == hnf
+ 
+     m = DM([[2, 7], [0, 0], [0, 0]], ZZ)
+-    hnf = DM([[], [], []], ZZ)
++    hnf = DM([[1], [0], [0]], ZZ)
+     assert hermite_normal_form(m) == hnf
+ 
+     m = DM([[-2, 1], [0, 1]], ZZ)
+2026-10-04 19:58:40,547 - INFO - Eval script for sympy__sympy-23413 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-23413/eval.sh; copying to container...
+2026-10-04 19:58:46,102 - INFO - Test runtime: 5.49 seconds
+2026-10-04 19:58:46,103 - INFO - Test output for sympy__sympy-23413 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-23413/test_output.txt
+2026-10-04 19:58:46,162 - INFO - Git diff after:
+diff --git a/sympy/polys/matrices/normalforms.py b/sympy/polys/matrices/normalforms.py
+index 30f5534b08..e2c0546857 100755
+--- a/sympy/polys/matrices/normalforms.py
++++ b/sympy/polys/matrices/normalforms.py
+@@ -205,16 +205,19 @@ def _hermite_normal_form(A):
+     if not A.domain.is_ZZ:
+         raise DMDomainError('Matrix must be over domain ZZ.')
+     # We work one row at a time, starting from the bottom row, and working our
+-    # way up. The total number of rows we will consider is min(m, n), where
+-    # A is an m x n matrix.
++    # way up.
+     m, n = A.shape
+-    rows = min(m, n)
+     A = A.to_dense().rep.copy()
+     # Our goal is to put pivot entries in the rightmost columns.
+     # Invariant: Before processing each row, k should be the index of the
+     # leftmost column in which we have so far put a pivot.
+     k = n
+-    for i in range(m - 1, m - 1 - rows, -1):
++    for i in range(m - 1, -1, -1):
++        if k == 0:
++            # This case can arise when n < m and we've already found n pivots.
++            # We don't need to consider any more rows, because this is already
++            # the maximum possible number of pivots.
++            break
+         k -= 1
+         # k now points to the column in which we want to put a pivot.
+         # We want zeros in all entries to the left of the pivot column.
+2026-10-04 19:58:46,163 - INFO - Git diff changed after running eval script
+2026-10-04 19:58:46,163 - INFO - Grading answer for sympy__sympy-23413...
+2026-10-04 19:58:46,164 - INFO - report: {'sympy__sympy-23413': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_hermite_normal'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_smith_normal', 'test_smith_normal_deprecated'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-23413: resolved: True
+2026-10-04 19:58:46,165 - INFO - Attempting to stop container sweb.eval.sympy__sympy-23413.wescode-v3...
+2026-10-04 19:59:01,310 - INFO - Container sweb.eval.sympy__sympy-23413.wescode-v3 stopped successfully.
+2026-10-04 19:59:01,310 - INFO - Attempting to remove container sweb.eval.sympy__sympy-23413.wescode-v3...
+2026-10-04 19:59:01,338 - INFO - Container sweb.eval.sympy__sympy-23413.wescode-v3 removed successfully.

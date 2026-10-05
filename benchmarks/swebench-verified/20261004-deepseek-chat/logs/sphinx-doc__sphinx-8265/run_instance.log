@@ -1,0 +1,133 @@
+2026-10-04 19:29:57,764 - INFO - Creating container for sphinx-doc__sphinx-8265...
+2026-10-04 19:29:57,813 - INFO - Container for sphinx-doc__sphinx-8265 created: 89660d3564696ccf2d25339e9b293d8d186d3bcad87c0e973ba8136c704e484e
+2026-10-04 19:29:58,005 - INFO - Container for sphinx-doc__sphinx-8265 started: 89660d3564696ccf2d25339e9b293d8d186d3bcad87c0e973ba8136c704e484e
+2026-10-04 19:29:58,006 - INFO - Intermediate patch for sphinx-doc__sphinx-8265 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8265/patch.diff, now applying to container...
+2026-10-04 19:29:58,124 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:29:58,392 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:29:58,503 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:29:58,621 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/pycode/ast.py
+patching file tests/test_pycode_ast.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 53 with fuzz 1.
+
+2026-10-04 19:29:58,691 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index e30d42e43..9ef4dd273 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -35,6 +35,7 @@ Bugs fixed
+ * #8142: autodoc: Wrong constructor signature for the class derived from
+   typing.Generic
+ * #8157: autodoc: TypeError is raised when annotation has invalid __args__
++* #7964: autodoc: Tuple in default value is wrongly rendered
+ * #8192: napoleon: description is disappeared when it contains inline literals
+ * #8142: napoleon: Potential of regex denial of service in google style docs
+ * #8169: LaTeX: pxjahyper loaded even when latex_engine is not platex
+diff --git a/sphinx/pycode/ast.py b/sphinx/pycode/ast.py
+index 9bafff11c..2583448d5 100755
+--- a/sphinx/pycode/ast.py
++++ b/sphinx/pycode/ast.py
+@@ -166,14 +166,28 @@ class _UnparseVisitor(ast.NodeVisitor):
+         return "{" + ", ".join(self.visit(e) for e in node.elts) + "}"
+ 
+     def visit_Subscript(self, node: ast.Subscript) -> str:
+-        return "%s[%s]" % (self.visit(node.value), self.visit(node.slice))
++        def is_simple_tuple(value: ast.AST) -> bool:
++            return (
++                isinstance(value, ast.Tuple) and
++                bool(value.elts) and
++                not any(isinstance(elt, ast.Starred) for elt in value.elts)
++            )
++
++        if is_simple_tuple(node.slice):
++            elts = ", ".join(self.visit(e) for e in node.slice.elts)  # type: ignore
++            return "%s[%s]" % (self.visit(node.value), elts)
++        elif isinstance(node.slice, ast.Index) and is_simple_tuple(node.slice.value):
++            elts = ", ".join(self.visit(e) for e in node.slice.value.elts)  # type: ignore
++            return "%s[%s]" % (self.visit(node.value), elts)
++        else:
++            return "%s[%s]" % (self.visit(node.value), self.visit(node.slice))
+ 
+     def visit_UnaryOp(self, node: ast.UnaryOp) -> str:
+         return "%s %s" % (self.visit(node.op), self.visit(node.operand))
+ 
+     def visit_Tuple(self, node: ast.Tuple) -> str:
+         if node.elts:
+-            return ", ".join(self.visit(e) for e in node.elts)
++            return "(" + ", ".join(self.visit(e) for e in node.elts) + ")"
+         else:
+             return "()"
+ 
+diff --git a/tests/test_pycode_ast.py b/tests/test_pycode_ast.py
+index 9b12d24d5..32a784b74 100755
+--- a/tests/test_pycode_ast.py
++++ b/tests/test_pycode_ast.py
+@@ -53,7 +53,7 @@ from sphinx.pycode import ast
+     ("+ a", "+ a"),                             # UAdd
+     ("- 1", "- 1"),                             # UnaryOp
+     ("- a", "- a"),                             # USub
+-    ("(1, 2, 3)", "1, 2, 3"),                   # Tuple
++    ("(1, 2, 3)", "(1, 2, 3)"),                   # Tuple
+     ("()", "()"),                               # Tuple (empty)
+ ])
+ def test_unparse(source, expected):
+2026-10-04 19:29:58,691 - INFO - Eval script for sphinx-doc__sphinx-8265 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8265/eval.sh; copying to container...
+2026-10-04 19:30:03,378 - INFO - Test runtime: 4.63 seconds
+2026-10-04 19:30:03,379 - INFO - Test output for sphinx-doc__sphinx-8265 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8265/test_output.txt
+2026-10-04 19:30:03,432 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index e30d42e43..9ef4dd273 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -35,6 +35,7 @@ Bugs fixed
+ * #8142: autodoc: Wrong constructor signature for the class derived from
+   typing.Generic
+ * #8157: autodoc: TypeError is raised when annotation has invalid __args__
++* #7964: autodoc: Tuple in default value is wrongly rendered
+ * #8192: napoleon: description is disappeared when it contains inline literals
+ * #8142: napoleon: Potential of regex denial of service in google style docs
+ * #8169: LaTeX: pxjahyper loaded even when latex_engine is not platex
+diff --git a/sphinx/pycode/ast.py b/sphinx/pycode/ast.py
+index 9bafff11c..2583448d5 100755
+--- a/sphinx/pycode/ast.py
++++ b/sphinx/pycode/ast.py
+@@ -166,14 +166,28 @@ class _UnparseVisitor(ast.NodeVisitor):
+         return "{" + ", ".join(self.visit(e) for e in node.elts) + "}"
+ 
+     def visit_Subscript(self, node: ast.Subscript) -> str:
+-        return "%s[%s]" % (self.visit(node.value), self.visit(node.slice))
++        def is_simple_tuple(value: ast.AST) -> bool:
++            return (
++                isinstance(value, ast.Tuple) and
++                bool(value.elts) and
++                not any(isinstance(elt, ast.Starred) for elt in value.elts)
++            )
++
++        if is_simple_tuple(node.slice):
++            elts = ", ".join(self.visit(e) for e in node.slice.elts)  # type: ignore
++            return "%s[%s]" % (self.visit(node.value), elts)
++        elif isinstance(node.slice, ast.Index) and is_simple_tuple(node.slice.value):
++            elts = ", ".join(self.visit(e) for e in node.slice.value.elts)  # type: ignore
++            return "%s[%s]" % (self.visit(node.value), elts)
++        else:
++            return "%s[%s]" % (self.visit(node.value), self.visit(node.slice))
+ 
+     def visit_UnaryOp(self, node: ast.UnaryOp) -> str:
+         return "%s %s" % (self.visit(node.op), self.visit(node.operand))
+ 
+     def visit_Tuple(self, node: ast.Tuple) -> str:
+         if node.elts:
+-            return ", ".join(self.visit(e) for e in node.elts)
++            return "(" + ", ".join(self.visit(e) for e in node.elts) + ")"
+         else:
+             return "()"
+2026-10-04 19:30:03,432 - INFO - Git diff changed after running eval script
+2026-10-04 19:30:03,432 - INFO - Grading answer for sphinx-doc__sphinx-8265...
+2026-10-04 19:30:03,435 - INFO - report: {'sphinx-doc__sphinx-8265': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_pycode_ast.py::test_unparse[(1,'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_pycode_ast.py::test_unparse[a', 'tests/test_pycode_ast.py::test_unparse[os.path-os.path]', 'tests/test_pycode_ast.py::test_unparse[1', "tests/test_pycode_ast.py::test_unparse[b'bytes'-b'bytes']", 'tests/test_pycode_ast.py::test_unparse[object()-object()]', 'tests/test_pycode_ast.py::test_unparse[1234-1234_0]', "tests/test_pycode_ast.py::test_unparse[{'key1':", 'tests/test_pycode_ast.py::test_unparse[...-...]', 'tests/test_pycode_ast.py::test_unparse[Tuple[int,', 'tests/test_pycode_ast.py::test_unparse[~', 'tests/test_pycode_ast.py::test_unparse[lambda', 'tests/test_pycode_ast.py::test_unparse[[1,', 'tests/test_pycode_ast.py::test_unparse[sys-sys]', 'tests/test_pycode_ast.py::test_unparse[1234-1234_1]', 'tests/test_pycode_ast.py::test_unparse[not', 'tests/test_pycode_ast.py::test_unparse[{1,', "tests/test_pycode_ast.py::test_unparse['str'-'str']", 'tests/test_pycode_ast.py::test_unparse[+', 'tests/test_pycode_ast.py::test_unparse[-', 'tests/test_pycode_ast.py::test_unparse[()-()]', 'tests/test_pycode_ast.py::test_unparse_None', 'tests/test_pycode_ast.py::test_unparse_py38'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-8265: resolved: True
+2026-10-04 19:30:03,435 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-8265.wescode-v3...
+2026-10-04 19:30:18,582 - INFO - Container sweb.eval.sphinx-doc__sphinx-8265.wescode-v3 stopped successfully.
+2026-10-04 19:30:18,582 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-8265.wescode-v3...
+2026-10-04 19:30:18,603 - INFO - Container sweb.eval.sphinx-doc__sphinx-8265.wescode-v3 removed successfully.

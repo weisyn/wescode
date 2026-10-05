@@ -1,0 +1,31 @@
+diff --git a/django/utils/formats.py b/django/utils/formats.py
+index 3f38322d84..bc2df5da1c 100644
+--- a/django/utils/formats.py
++++ b/django/utils/formats.py
+@@ -105,7 +105,11 @@ def get_format(format_type, lang=None, use_l10n=None):
+ 
+     If use_l10n is provided and is not None, it forces the value to
+     be localized (or not), overriding the value of settings.USE_L10N.
++
++    format_type can be a lazy string.
+     """
++    if isinstance(format_type, str) is False:
++        format_type = str(format_type)
+     if use_l10n is None:
+         try:
+             use_l10n = settings._USE_L10N_INTERNAL
+diff --git a/tests/i18n/tests.py b/tests/i18n/tests.py
+index 0093181f64..82f3816b64 100644
+--- a/tests/i18n/tests.py
++++ b/tests/i18n/tests.py
+@@ -861,6 +861,10 @@ class FormattingTests(SimpleTestCase):
+                 # Even a second time (after the format has been cached)...
+                 self.assertEqual(1, get_format("FIRST_DAY_OF_WEEK"))
+ 
++    def test_get_format_lazy_format_type(self):
++        with translation.override("fr"):
++            self.assertEqual(get_format(gettext_lazy("DATE_FORMAT")), "j F Y")
++
+     def test_l10n_enabled(self):
+         self.maxDiff = 3000
+         # Catalan locale

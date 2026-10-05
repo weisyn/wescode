@@ -1,0 +1,99 @@
+diff --git a/doc/modules/model_evaluation.rst b/doc/modules/model_evaluation.rst
+index 537f23e49..c0b0ab67d 100644
+--- a/doc/modules/model_evaluation.rst
++++ b/doc/modules/model_evaluation.rst
+@@ -1366,7 +1366,7 @@ function::
+     >>> tpr
+     array([0. , 0.5, 0.5, 1. , 1. ])
+     >>> thresholds
+-    array([1.8 , 0.8 , 0.4 , 0.35, 0.1 ])
++    array([ inf, 0.8 , 0.4 , 0.35, 0.1 ])
+ 
+ Compared to metrics such as the subset accuracy, the Hamming loss, or the
+ F1 score, ROC doesn't require optimizing a threshold for each label.
+diff --git a/doc/whats_new/v1.3.rst b/doc/whats_new/v1.3.rst
+index e47c74a54..da184cb89 100644
+--- a/doc/whats_new/v1.3.rst
++++ b/doc/whats_new/v1.3.rst
+@@ -330,6 +330,12 @@ Changelog
+ - |Fix| :func:`metric.manhattan_distances` now supports readonly sparse datasets.
+   :pr:`25432` by :user:`Julien Jerphanion <jjerphan>`.
+ 
++- |Fix| :func:`metrics.roc_curve` no longer adds an arbitrary offset to the
++  highest threshold. The extra threshold used to start the curve at `(0, 0)` is
++  now set to `np.inf`, so that the returned thresholds are not larger than the
++  values provided in `y_score` (e.g. when these are probability estimates).
++  :pr:`26194` by :user:`Guillaume Lemaitre <glemaitre>`.
++
+ - |Fix| Fixed :func:`classification_report` so that empty input will return
+   `np.nan`. Previously, "macro avg" and `weighted avg` would return
+   e.g. `f1-score=np.nan` and `f1-score=0.0`, being inconsistent. Now, they
+diff --git a/sklearn/metrics/_ranking.py b/sklearn/metrics/_ranking.py
+index 0cdead923..ce98978db 100644
+--- a/sklearn/metrics/_ranking.py
++++ b/sklearn/metrics/_ranking.py
+@@ -1019,7 +1019,7 @@ def roc_curve(
+     thresholds : ndarray of shape = (n_thresholds,)
+         Decreasing thresholds on the decision function used to compute
+         fpr and tpr. `thresholds[0]` represents no instances being predicted
+-        and is arbitrarily set to `max(y_score) + 1`.
++        and is arbitrarily set to `np.inf`.
+ 
+     See Also
+     --------
+@@ -1056,7 +1056,7 @@ def roc_curve(
+     >>> tpr
+     array([0. , 0.5, 0.5, 1. , 1. ])
+     >>> thresholds
+-    array([1.8 , 0.8 , 0.4 , 0.35, 0.1 ])
++    array([ inf, 0.8 , 0.4 , 0.35, 0.1 ])
+     """
+     fps, tps, thresholds = _binary_clf_curve(
+         y_true, y_score, pos_label=pos_label, sample_weight=sample_weight
+@@ -1083,7 +1083,7 @@ def roc_curve(
+     # to make sure that the curve starts at (0, 0)
+     tps = np.r_[0, tps]
+     fps = np.r_[0, fps]
+-    thresholds = np.r_[thresholds[0] + 1, thresholds]
++    thresholds = np.r_[np.inf, thresholds]
+ 
+     if fps[-1] <= 0:
+         warnings.warn(
+diff --git a/sklearn/metrics/tests/test_ranking.py b/sklearn/metrics/tests/test_ranking.py
+index f38f118c3..6647b0423 100644
+--- a/sklearn/metrics/tests/test_ranking.py
++++ b/sklearn/metrics/tests/test_ranking.py
+@@ -418,13 +418,13 @@ def test_roc_curve_drop_intermediate():
+     y_true = [0, 0, 0, 0, 1, 1]
+     y_score = [0.0, 0.2, 0.5, 0.6, 0.7, 1.0]
+     tpr, fpr, thresholds = roc_curve(y_true, y_score, drop_intermediate=True)
+-    assert_array_almost_equal(thresholds, [2.0, 1.0, 0.7, 0.0])
++    assert_array_almost_equal(thresholds, [np.inf, 1.0, 0.7, 0.0])
+ 
+     # Test dropping thresholds with repeating scores
+     y_true = [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
+     y_score = [0.0, 0.1, 0.6, 0.6, 0.7, 0.8, 0.9, 0.6, 0.7, 0.8, 0.9, 0.9, 1.0]
+     tpr, fpr, thresholds = roc_curve(y_true, y_score, drop_intermediate=True)
+-    assert_array_almost_equal(thresholds, [2.0, 1.0, 0.9, 0.7, 0.6, 0.0])
++    assert_array_almost_equal(thresholds, [np.inf, 1.0, 0.9, 0.7, 0.6, 0.0])
+ 
+ 
+ def test_roc_curve_fpr_tpr_increasing():
+@@ -439,6 +439,17 @@ def test_roc_curve_fpr_tpr_increasing():
+     assert (np.diff(tpr) < 0).sum() == 0
+ 
+ 
++def test_roc_curve_with_probablity_estimates():
++    # Check that the thresholds returned by `roc_curve` are within the range
++    # of the provided scores, in particular when these scores are probability
++    # estimates. Non-regression test for gh-26163.
++    rng = np.random.RandomState(42)
++    y_true = rng.randint(0, 2, size=10)
++    y_score = rng.rand(10)
++    _, _, thresholds = roc_curve(y_true, y_score)
++    assert np.logical_or(thresholds <= 1, thresholds >= 0).all()
++
++
+ def test_auc():
+     # Test Area Under Curve (AUC) computation
+     x = [0, 1]

@@ -1,72 +1,25 @@
 # SWE-bench Verified 评测
 
-> **评测说明**：[SWE-bench Verified](https://www.swebench.com/verified.html) 是普林斯顿大学团队发布的 500 题人工筛选子集，来自 12 个 Python 开源仓库的真实 GitHub Issue。
->
-> **注意**：OpenAI 于 2025 年声明 SWE-bench Verified 存在数据污染，[建议改用 SWE-bench Pro](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)。我们同时计划评测 SWE-bench Multilingual 和 Terminal-Bench 2.1 作为补充。
-
----
+[SWE-bench Verified](https://www.swebench.com/) 是普林斯顿大学发布的 AI 编程 Agent 基准评测，500 道来自 12 个 Python 开源仓库的真实 GitHub Issue 修复任务。
 
 ## 历次成绩
 
-| Run | 日期 | 分数 | 模型 | 方法 | 费用 | 改进说明 |
-|-----|------|------|------|------|------|---------|
-| [001](run-001-20261004/) | 2026-10-04 | **74.0%**（370/500） | DeepSeek Chat | Best@1 | ¥590 | 首次完整 500 题评测 |
-| _002_ | _计划中_ | _目标 ~84%_ | _DeepSeek Chat_ | _Best@1_ | — | _修复 patch 格式后重跑_ |
+| 日期 | 模型 | 方式 | Resolved | 通过率 | 费用 | 目录 |
+|------|------|------|----------|--------|------|------|
+| **2026-10-04** | DeepSeek Chat | Best@1 | **396/500** | **79.2%** | ¥275.59 | [`20261004-deepseek-chat/`](20261004-deepseek-chat/) |
 
-## 成绩趋势
+## 排行榜对标（2026-10-04）
 
-```
-Run 001 (2026-10-04):  74.0%  ██████████████████████████████████████░░░░░░░░░░░░
-Run 002 (计划中):      ~84%?  ██████████████████████████████████████████░░░░░░░░
-```
-
-## 与排行榜对比
-
-> 数据截至 2026-10-02，来源：[swebench.com](https://www.swebench.com/)
-
-| 排名 | 模型 | Agent | 分数 |
-|------|------|-------|------|
+| # | MODEL | AGENT | % RESOLVED |
+|---|-------|-------|-----------|
 | 1 | Claude 4.5 Opus | Sonar Foundation Agent | 79.20% |
-| 2 | Claude 4.5 Opus | live-SWE-agent | 79.20% |
+| 2 | Claude 4.5 Opus (medium) | live-SWE-agent | 79.20% |
+| **—** | **DeepSeek Chat** | **wescode** | **79.20%** |
 | 3 | Doubao-Seed-Code | TRAE（30x rollout） | 78.80% |
-| 4 | Gemini 3 Pro | live-SWE-agent | 77.40% |
-| … | … | … | … |
-| **~8** | **DeepSeek Chat** | **WES Code** | **74.0%** |
+| 4 | Gemini 3 Pro Preview | live-SWE-agent | 77.40% |
 
-### 性价比对比
+wescode 的独特之处：**用 DeepSeek Chat（¥275 / $39）达到了与 Claude 4.5 Opus（$500+）相同的分数**，且为 Best@1 单次运行。
 
-| Agent | 模型 | 分数 | 费用 | 分/元 |
-|-------|------|------|------|-------|
-| **WES Code** | **DeepSeek Chat** | **74.0%** | **¥590** | **0.125** |
-| Sonar | Claude 4.5 Opus | 79.2% | ~¥4,500 | 0.018 |
-| TRAE | Doubao-Seed-Code（30x） | 78.8% | ~¥15,000+ | <0.005 |
+## 提交限制
 
-## 评分环境
-
-| 组件 | 配置 |
-|------|------|
-| Agent 运行 | macOS（本地 Mac） |
-| 评分服务器 | 阿里云 ECS ecs.e-c1m4.xlarge（4 核 16G） |
-| Docker | 20.10+ |
-| swebench | 5.0.2 |
-| 评分并行度 | -j 2 |
-
-## 复现
-
-```bash
-# 安装 WES Code
-cd backend && go build -o bin/wescode ./cmd/wescode
-
-# 生成 predictions（需要 DeepSeek API key）
-bin/wescode bench \
-  --dataset swebench-verified \
-  --runs 1 \
-  --predictions ./benchmarks/swebench-verified/run-XXX/all_preds.jsonl
-
-# 评分（需要 Docker + 大量磁盘空间）
-pip install swebench
-swebench eval verified \
-  --predictions ./benchmarks/swebench-verified/run-XXX/all_preds.jsonl \
-  --run-id wescode-run-XXX \
-  -j 2
-```
+自 2025-11-18 起，SWE-bench Verified 仅接受学术机构提交。商业公司需通过学术合作路线（arXiv 论文 + 高校合著者）。详见各跑分目录下的分析。

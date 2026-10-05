@@ -1,0 +1,69 @@
+diff --git a/astropy/coordinates/sky_coordinate.py b/astropy/coordinates/sky_coordinate.py
+index ab475f7d0..267388e45 100644
+--- a/astropy/coordinates/sky_coordinate.py
++++ b/astropy/coordinates/sky_coordinate.py
+@@ -1,4 +1,5 @@
+ import copy
++import inspect
+ import operator
+ import re
+ import warnings
+@@ -894,7 +895,24 @@ class SkyCoord(ShapedLikeNDArray):
+             if frame_cls is not None and self.frame.is_transformable_to(frame_cls):
+                 return self.transform_to(attr)
+ 
+-        # Fail
++        # Fail: attribute not found via SkyCoord's own machinery.  Before
++        # raising a generic "no attribute" error, check whether the attribute
++        # is actually defined on the class (e.g. a property on a subclass).
++        # If so, the fact that we got here means the descriptor raised
++        # AttributeError internally, so we re-invoke it and let that original
++        # error propagate rather than masking it with a misleading message
++        # (see gh-10128).
++        if not attr.startswith("__"):
++            try:
++                descriptor = inspect.getattr_static(type(self), attr)
++            except AttributeError:
++                pass
++            else:
++                if hasattr(descriptor, "__get__"):
++                    # Re-invoke the descriptor; an AttributeError raised here
++                    # is the original, more informative one.
++                    return descriptor.__get__(self, type(self))
++
+         raise AttributeError(
+             f"'{self.__class__.__name__}' object has no attribute '{attr}'"
+         )
+diff --git a/astropy/coordinates/tests/test_sky_coord.py b/astropy/coordinates/tests/test_sky_coord.py
+index 4dcfba0d4..fb4d4b3ed 100644
+--- a/astropy/coordinates/tests/test_sky_coord.py
++++ b/astropy/coordinates/tests/test_sky_coord.py
+@@ -1894,6 +1894,28 @@ def test_extra_attributes():
+     assert sc3.obstime is None
+ 
+ 
++def test_subclass_property_attribute_error():
++    """A property on a SkyCoord subclass that raises ``AttributeError``
++    should surface the original error rather than a misleading message
++    claiming the property itself does not exist.
++
++    Regression test for gh-10128.
++    """
++
++    class CustomCoord(SkyCoord):
++        @property
++        def prop(self):
++            return self.random_attr
++
++    c = CustomCoord("00h42m30s", "+41d12m00s", frame="icrs")
++    with pytest.raises(AttributeError) as err:
++        c.prop
++    # The message should mention the missing attribute (``random_attr``),
++    # not the property (``prop``).
++    assert "random_attr" in str(err.value)
++    assert "prop" not in str(err.value)
++
++
+ def test_apply_space_motion():
+     # use this 12 year period because it's a multiple of 4 to avoid the quirks
+     # of leap years while having 2 leap seconds in it

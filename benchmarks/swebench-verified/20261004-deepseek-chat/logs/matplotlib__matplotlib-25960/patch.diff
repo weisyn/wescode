@@ -1,0 +1,143 @@
+diff --git a/lib/matplotlib/_constrained_layout.py b/lib/matplotlib/_constrained_layout.py
+index a562e44a4..6a12baa5c 100644
+--- a/lib/matplotlib/_constrained_layout.py
++++ b/lib/matplotlib/_constrained_layout.py
+@@ -631,9 +631,10 @@ def reposition_axes(layoutgrids, fig, renderer, *,
+     """
+     trans_fig_to_subfig = fig.transFigure - fig.transSubfigure
+     for sfig in fig.subfigs:
+-        bbox = layoutgrids[sfig].get_outer_bbox()
+-        sfig._redo_transform_rel_fig(
+-            bbox=bbox.transformed(trans_fig_to_subfig))
++        # Subfigure extents are set by their own gridspec (which accounts for
++        # any wspace/hspace requested in Figure.subfigures), so the layout
++        # engine only needs to recurse into them; it must not move their outer
++        # bbox, which would override that spacing.
+         reposition_axes(layoutgrids, sfig, renderer,
+                         w_pad=w_pad, h_pad=h_pad,
+                         wspace=wspace, hspace=hspace)
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index dab2bc4a5..91f8c78a7 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -1570,6 +1570,10 @@ default: %(va)s
+             expressed as a fraction of the average subfigure width/height.
+             If not given, the values will be inferred from a figure or
+             rcParams when necessary.
++            Note that the ``wspace`` and ``hspace`` in the
++            :class:`.GridSpec` are ignored for subfigures, and instead the
++            values of the parent figure's :class:`.SubplotParams` (or
++            rcParams) are used.
+ 
+         width_ratios : array-like of length *ncols*, optional
+             Defines the relative widths of the columns. Each column gets a
+@@ -2221,6 +2225,11 @@ class SubFigure(FigureBase):
+         self.bbox = TransformedBbox(self.bbox_relative,
+                                     self._parent.transSubfigure)
+         self.transSubfigure = BboxTransformTo(self.bbox)
++        # Keep the transform in sync when the subfigure bbox is recomputed;
++        # otherwise figures drawn without an explicit layout engine would not
++        # see a change of the subfigure extent (e.g. the wspace/hspace
++        # requested in Figure.subfigures).
++        self._redo_transform_rel_fig = self._redo_transform_rel_fig_impl
+ 
+         self.patch = Rectangle(
+             xy=(0, 0), width=1, height=1, visible=frameon,
+@@ -2258,9 +2267,12 @@ class SubFigure(FigureBase):
+     def _get_renderer(self):
+         return self._parent._get_renderer()
+ 
+-    def _redo_transform_rel_fig(self, bbox=None):
++    # _redo_transform_rel_fig is rebound to this in __init__, once the bbox
++    # and transSubfigure attributes exist.
++    def _redo_transform_rel_fig_impl(self, bbox=None):
+         """
+-        Make the transSubfigure bbox relative to Figure transform.
++        Make the ``bbox_relative`` relative to the parent figure transform and
++        update the subfigure ``bbox`` and ``transSubfigure`` accordingly.
+ 
+         Parameters
+         ----------
+@@ -2276,15 +2288,42 @@ class SubFigure(FigureBase):
+         gs = self._subplotspec.get_gridspec()
+         wr = np.asarray(gs.get_width_ratios())
+         hr = np.asarray(gs.get_height_ratios())
+-        dx = wr[self._subplotspec.colspan].sum() / wr.sum()
+-        dy = hr[self._subplotspec.rowspan].sum() / hr.sum()
+-        x0 = wr[:self._subplotspec.colspan.start].sum() / wr.sum()
+-        y0 = 1 - hr[:self._subplotspec.rowspan.stop].sum() / hr.sum()
++        nrows, ncols = gs.get_geometry()
++        # Space between subfigures comes from the wspace/hspace of the
++        # gridspec (defaulted the same way as for subplots, see
++        # GridSpec.get_subplot_params); it is deliberately not taken from the
++        # subplot parameters of the containing figure.
++        wspace = gs.get_subplot_params().wspace if ncols > 1 else 0
++        hspace = gs.get_subplot_params().hspace if nrows > 1 else 0
++        # Same definition as for subplots: the cells share the available
++        # space with the gaps that separate them.
++        cell_w = 1 / (ncols + wspace * (ncols - 1))
++        cell_h = 1 / (nrows + hspace * (nrows - 1))
++        sep_w = wspace * cell_w
++        sep_h = hspace * cell_h
++        col_widths = cell_w * ncols * wr / wr.sum()
++        row_heights = cell_h * nrows * hr / hr.sum()
++        col_edges = np.cumsum(np.column_stack(
++            [[0] + [sep_w] * (ncols - 1), col_widths]).flat)
++        row_edges = np.cumsum(np.column_stack(
++            [[0] + [sep_h] * (nrows - 1), row_heights]).flat)
++        # Col/row i spans col_edges[2*i] to col_edges[2*i + 1].
++        x0 = col_edges[2 * self._subplotspec.colspan.start]
++        x1 = col_edges[2 * self._subplotspec.colspan.stop - 1]
++        # Row edges are measured from the bottom, i.e. from the top of the
++        # figure they are mirrored: 1 - edge.
++        y0 = 1 - row_edges[2 * self._subplotspec.rowspan.stop - 1]
++        y1 = 1 - row_edges[2 * self._subplotspec.rowspan.start]
+         if self.bbox_relative is None:
+-            self.bbox_relative = Bbox.from_bounds(x0, y0, dx, dy)
++            self.bbox_relative = Bbox.from_extents(x0, y0, x1, y1)
+         else:
+             self.bbox_relative.p0 = (x0, y0)
+-            self.bbox_relative.p1 = (x0 + dx, y0 + dy)
++            self.bbox_relative.p1 = (x1, y1)
++        # make the transSubfigure bbox track the new relative bbox (see the
++        # comment in __init__ where this method is rebound).
++        self.bbox = TransformedBbox(self.bbox_relative,
++                                    self._parent.transSubfigure)
++        self.transSubfigure = BboxTransformTo(self.bbox)
+ 
+     def get_constrained_layout(self):
+         """
+diff --git a/lib/matplotlib/tests/test_figure.py b/lib/matplotlib/tests/test_figure.py
+index 474331bf9..b0ca7373f 100644
+--- a/lib/matplotlib/tests/test_figure.py
++++ b/lib/matplotlib/tests/test_figure.py
+@@ -1290,6 +1290,29 @@ def test_subfigure_tightbbox():
+             8.0)
+ 
+ 
++def test_subfigure_wspace_hspace():
++    # Test that the subfigure layout respects the wspace/hspace kwarg: the
++    # subfigures must tile the figure leaving gaps of the requested size.
++    for wspace, hspace in [(0, 0), (0.2, 0.2)]:
++        fig = plt.figure()
++        sfigs = fig.subfigures(2, 2, wspace=wspace, hspace=hspace)
++        fig.draw_without_rendering()
++        # subfigure cells follow the same rule as subplots: the cells share
++        # the figure with (n - 1) gaps of wspace/hspace * cell size.
++        cw = 1 / (2 + wspace)
++        ch = 1 / (2 + hspace)
++        gap_w = wspace * cw
++        gap_h = hspace * ch
++        for i, sfig in enumerate(sfigs.flat):
++            col, row = i % 2, i // 2
++            # bboxes are in figure fraction, with y measured from the bottom
++            np.testing.assert_allclose(
++                [sfig.bbox_relative.x0, sfig.bbox_relative.y0,
++                 sfig.bbox_relative.width, sfig.bbox_relative.height],
++                [col * (cw + gap_w), 1 - (row + 1) * ch - row * gap_h,
++                 cw, ch], atol=1e-12)
++
++
+ def test_subfigure_dpi():
+     fig = plt.figure(dpi=100)
+     sub_fig = fig.subfigures()

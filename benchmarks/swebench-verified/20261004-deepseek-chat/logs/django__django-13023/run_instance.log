@@ -1,0 +1,84 @@
+2026-10-04 17:43:58,295 - INFO - Creating container for django__django-13023...
+2026-10-04 17:43:58,355 - INFO - Container for django__django-13023 created: 6528515d4ec6d7b9f1ec277d5f1773e24ea126cae20702382c9c1afe3270700c
+2026-10-04 17:43:58,569 - INFO - Container for django__django-13023 started: 6528515d4ec6d7b9f1ec277d5f1773e24ea126cae20702382c9c1afe3270700c
+2026-10-04 17:43:58,569 - INFO - Intermediate patch for django__django-13023 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13023/patch.diff, now applying to container...
+2026-10-04 17:43:58,687 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:43:59,868 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:44:00,465 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:44:00,662 - INFO - >>>>> Applied Patch:
+patching file django/db/models/fields/__init__.py
+patching file tests/model_fields/test_decimalfield.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 21 with fuzz 1.
+
+2026-10-04 17:44:00,725 - INFO - Git diff before:
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 0fd69059ee..28374272f4 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -1501,7 +1501,7 @@ class DecimalField(Field):
+             return self.context.create_decimal_from_float(value)
+         try:
+             return decimal.Decimal(value)
+-        except decimal.InvalidOperation:
++        except (decimal.InvalidOperation, TypeError, ValueError):
+             raise exceptions.ValidationError(
+                 self.error_messages['invalid'],
+                 code='invalid',
+diff --git a/tests/model_fields/test_decimalfield.py b/tests/model_fields/test_decimalfield.py
+index e284005aa0..729b5e570a 100644
+--- a/tests/model_fields/test_decimalfield.py
++++ b/tests/model_fields/test_decimalfield.py
+@@ -21,9 +21,24 @@ class DecimalFieldTests(TestCase):
+         # Uses default rounding of ROUND_HALF_EVEN.
+         self.assertEqual(f.to_python(2.0625), Decimal('2.062'))
+         self.assertEqual(f.to_python(2.1875), Decimal('2.188'))
+-        msg = '“abc” value must be a decimal number.'
+-        with self.assertRaisesMessage(ValidationError, msg):
+-            f.to_python('abc')
++
++    def test_invalid_value(self):
++        field = models.DecimalField(max_digits=4, decimal_places=2)
++        msg = '“%s” value must be a decimal number.'
++        tests = [
++            (),
++            [],
++            {},
++            set(),
++            object(),
++            complex(),
++            'non-numeric string',
++            b'non-numeric byte-string',
++        ]
++        for value in tests:
++            with self.subTest(value):
++                with self.assertRaisesMessage(ValidationError, msg % (value,)):
++                    field.clean(value, None)
+ 
+     def test_default(self):
+         f = models.DecimalField(default=Decimal('0.00'))
+2026-10-04 17:44:00,725 - INFO - Eval script for django__django-13023 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13023/eval.sh; copying to container...
+2026-10-04 17:44:07,418 - INFO - Test runtime: 6.63 seconds
+2026-10-04 17:44:07,418 - INFO - Test output for django__django-13023 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13023/test_output.txt
+2026-10-04 17:44:07,478 - INFO - Git diff after:
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 0fd69059ee..28374272f4 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -1501,7 +1501,7 @@ class DecimalField(Field):
+             return self.context.create_decimal_from_float(value)
+         try:
+             return decimal.Decimal(value)
+-        except decimal.InvalidOperation:
++        except (decimal.InvalidOperation, TypeError, ValueError):
+             raise exceptions.ValidationError(
+                 self.error_messages['invalid'],
+                 code='invalid',
+2026-10-04 17:44:07,478 - INFO - Git diff changed after running eval script
+2026-10-04 17:44:07,478 - INFO - Grading answer for django__django-13023...
+2026-10-04 17:44:07,479 - INFO - report: {'django__django-13023': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_invalid_value (model_fields.test_decimalfield.DecimalFieldTests)', 'test_lookup_really_big_value (model_fields.test_decimalfield.DecimalFieldTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_default (model_fields.test_decimalfield.DecimalFieldTests)', 'test_filter_with_strings (model_fields.test_decimalfield.DecimalFieldTests)', 'test_get_prep_value (model_fields.test_decimalfield.DecimalFieldTests)', 'test_max_decimal_places_validation (model_fields.test_decimalfield.DecimalFieldTests)', 'test_max_digits_validation (model_fields.test_decimalfield.DecimalFieldTests)', 'test_max_whole_digits_validation (model_fields.test_decimalfield.DecimalFieldTests)', "Trailing zeros in the fractional part aren't truncated.", 'test_save_without_float_conversion (model_fields.test_decimalfield.DecimalFieldTests)', 'test_to_python (model_fields.test_decimalfield.DecimalFieldTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13023: resolved: True
+2026-10-04 17:44:07,479 - INFO - Attempting to stop container sweb.eval.django__django-13023.wescode-v3...
+2026-10-04 17:44:22,794 - INFO - Container sweb.eval.django__django-13023.wescode-v3 stopped successfully.
+2026-10-04 17:44:22,794 - INFO - Attempting to remove container sweb.eval.django__django-13023.wescode-v3...
+2026-10-04 17:44:22,974 - INFO - Container sweb.eval.django__django-13023.wescode-v3 removed successfully.

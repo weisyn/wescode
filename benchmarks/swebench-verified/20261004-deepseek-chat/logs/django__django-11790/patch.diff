@@ -1,0 +1,65 @@
+diff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py
+index a0cfed0995..a325d54781 100644
+--- a/django/contrib/auth/forms.py
++++ b/django/contrib/auth/forms.py
+@@ -62,11 +62,14 @@ class UsernameField(forms.CharField):
+         return unicodedata.normalize('NFKC', super().to_python(value))
+ 
+     def widget_attrs(self, widget):
+-        return {
++        attrs = {
+             **super().widget_attrs(widget),
+             'autocapitalize': 'none',
+             'autocomplete': 'username',
+         }
++        if self.max_length is not None:
++            attrs['maxlength'] = str(self.max_length)
++        return attrs
+ 
+ 
+ class UserCreationForm(forms.ModelForm):
+@@ -191,7 +194,10 @@ class AuthenticationForm(forms.Form):
+ 
+         # Set the max length and label for the "username" field.
+         self.username_field = UserModel._meta.get_field(UserModel.USERNAME_FIELD)
+-        self.fields['username'].max_length = self.username_field.max_length or 254
++        username_max_length = self.username_field.max_length or 254
++        self.fields['username'].max_length = username_max_length
++        if self.fields['username'].widget.attrs.get('maxlength') != username_max_length:
++            self.fields['username'].widget.attrs['maxlength'] = username_max_length
+         if self.fields['username'].label is None:
+             self.fields['username'].label = capfirst(self.username_field.verbose_name)
+ 
+diff --git a/tests/auth_tests/test_forms.py b/tests/auth_tests/test_forms.py
+index 7085dcfa11..68f47e85ef 100644
+--- a/tests/auth_tests/test_forms.py
++++ b/tests/auth_tests/test_forms.py
+@@ -437,6 +437,28 @@ class AuthenticationFormTest(TestDataMixin, TestCase):
+         self.assertEqual(form.fields['username'].max_length, 254)
+         self.assertEqual(form.errors, {})
+ 
++    @override_settings(AUTH_USER_MODEL='auth_tests.CustomEmailField')
++    def test_username_field_max_length_matches_user_model_html(self):
++        self.assertEqual(CustomEmailField._meta.get_field('username').max_length, 255)
++        form = AuthenticationForm()
++        self.assertEqual(form.fields['username'].max_length, 255)
++        self.assertHTMLEqual(
++            str(form['username']),
++            '<input type="text" name="username" maxlength="255" '
++            'autocapitalize="none" autocomplete="username" autofocus required id="id_username">',
++        )
++
++    @override_settings(AUTH_USER_MODEL='auth_tests.IntegerUsernameUser')
++    def test_username_field_max_length_defaults_to_254_html(self):
++        self.assertIsNone(IntegerUsernameUser._meta.get_field('username').max_length)
++        form = AuthenticationForm()
++        self.assertEqual(form.fields['username'].max_length, 254)
++        self.assertHTMLEqual(
++            str(form['username']),
++            '<input type="text" name="username" maxlength="254" '
++            'autocapitalize="none" autocomplete="username" autofocus required id="id_username">',
++        )
++
+     def test_username_field_label(self):
+ 
+         class CustomAuthenticationForm(AuthenticationForm):

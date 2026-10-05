@@ -1,0 +1,31 @@
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3c..ca99627e 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -80,7 +80,12 @@ class RequestEncodingMixin(object):
+         if parameters are supplied as a dict.
+         """
+ 
+-        if isinstance(data, (str, bytes)):
++        if isinstance(data, bytes):
++            # If the body is a bytestring, use it as-is. In Py3 this is the
++            # common case for binary payloads, and decoding it here would
++            # produce an incorrect body (and fail outright on non-ASCII).
++            return data
++        elif isinstance(data, str):
+             return to_native_string(data)
+         elif hasattr(data, 'read'):
+             return data
+diff --git a/requests/utils.py b/requests/utils.py
+index 132cd2b5..47471011 100644
+--- a/requests/utils.py
++++ b/requests/utils.py
+@@ -691,7 +691,7 @@ def to_native_string(string, encoding='ascii'):
+     """
+     out = None
+ 
+-    if isinstance(string, builtin_str):
++    if isinstance(string, str):
+         out = string
+     else:
+         if is_py2:

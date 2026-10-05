@@ -1,0 +1,82 @@
+2026-10-04 17:41:15,757 - INFO - Creating container for django__django-12308...
+2026-10-04 17:41:15,798 - INFO - Container for django__django-12308 created: 191e2cfe43ac6cdbf7d387ae026503879745685eef1abd47f20dc69fea18793f
+2026-10-04 17:41:16,002 - INFO - Container for django__django-12308 started: 191e2cfe43ac6cdbf7d387ae026503879745685eef1abd47f20dc69fea18793f
+2026-10-04 17:41:16,002 - INFO - Intermediate patch for django__django-12308 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12308/patch.diff, now applying to container...
+2026-10-04 17:41:16,118 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:41:17,288 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:41:17,571 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:41:17,849 - INFO - >>>>> Applied Patch:
+patching file django/contrib/admin/utils.py
+patching file tests/admin_utils/tests.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 176 with fuzz 1.
+
+2026-10-04 17:41:17,963 - INFO - Git diff before:
+diff --git a/django/contrib/admin/utils.py b/django/contrib/admin/utils.py
+index e4ddc8f017..021a086e65 100755
+--- a/django/contrib/admin/utils.py
++++ b/django/contrib/admin/utils.py
+@@ -398,6 +398,11 @@ def display_for_field(value, field, empty_value_display):
+         return formats.number_format(value)
+     elif isinstance(field, models.FileField) and value:
+         return format_html('<a href="{}">{}</a>', value.url, value)
++    elif isinstance(field, models.JSONField) and value:
++        try:
++            return field.get_prep_value(value)
++        except TypeError:
++            return display_for_value(value, empty_value_display)
+     else:
+         return display_for_value(value, empty_value_display)
+ 
+diff --git a/tests/admin_utils/tests.py b/tests/admin_utils/tests.py
+index 463ba9556d..8110d4e283 100755
+--- a/tests/admin_utils/tests.py
++++ b/tests/admin_utils/tests.py
+@@ -176,6 +176,20 @@ class UtilsTests(SimpleTestCase):
+         display_value = display_for_field(None, models.FloatField(), self.empty_value)
+         self.assertEqual(display_value, self.empty_value)
+ 
++    def test_json_display_for_field(self):
++        tests = [
++            ({'a': {'b': 'c'}}, '{"a": {"b": "c"}}'),
++            (['a', 'b'], '["a", "b"]'),
++            ('a', '"a"'),
++            ({('a', 'b'): 'c'}, "{('a', 'b'): 'c'}"),  # Invalid JSON.
++        ]
++        for value, display_value in tests:
++            with self.subTest(value=value):
++                self.assertEqual(
++                    display_for_field(value, models.JSONField(), self.empty_value),
++                    display_value,
++                )
++
+     def test_number_formats_display_for_field(self):
+         display_value = display_for_field(12345.6789, models.FloatField(), self.empty_value)
+         self.assertEqual(display_value, '12345.6789')
+2026-10-04 17:41:17,963 - INFO - Eval script for django__django-12308 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12308/eval.sh; copying to container...
+2026-10-04 17:41:26,982 - INFO - Test runtime: 8.96 seconds
+2026-10-04 17:41:26,983 - INFO - Test output for django__django-12308 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12308/test_output.txt
+2026-10-04 17:41:27,041 - INFO - Git diff after:
+diff --git a/django/contrib/admin/utils.py b/django/contrib/admin/utils.py
+index e4ddc8f017..021a086e65 100755
+--- a/django/contrib/admin/utils.py
++++ b/django/contrib/admin/utils.py
+@@ -398,6 +398,11 @@ def display_for_field(value, field, empty_value_display):
+         return formats.number_format(value)
+     elif isinstance(field, models.FileField) and value:
+         return format_html('<a href="{}">{}</a>', value.url, value)
++    elif isinstance(field, models.JSONField) and value:
++        try:
++            return field.get_prep_value(value)
++        except TypeError:
++            return display_for_value(value, empty_value_display)
+     else:
+         return display_for_value(value, empty_value_display)
+2026-10-04 17:41:27,042 - INFO - Git diff changed after running eval script
+2026-10-04 17:41:27,042 - INFO - Grading answer for django__django-12308...
+2026-10-04 17:41:27,047 - INFO - report: {'django__django-12308': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_json_display_for_field (admin_utils.tests.UtilsTests)', 'test_label_for_field (admin_utils.tests.UtilsTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_cyclic (admin_utils.tests.NestedObjectsTests)', 'test_non_added_parent (admin_utils.tests.NestedObjectsTests)', 'test_on_delete_do_nothing (admin_utils.tests.NestedObjectsTests)', 'test_queries (admin_utils.tests.NestedObjectsTests)', 'test_relation_on_abstract (admin_utils.tests.NestedObjectsTests)', 'test_siblings (admin_utils.tests.NestedObjectsTests)', 'test_unrelated_roots (admin_utils.tests.NestedObjectsTests)', 'test_flatten (admin_utils.tests.UtilsTests)', 'test_flatten_fieldsets (admin_utils.tests.UtilsTests)', 'test_label_for_field_form_argument (admin_utils.tests.UtilsTests)', 'test_label_for_property (admin_utils.tests.UtilsTests)', 'test_list_display_for_value (admin_utils.tests.UtilsTests)', 'test_list_display_for_value_boolean (admin_utils.tests.UtilsTests)', 'test_null_display_for_field (admin_utils.tests.UtilsTests)', 'test_number_formats_display_for_field (admin_utils.tests.UtilsTests)', 'test_number_formats_with_thousand_separator_display_for_field (admin_utils.tests.UtilsTests)', 'test_quote (admin_utils.tests.UtilsTests)', 'test_related_name (admin_utils.tests.UtilsTests)', 'test_safestring_in_field_label (admin_utils.tests.UtilsTests)', 'test_values_from_lookup_field (admin_utils.tests.UtilsTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12308: resolved: True
+2026-10-04 17:41:27,048 - INFO - Attempting to stop container sweb.eval.django__django-12308.wescode-v3...
+2026-10-04 17:41:42,357 - INFO - Container sweb.eval.django__django-12308.wescode-v3 stopped successfully.
+2026-10-04 17:41:42,357 - INFO - Attempting to remove container sweb.eval.django__django-12308.wescode-v3...
+2026-10-04 17:41:42,535 - INFO - Container sweb.eval.django__django-12308.wescode-v3 removed successfully.

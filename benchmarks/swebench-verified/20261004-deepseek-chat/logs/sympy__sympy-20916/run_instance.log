@@ -1,0 +1,106 @@
+2026-10-04 19:55:58,308 - INFO - Creating container for sympy__sympy-20916...
+2026-10-04 19:55:58,351 - INFO - Container for sympy__sympy-20916 created: e8c4ca1282a43a2aaac9731d73ade83ce30822605bab65500173bb1642adaf44
+2026-10-04 19:55:58,539 - INFO - Container for sympy__sympy-20916 started: e8c4ca1282a43a2aaac9731d73ade83ce30822605bab65500173bb1642adaf44
+2026-10-04 19:55:58,539 - INFO - Intermediate patch for sympy__sympy-20916 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-20916/patch.diff, now applying to container...
+2026-10-04 19:55:58,656 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:55:58,837 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:55:58,946 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:55:59,060 - INFO - >>>>> Applied Patch:
+patching file sympy/printing/conventions.py
+patching file sympy/printing/tests/test_conventions.py
+patching file sympy/testing/quality_unicode.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 44 with fuzz 1.
+
+2026-10-04 19:55:59,129 - INFO - Git diff before:
+diff --git a/sympy/printing/conventions.py b/sympy/printing/conventions.py
+index 9a3be6bbe9..dbaaaf3f02 100755
+--- a/sympy/printing/conventions.py
++++ b/sympy/printing/conventions.py
+@@ -7,7 +7,7 @@
+ from collections.abc import Iterable
+ from sympy import Derivative
+ 
+-_name_with_digits_p = re.compile(r'^([a-zA-Z]+)([0-9]+)$')
++_name_with_digits_p = re.compile(r'^([^\W\d_]+)(\d+)$', re.U)
+ 
+ 
+ def split_super_sub(text):
+@@ -60,7 +60,7 @@ def split_super_sub(text):
+         else:
+             raise RuntimeError("This should never happen.")
+ 
+-    # make a little exception when a name ends with digits, i.e. treat them
++    # Make a little exception when a name ends with digits, i.e. treat them
+     # as a subscript too.
+     m = _name_with_digits_p.match(name)
+     if m:
+diff --git a/sympy/printing/tests/test_conventions.py b/sympy/printing/tests/test_conventions.py
+index 87689aa8fc..a8090556cd 100755
+--- a/sympy/printing/tests/test_conventions.py
++++ b/sympy/printing/tests/test_conventions.py
+@@ -1,3 +1,5 @@
++# -*- coding: utf-8 -*-
++
+ from sympy import symbols, Derivative, Integral, exp, cos, oo, Function
+ from sympy.functions.special.bessel import besselj
+ from sympy.functions.special.polynomials import legendre
+@@ -29,6 +31,12 @@ def test_super_sub():
+     assert split_super_sub("x__a__b__c__d") == ("x", ["a", "b", "c", "d"], [])
+     assert split_super_sub("alpha_11") == ("alpha", [], ["11"])
+     assert split_super_sub("alpha_11_11") == ("alpha", [], ["11", "11"])
++    assert split_super_sub("w1") == ("w", [], ["1"])
++    assert split_super_sub("w11") == ("w", [], ["11"])
++    assert split_super_sub("w1^a") == ("w", ["a"], ["1"])
++    assert split_super_sub("ω1") == ("ω", [], ["1"])
++    assert split_super_sub("ω11") == ("ω", [], ["11"])
++    assert split_super_sub("ω1^a") == ("ω", ["a"], ["1"])
+     assert split_super_sub("") == ("", [], [])
+ 
+ 
+diff --git a/sympy/testing/quality_unicode.py b/sympy/testing/quality_unicode.py
+index 755837ebb5..6adf22ad52 100755
+--- a/sympy/testing/quality_unicode.py
++++ b/sympy/testing/quality_unicode.py
+@@ -44,6 +44,7 @@
+     r'*/sympy/vector/tests/test_printing.py',
+     r'*/sympy/parsing/tests/test_sympy_parser.py',
+     r'*/sympy/printing/pretty/tests/test_pretty.py',
++    r'*/sympy/printing/tests/test_conventions.py',
+     r'*/sympy/printing/tests/test_preview.py',
+     r'*/liealgebras/type_g.py',
+     r'*/liealgebras/weyl_group.py',
+2026-10-04 19:55:59,129 - INFO - Eval script for sympy__sympy-20916 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-20916/eval.sh; copying to container...
+2026-10-04 19:56:04,561 - INFO - Test runtime: 5.38 seconds
+2026-10-04 19:56:04,562 - INFO - Test output for sympy__sympy-20916 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-20916/test_output.txt
+2026-10-04 19:56:04,616 - INFO - Git diff after:
+diff --git a/sympy/printing/conventions.py b/sympy/printing/conventions.py
+index 9a3be6bbe9..dbaaaf3f02 100755
+--- a/sympy/printing/conventions.py
++++ b/sympy/printing/conventions.py
+@@ -7,7 +7,7 @@
+ from collections.abc import Iterable
+ from sympy import Derivative
+ 
+-_name_with_digits_p = re.compile(r'^([a-zA-Z]+)([0-9]+)$')
++_name_with_digits_p = re.compile(r'^([^\W\d_]+)(\d+)$', re.U)
+ 
+ 
+ def split_super_sub(text):
+@@ -60,7 +60,7 @@ def split_super_sub(text):
+         else:
+             raise RuntimeError("This should never happen.")
+ 
+-    # make a little exception when a name ends with digits, i.e. treat them
++    # Make a little exception when a name ends with digits, i.e. treat them
+     # as a subscript too.
+     m = _name_with_digits_p.match(name)
+     if m:
+2026-10-04 19:56:04,616 - INFO - Git diff changed after running eval script
+2026-10-04 19:56:04,616 - INFO - Grading answer for sympy__sympy-20916...
+2026-10-04 19:56:04,618 - INFO - report: {'sympy__sympy-20916': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_super_sub'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_requires_partial'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-20916: resolved: True
+2026-10-04 19:56:04,619 - INFO - Attempting to stop container sweb.eval.sympy__sympy-20916.wescode-v3...
+2026-10-04 19:56:19,754 - INFO - Container sweb.eval.sympy__sympy-20916.wescode-v3 stopped successfully.
+2026-10-04 19:56:19,754 - INFO - Attempting to remove container sweb.eval.sympy__sympy-20916.wescode-v3...
+2026-10-04 19:56:19,782 - INFO - Container sweb.eval.sympy__sympy-20916.wescode-v3 removed successfully.

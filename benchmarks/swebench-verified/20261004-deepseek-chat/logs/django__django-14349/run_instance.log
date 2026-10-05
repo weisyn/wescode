@@ -1,0 +1,50 @@
+2026-10-04 17:57:29,946 - INFO - Creating container for django__django-14349...
+2026-10-04 17:57:29,997 - INFO - Container for django__django-14349 created: 257e25e4d73cedd8a2d8fcabdd9640d1d23d79a2eb8a2138cc70bd4d7bb36d83
+2026-10-04 17:57:30,190 - INFO - Container for django__django-14349 started: 257e25e4d73cedd8a2d8fcabdd9640d1d23d79a2eb8a2138cc70bd4d7bb36d83
+2026-10-04 17:57:30,191 - INFO - Intermediate patch for django__django-14349 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14349/patch.diff, now applying to container...
+2026-10-04 17:57:30,301 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:57:31,537 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:57:31,981 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:57:32,436 - INFO - >>>>> Applied Patch:
+patching file django/core/validators.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 103 with fuzz 2.
+
+2026-10-04 17:57:32,504 - INFO - Git diff before:
+diff --git a/django/core/validators.py b/django/core/validators.py
+index a385819510..a0ad24730a 100644
+--- a/django/core/validators.py
++++ b/django/core/validators.py
+@@ -103,6 +103,9 @@ class URLValidator(RegexValidator):
+             raise ValidationError(self.message, code=self.code, params={'value': value})
+         # Check if the scheme is valid.
+         scheme = value.split('://')[0].lower()
++        # Check for forbidden characters.
++        if any(char in value for char in '\r\n\t'):
++            raise ValidationError(self.message, code=self.code, params={'value': value})
+         if scheme not in self.schemes:
+             raise ValidationError(self.message, code=self.code, params={'value': value})
+2026-10-04 17:57:32,504 - INFO - Eval script for django__django-14349 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14349/eval.sh; copying to container...
+2026-10-04 17:57:39,869 - INFO - Test runtime: 7.30 seconds
+2026-10-04 17:57:39,869 - INFO - Test output for django__django-14349 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14349/test_output.txt
+2026-10-04 17:57:39,931 - INFO - Git diff after:
+diff --git a/django/core/validators.py b/django/core/validators.py
+index a385819510..a0ad24730a 100644
+--- a/django/core/validators.py
++++ b/django/core/validators.py
+@@ -103,6 +103,9 @@ class URLValidator(RegexValidator):
+             raise ValidationError(self.message, code=self.code, params={'value': value})
+         # Check if the scheme is valid.
+         scheme = value.split('://')[0].lower()
++        # Check for forbidden characters.
++        if any(char in value for char in '\r\n\t'):
++            raise ValidationError(self.message, code=self.code, params={'value': value})
+         if scheme not in self.schemes:
+             raise ValidationError(self.message, code=self.code, params={'value': value})
+2026-10-04 17:57:39,931 - INFO - Grading answer for django__django-14349...
+2026-10-04 17:57:39,932 - INFO - report: {'django__django-14349': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_validators (validators.tests.TestValidators)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_domain_whitelist (validators.tests.DeprecationTests)', 'test_domain_whitelist_access_warning (validators.tests.DeprecationTests)', 'test_domain_whitelist_set_warning (validators.tests.DeprecationTests)', 'test_whitelist (validators.tests.DeprecationTests)', 'test_whitelist_warning (validators.tests.DeprecationTests)', 'test_basic_equality (validators.tests.TestValidatorEquality)', 'test_decimal_equality (validators.tests.TestValidatorEquality)', 'test_email_equality (validators.tests.TestValidatorEquality)', 'test_file_extension_equality (validators.tests.TestValidatorEquality)', 'test_prohibit_null_characters_validator_equality (validators.tests.TestValidatorEquality)', 'test_regex_equality (validators.tests.TestValidatorEquality)', 'test_regex_equality_blank (validators.tests.TestValidatorEquality)', 'test_regex_equality_nocache (validators.tests.TestValidatorEquality)', 'test_max_length_validator_message (validators.tests.TestValidators)', 'test_message_dict (validators.tests.TestValidators)', 'test_message_list (validators.tests.TestValidators)', 'test_regex_validator_flags (validators.tests.TestValidators)', 'test_single_message (validators.tests.TestValidators)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14349: resolved: True
+2026-10-04 17:57:39,932 - INFO - Attempting to stop container sweb.eval.django__django-14349.wescode-v3...
+2026-10-04 17:57:55,241 - INFO - Container sweb.eval.django__django-14349.wescode-v3 stopped successfully.
+2026-10-04 17:57:55,241 - INFO - Attempting to remove container sweb.eval.django__django-14349.wescode-v3...
+2026-10-04 17:57:55,419 - INFO - Container sweb.eval.django__django-14349.wescode-v3 removed successfully.

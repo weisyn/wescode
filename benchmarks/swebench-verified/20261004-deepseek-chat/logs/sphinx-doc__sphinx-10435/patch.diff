@@ -1,0 +1,65 @@
+diff --git a/sphinx/writers/latex.py b/sphinx/writers/latex.py
+index e0c7d56f8..5dda30e36 100644
+--- a/sphinx/writers/latex.py
++++ b/sphinx/writers/latex.py
+@@ -1710,9 +1710,10 @@ class LaTeXTranslator(SphinxTranslator):
+         # TODO: Use nowrap option once LaTeX formatter supports it
+         # https://github.com/pygments/pygments/pull/1343
+         hlcode = hlcode.replace(r'\begin{Verbatim}[commandchars=\\\{\}]',
+-                                r'\sphinxcode{\sphinxupquote{')
++                                r'\sphinxcode{\sphinxupquote{%')
+         # get consistent trailer
+         hlcode = hlcode.rstrip()[:-14]  # strip \end{Verbatim}
++        hlcode = hlcode.rstrip() + '%'
+         self.body.append(hlcode)
+         self.body.append('}}')
+         raise nodes.SkipNode
+diff --git a/tests/test_build_latex.py b/tests/test_build_latex.py
+index dd0db8aef..fe19bf6c3 100644
+--- a/tests/test_build_latex.py
++++ b/tests/test_build_latex.py
+@@ -1608,7 +1608,7 @@ def test_latex_code_role(app):
+     content = (app.outdir / 'python.tex').read_text()
+ 
+     common_content = (
+-        r'\PYG{k}{def} '
++        r'\PYG{k}{def}\PYG{+w}{ }'
+         r'\PYG{n+nf}{foo}'
+         r'\PYG{p}{(}'
+         r'\PYG{l+m+mi}{1} '
+@@ -1623,7 +1623,9 @@ def test_latex_code_role(app):
+         r'\PYG{p}{)}'
+         r'\PYG{p}{:} '
+         r'\PYG{k}{pass}')
+-    assert (r'Inline \sphinxcode{\sphinxupquote{' + '\n' +
+-            common_content + '\n}} code block') in content
+     assert (r'\begin{sphinxVerbatim}[commandchars=\\\{\}]' +
+             '\n' + common_content + '\n' + r'\end{sphinxVerbatim}') in content
++    # inline ``code`` role with a language: no extra whitespace is added
++    # at the start and end of the highlighted code
++    assert (r'Inline \sphinxcode{\sphinxupquote{%' + '\n' +
++            common_content + '%}} code block') in content
+diff --git a/tests/test_markup.py b/tests/test_markup.py
+index 9e6165a5f..329bee1ec 100644
+--- a/tests/test_markup.py
++++ b/tests/test_markup.py
+@@ -355,6 +355,19 @@ def get_verifier(verify, verify_re):
+         None,
+         r'\\sphinxAtStartPar\n\\sphinxhref{https://www.google.com/~me/}{test}.*',
+     ),
++    (
++        # `code` role with a language, no whitespace added at start/end
++        'verify',
++        '.. role:: python(code)\n   :language: python\n\n'
++        ':python:`def foo(1 + 2 + None + "abc"): pass`',
++        None,
++        ('\\sphinxAtStartPar\n\\sphinxcode{\\sphinxupquote{%\n'
++         '\\PYG{k}{def}\\PYG{+w}{ }\\PYG{n+nf}{foo}\\PYG{p}{(}'
++         '\\PYG{l+m+mi}{1} \\PYG{o}{+} \\PYG{l+m+mi}{2} \\PYG{o}{+} '
++         '\\PYG{k+kc}{None} \\PYG{o}{+} '
++         '\\PYG{l+s+s2}{\\PYGZdq{}}\\PYG{l+s+s2}{abc}\\PYG{l+s+s2}{\\PYGZdq{}}'
++         '\\PYG{p}{)}\\PYG{p}{:} \\PYG{k}{pass}%}}'),
++    ),
+     (
+         # description list: simple
+         'verify',

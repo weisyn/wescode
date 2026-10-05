@@ -1,0 +1,155 @@
+2026-10-04 19:45:42,129 - INFO - Creating container for sympy__sympy-15017...
+2026-10-04 19:45:42,169 - INFO - Container for sympy__sympy-15017 created: 2be4523ffb80f7c96bbfe4a41b456ddafc7f039e18515a537feb0208a73b8fc5
+2026-10-04 19:45:42,358 - INFO - Container for sympy__sympy-15017 started: 2be4523ffb80f7c96bbfe4a41b456ddafc7f039e18515a537feb0208a73b8fc5
+2026-10-04 19:45:42,358 - INFO - Intermediate patch for sympy__sympy-15017 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15017/patch.diff, now applying to container...
+2026-10-04 19:45:42,470 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:45:42,647 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:45:42,760 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:45:42,878 - INFO - >>>>> Applied Patch:
+patching file sympy/tensor/array/dense_ndim_array.py
+patching file sympy/tensor/array/ndim_array.py
+patching file sympy/tensor/array/sparse_ndim_array.py
+patching file sympy/tensor/array/tests/test_immutable_ndim_array.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 73 with fuzz 1.
+
+2026-10-04 19:45:42,940 - INFO - Git diff before:
+diff --git a/sympy/tensor/array/dense_ndim_array.py b/sympy/tensor/array/dense_ndim_array.py
+index 9be94a863..979071275 100755
+--- a/sympy/tensor/array/dense_ndim_array.py
++++ b/sympy/tensor/array/dense_ndim_array.py
+@@ -149,7 +149,7 @@ def _new(cls, iterable, shape, **kwargs):
+         self._shape = shape
+         self._array = list(flat_list)
+         self._rank = len(shape)
+-        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+         return self
+ 
+     def __setitem__(self, index, value):
+@@ -174,7 +174,7 @@ def _new(cls, iterable, shape, **kwargs):
+         self._shape = shape
+         self._array = list(flat_list)
+         self._rank = len(shape)
+-        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+         return self
+ 
+     def __setitem__(self, index, value):
+diff --git a/sympy/tensor/array/ndim_array.py b/sympy/tensor/array/ndim_array.py
+index 099b29116..1b68b5e65 100755
+--- a/sympy/tensor/array/ndim_array.py
++++ b/sympy/tensor/array/ndim_array.py
+@@ -66,6 +66,8 @@ def __new__(cls, iterable, shape=None, **kwargs):
+     def _parse_index(self, index):
+ 
+         if isinstance(index, (SYMPY_INTS, Integer)):
++            if self._rank == 0:
++                raise ValueError("index out of range")
+             if index >= self._loop_size:
+                 raise ValueError("index out of range")
+             return index
+diff --git a/sympy/tensor/array/sparse_ndim_array.py b/sympy/tensor/array/sparse_ndim_array.py
+index 72b5d5129..0cf329a01 100755
+--- a/sympy/tensor/array/sparse_ndim_array.py
++++ b/sympy/tensor/array/sparse_ndim_array.py
+@@ -130,7 +130,7 @@ def __new__(cls, iterable=None, shape=None, **kwargs):
+ 
+         shape, flat_list = cls._handle_ndarray_creation_inputs(iterable, shape, **kwargs)
+         shape = Tuple(*map(_sympify, shape))
+-        loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+ 
+         # Sparse array:
+         if isinstance(flat_list, (dict, Dict)):
+@@ -167,7 +167,7 @@ def __new__(cls, iterable=None, shape=None, **kwargs):
+         self = object.__new__(cls)
+         self._shape = shape
+         self._rank = len(shape)
+-        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+ 
+         # Sparse array:
+         if isinstance(flat_list, (dict, Dict)):
+diff --git a/sympy/tensor/array/tests/test_immutable_ndim_array.py b/sympy/tensor/array/tests/test_immutable_ndim_array.py
+index 5a576c44f..44b317a4c 100755
+--- a/sympy/tensor/array/tests/test_immutable_ndim_array.py
++++ b/sympy/tensor/array/tests/test_immutable_ndim_array.py
+@@ -73,7 +73,7 @@ def test_ndim_array_initiation():
+ 
+     from sympy.abc import x
+     rank_zero_array = ImmutableDenseNDimArray(x)
+-    assert len(rank_zero_array) == 0
++    assert len(rank_zero_array) == 1
+     assert rank_zero_array.shape == ()
+     assert rank_zero_array.rank() == 0
+     assert rank_zero_array[()] == x
+2026-10-04 19:45:42,940 - INFO - Eval script for sympy__sympy-15017 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15017/eval.sh; copying to container...
+2026-10-04 19:45:47,679 - INFO - Test runtime: 4.68 seconds
+2026-10-04 19:45:47,679 - INFO - Test output for sympy__sympy-15017 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15017/test_output.txt
+2026-10-04 19:45:47,733 - INFO - Git diff after:
+diff --git a/sympy/tensor/array/dense_ndim_array.py b/sympy/tensor/array/dense_ndim_array.py
+index 9be94a863..979071275 100755
+--- a/sympy/tensor/array/dense_ndim_array.py
++++ b/sympy/tensor/array/dense_ndim_array.py
+@@ -149,7 +149,7 @@ def _new(cls, iterable, shape, **kwargs):
+         self._shape = shape
+         self._array = list(flat_list)
+         self._rank = len(shape)
+-        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+         return self
+ 
+     def __setitem__(self, index, value):
+@@ -174,7 +174,7 @@ def _new(cls, iterable, shape, **kwargs):
+         self._shape = shape
+         self._array = list(flat_list)
+         self._rank = len(shape)
+-        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+         return self
+ 
+     def __setitem__(self, index, value):
+diff --git a/sympy/tensor/array/ndim_array.py b/sympy/tensor/array/ndim_array.py
+index 099b29116..1b68b5e65 100755
+--- a/sympy/tensor/array/ndim_array.py
++++ b/sympy/tensor/array/ndim_array.py
+@@ -66,6 +66,8 @@ def __new__(cls, iterable, shape=None, **kwargs):
+     def _parse_index(self, index):
+ 
+         if isinstance(index, (SYMPY_INTS, Integer)):
++            if self._rank == 0:
++                raise ValueError("index out of range")
+             if index >= self._loop_size:
+                 raise ValueError("index out of range")
+             return index
+diff --git a/sympy/tensor/array/sparse_ndim_array.py b/sympy/tensor/array/sparse_ndim_array.py
+index 72b5d5129..0cf329a01 100755
+--- a/sympy/tensor/array/sparse_ndim_array.py
++++ b/sympy/tensor/array/sparse_ndim_array.py
+@@ -130,7 +130,7 @@ def __new__(cls, iterable=None, shape=None, **kwargs):
+ 
+         shape, flat_list = cls._handle_ndarray_creation_inputs(iterable, shape, **kwargs)
+         shape = Tuple(*map(_sympify, shape))
+-        loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+ 
+         # Sparse array:
+         if isinstance(flat_list, (dict, Dict)):
+@@ -167,7 +167,7 @@ def __new__(cls, iterable=None, shape=None, **kwargs):
+         self = object.__new__(cls)
+         self._shape = shape
+         self._rank = len(shape)
+-        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 0
++        self._loop_size = functools.reduce(lambda x,y: x*y, shape) if shape else 1
+ 
+         # Sparse array:
+         if isinstance(flat_list, (dict, Dict)):
+2026-10-04 19:45:47,733 - INFO - Git diff changed after running eval script
+2026-10-04 19:45:47,733 - INFO - Grading answer for sympy__sympy-15017...
+2026-10-04 19:45:47,735 - INFO - report: {'sympy__sympy-15017': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_ndim_array_initiation']}, 'PASS_TO_PASS': {'success': ['test_reshape', 'test_iterator', 'test_sparse', 'test_calculation', 'test_ndim_array_converting', 'test_converting_functions', 'test_equality', 'test_arithmetic', 'test_higher_dimenions', 'test_rebuild_immutable_arrays', 'test_slices', 'test_diff_and_applyfunc', 'test_op_priority', 'test_symbolic_indexing'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-15017: resolved: False
+2026-10-04 19:45:47,735 - INFO - Attempting to stop container sweb.eval.sympy__sympy-15017.wescode-v3...
+2026-10-04 19:46:02,870 - INFO - Container sweb.eval.sympy__sympy-15017.wescode-v3 stopped successfully.
+2026-10-04 19:46:02,870 - INFO - Attempting to remove container sweb.eval.sympy__sympy-15017.wescode-v3...
+2026-10-04 19:46:02,898 - INFO - Container sweb.eval.sympy__sympy-15017.wescode-v3 removed successfully.

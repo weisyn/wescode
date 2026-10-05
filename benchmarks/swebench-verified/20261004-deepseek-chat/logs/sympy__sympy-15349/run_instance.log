@@ -1,0 +1,69 @@
+2026-10-04 19:46:02,904 - INFO - Creating container for sympy__sympy-15349...
+2026-10-04 19:46:02,939 - INFO - Container for sympy__sympy-15349 created: b5d77c8300a79905ca0ea172cb6713078cac6cba56b33084dd778c99630054fb
+2026-10-04 19:46:03,123 - INFO - Container for sympy__sympy-15349 started: b5d77c8300a79905ca0ea172cb6713078cac6cba56b33084dd778c99630054fb
+2026-10-04 19:46:03,123 - INFO - Intermediate patch for sympy__sympy-15349 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15349/patch.diff, now applying to container...
+2026-10-04 19:46:03,236 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:46:03,412 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:46:03,521 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:46:03,637 - INFO - >>>>> Applied Patch:
+patching file sympy/algebras/quaternion.py
+patching file sympy/algebras/tests/test_quaternion.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 96 with fuzz 2.
+
+2026-10-04 19:46:03,701 - INFO - Git diff before:
+diff --git a/sympy/algebras/quaternion.py b/sympy/algebras/quaternion.py
+index b84e7cb95..7eae8d73d 100755
+--- a/sympy/algebras/quaternion.py
++++ b/sympy/algebras/quaternion.py
+@@ -529,7 +529,7 @@ def to_rotation_matrix(self, v=None):
+ 
+         m10 = 2*s*(q.b*q.c + q.d*q.a)
+         m11 = 1 - 2*s*(q.b**2 + q.d**2)
+-        m12 = 2*s*(q.c*q.d + q.b*q.a)
++        m12 = 2*s*(q.c*q.d - q.b*q.a)
+ 
+         m20 = 2*s*(q.b*q.d - q.c*q.a)
+         m21 = 2*s*(q.c*q.d + q.b*q.a)
+diff --git a/sympy/algebras/tests/test_quaternion.py b/sympy/algebras/tests/test_quaternion.py
+index 420e9976d..1a93fceed 100755
+--- a/sympy/algebras/tests/test_quaternion.py
++++ b/sympy/algebras/tests/test_quaternion.py
+@@ -96,11 +96,11 @@ def test_quaternion_conversions():
+                                    2 * acos(sqrt(30)/30))
+ 
+     assert q1.to_rotation_matrix() == Matrix([[-S(2)/3, S(2)/15, S(11)/15],
+-                                     [S(2)/3, -S(1)/3, S(14)/15],
++                                     [S(2)/3, -S(1)/3, S(2)/3],
+                                      [S(1)/3, S(14)/15, S(2)/15]])
+ 
+     assert q1.to_rotation_matrix((1, 1, 1)) == Matrix([[-S(2)/3, S(2)/15, S(11)/15, S(4)/5],
+-                                                  [S(2)/3, -S(1)/3, S(14)/15, -S(4)/15],
++                                                  [S(2)/3, -S(1)/3, S(2)/3, S(0)],
+                                                   [S(1)/3, S(14)/15, S(2)/15, -S(2)/5],
+                                                   [S(0), S(0), S(0), S(1)]])
+2026-10-04 19:46:03,701 - INFO - Eval script for sympy__sympy-15349 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15349/eval.sh; copying to container...
+2026-10-04 19:46:10,712 - INFO - Test runtime: 6.95 seconds
+2026-10-04 19:46:10,713 - INFO - Test output for sympy__sympy-15349 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-15349/test_output.txt
+2026-10-04 19:46:10,763 - INFO - Git diff after:
+diff --git a/sympy/algebras/quaternion.py b/sympy/algebras/quaternion.py
+index b84e7cb95..7eae8d73d 100755
+--- a/sympy/algebras/quaternion.py
++++ b/sympy/algebras/quaternion.py
+@@ -529,7 +529,7 @@ def to_rotation_matrix(self, v=None):
+ 
+         m10 = 2*s*(q.b*q.c + q.d*q.a)
+         m11 = 1 - 2*s*(q.b**2 + q.d**2)
+-        m12 = 2*s*(q.c*q.d + q.b*q.a)
++        m12 = 2*s*(q.c*q.d - q.b*q.a)
+ 
+         m20 = 2*s*(q.b*q.d - q.c*q.a)
+         m21 = 2*s*(q.c*q.d + q.b*q.a)
+2026-10-04 19:46:10,763 - INFO - Git diff changed after running eval script
+2026-10-04 19:46:10,763 - INFO - Grading answer for sympy__sympy-15349...
+2026-10-04 19:46:10,765 - INFO - report: {'sympy__sympy-15349': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_quaternion_conversions'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_quaternion_construction', 'test_quaternion_complex_real_addition', 'test_quaternion_functions'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-15349: resolved: True
+2026-10-04 19:46:10,765 - INFO - Attempting to stop container sweb.eval.sympy__sympy-15349.wescode-v3...
+2026-10-04 19:46:25,905 - INFO - Container sweb.eval.sympy__sympy-15349.wescode-v3 stopped successfully.
+2026-10-04 19:46:25,905 - INFO - Attempting to remove container sweb.eval.sympy__sympy-15349.wescode-v3...
+2026-10-04 19:46:25,933 - INFO - Container sweb.eval.sympy__sympy-15349.wescode-v3 removed successfully.

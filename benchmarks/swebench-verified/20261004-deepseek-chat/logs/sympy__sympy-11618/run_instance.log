@@ -1,0 +1,62 @@
+2026-10-04 19:40:20,737 - INFO - Creating container for sympy__sympy-11618...
+2026-10-04 19:40:20,786 - INFO - Container for sympy__sympy-11618 created: 68525ff4610f8717598a63d6fa9c9faf517e979476f39448883b6c993c61fac2
+2026-10-04 19:40:20,980 - INFO - Container for sympy__sympy-11618 started: 68525ff4610f8717598a63d6fa9c9faf517e979476f39448883b6c993c61fac2
+2026-10-04 19:40:20,980 - INFO - Intermediate patch for sympy__sympy-11618 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-11618/patch.diff, now applying to container...
+2026-10-04 19:40:21,123 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:40:21,271 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:40:21,385 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:40:21,495 - INFO - >>>>> Applied Patch:
+patching file sympy/geometry/point.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 266 with fuzz 1.
+
+2026-10-04 19:40:21,557 - INFO - Git diff before:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 593048464..9bcafad75 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -266,8 +266,12 @@ def distance(self, p):
+         sqrt(x**2 + y**2)
+ 
+         """
+-        return sqrt(sum([(a - b)**2 for a, b in zip(
+-            self.args, p.args if isinstance(p, Point) else p)]))
++        p = Point(p)
++        dim = max(len(self), len(p))
++        # missing coordinates are treated as zero
++        self_coords = self.args + (S.Zero,)*(dim - len(self))
++        p_coords = p.args + (S.Zero,)*(dim - len(p))
++        return sqrt(sum([(a - b)**2 for a, b in zip(self_coords, p_coords)]))
+ 
+     def taxicab_distance(self, p):
+         """The Taxicab Distance from self to point p.
+2026-10-04 19:40:21,557 - INFO - Eval script for sympy__sympy-11618 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-11618/eval.sh; copying to container...
+2026-10-04 19:40:27,180 - INFO - Test runtime: 5.57 seconds
+2026-10-04 19:40:27,180 - INFO - Test output for sympy__sympy-11618 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-11618/test_output.txt
+2026-10-04 19:40:27,240 - INFO - Git diff after:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 593048464..9bcafad75 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -266,8 +266,12 @@ def distance(self, p):
+         sqrt(x**2 + y**2)
+ 
+         """
+-        return sqrt(sum([(a - b)**2 for a, b in zip(
+-            self.args, p.args if isinstance(p, Point) else p)]))
++        p = Point(p)
++        dim = max(len(self), len(p))
++        # missing coordinates are treated as zero
++        self_coords = self.args + (S.Zero,)*(dim - len(self))
++        p_coords = p.args + (S.Zero,)*(dim - len(p))
++        return sqrt(sum([(a - b)**2 for a, b in zip(self_coords, p_coords)]))
+ 
+     def taxicab_distance(self, p):
+         """The Taxicab Distance from self to point p.
+2026-10-04 19:40:27,240 - INFO - Grading answer for sympy__sympy-11618...
+2026-10-04 19:40:27,249 - INFO - report: {'sympy__sympy-11618': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_issue_11617'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_point3D', 'test_Point2D', 'test_issue_9214', 'test_transform'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-11618: resolved: True
+2026-10-04 19:40:27,251 - INFO - Attempting to stop container sweb.eval.sympy__sympy-11618.wescode-v3...
+2026-10-04 19:40:42,390 - INFO - Container sweb.eval.sympy__sympy-11618.wescode-v3 stopped successfully.
+2026-10-04 19:40:42,390 - INFO - Attempting to remove container sweb.eval.sympy__sympy-11618.wescode-v3...
+2026-10-04 19:40:42,417 - INFO - Container sweb.eval.sympy__sympy-11618.wescode-v3 removed successfully.

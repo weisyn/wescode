@@ -1,0 +1,474 @@
+2026-10-04 17:46:53,613 - INFO - Creating container for django__django-13297...
+2026-10-04 17:46:53,760 - INFO - Container for django__django-13297 created: e915c8b1d6552ae7c545c6ae58927cc25a6ebe350f711f1e4f9c8134254c1260
+2026-10-04 17:46:53,992 - INFO - Container for django__django-13297 started: e915c8b1d6552ae7c545c6ae58927cc25a6ebe350f711f1e4f9c8134254c1260
+2026-10-04 17:46:53,993 - INFO - Intermediate patch for django__django-13297 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13297/patch.diff, now applying to container...
+2026-10-04 17:46:54,136 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:46:54,629 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:46:54,812 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:46:55,014 - INFO - >>>>> Applied Patch:
+patching file django/views/generic/base.py
+patching file docs/internals/deprecation.txt
+patching file docs/ref/class-based-views/base.txt
+patching file docs/releases/3.1.1.txt
+patching file docs/releases/3.1.txt
+patching file tests/generic_views/test_base.py
+patching file tests/generic_views/urls.py
+patching file tests/generic_views/views.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 17 with fuzz 2.
+
+2026-10-04 17:46:55,119 - INFO - Git diff before:
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index ea5baca08d..3dd957d8f8 100755
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -1,5 +1,4 @@
+ import logging
+-import warnings
+ from functools import update_wrapper
+ 
+ from django.core.exceptions import ImproperlyConfigured
+@@ -10,8 +9,6 @@ from django.http import (
+ from django.template.response import TemplateResponse
+ from django.urls import reverse
+ from django.utils.decorators import classonlymethod
+-from django.utils.deprecation import RemovedInDjango40Warning
+-from django.utils.functional import SimpleLazyObject
+ 
+ logger = logging.getLogger('django.request')
+ 
+@@ -155,33 +152,14 @@ class TemplateResponseMixin:
+ 
+ 
+ class TemplateView(TemplateResponseMixin, ContextMixin, View):
+-    """Render a template."""
++    """
++    Render a template. Pass keyword arguments from the URLconf to the context.
++    """
+     def get(self, request, *args, **kwargs):
+-        # RemovedInDjango40Warning: when the deprecation ends, replace with:
+-        #   context = self.get_context_data()
+-        context_kwargs = _wrap_url_kwargs_with_deprecation_warning(kwargs)
+-        context = self.get_context_data(**context_kwargs)
++        context = self.get_context_data(**kwargs)
+         return self.render_to_response(context)
+ 
+ 
+-# RemovedInDjango40Warning
+-def _wrap_url_kwargs_with_deprecation_warning(url_kwargs):
+-    context_kwargs = {}
+-    for key, value in url_kwargs.items():
+-        # Bind into function closure.
+-        @SimpleLazyObject
+-        def access_value(key=key, value=value):
+-            warnings.warn(
+-                'TemplateView passing URL kwargs to the context is '
+-                'deprecated. Reference %s in your template through '
+-                'view.kwargs instead.' % key,
+-                RemovedInDjango40Warning, stacklevel=2,
+-            )
+-            return value
+-        context_kwargs[key] = access_value
+-    return context_kwargs
+-
+-
+ class RedirectView(View):
+     """Provide a redirect on any GET request."""
+     permanent = False
+diff --git a/docs/internals/deprecation.txt b/docs/internals/deprecation.txt
+index 1f1364897e..46a1aaaee6 100755
+--- a/docs/internals/deprecation.txt
++++ b/docs/internals/deprecation.txt
+@@ -98,9 +98,6 @@ details on these changes.
+ 
+ * The ``list`` message for ``ModelMultipleChoiceField`` will be removed.
+ 
+-* ``django.views.generic.TemplateView`` will no longer pass URL kwargs directly
+-  to the ``context``.
+-
+ * Support for passing raw column aliases to ``QuerySet.order_by()`` will be
+   removed.
+ 
+diff --git a/docs/ref/class-based-views/base.txt b/docs/ref/class-based-views/base.txt
+index de45ae3a5e..7906c56846 100755
+--- a/docs/ref/class-based-views/base.txt
++++ b/docs/ref/class-based-views/base.txt
+@@ -117,7 +117,8 @@ MRO is an acronym for Method Resolution Order.
+ 
+ .. class:: django.views.generic.base.TemplateView
+ 
+-    Renders a given template.
++    Renders a given template, with the context containing parameters captured
++    in the URL.
+ 
+     **Ancestors (MRO)**
+ 
+@@ -161,17 +162,12 @@ MRO is an acronym for Method Resolution Order.
+ 
+     **Context**
+ 
+-    * Populated (through :class:`~django.views.generic.base.ContextMixin`).
++    * Populated (through :class:`~django.views.generic.base.ContextMixin`) with
++      the keyword arguments captured from the URL pattern that served the view.
+     * You can also add context using the
+       :attr:`~django.views.generic.base.ContextMixin.extra_context` keyword
+       argument for :meth:`~django.views.generic.base.View.as_view`.
+ 
+-    .. deprecated:: 3.1
+-
+-        Starting in Django 4.0, the keyword arguments captured from the URL
+-        pattern won't be passed to the context. Reference them with
+-        ``view.kwargs`` instead.
+-
+ ``RedirectView``
+ ================
+ 
+diff --git a/docs/releases/3.1.1.txt b/docs/releases/3.1.1.txt
+index 6aa091bb82..17ed1eba0b 100755
+--- a/docs/releases/3.1.1.txt
++++ b/docs/releases/3.1.1.txt
+@@ -25,3 +25,7 @@ Bugfixes
+   :meth:`~django.db.models.query.QuerySet.select_for_update()`. When using
+   related fields pointing to a proxy model in the ``of`` argument, the
+   corresponding model was not locked (:ticket:`31866`).
++
++* Reverted a deprecation in Django 3.1 that caused a crash when passing
++  deprecated keyword arguments to a queryset in
++  ``TemplateView.get_context_data()`` (:ticket:`31877`).
+diff --git a/docs/releases/3.1.txt b/docs/releases/3.1.txt
+index f44bef411d..a37fa2b9fb 100755
+--- a/docs/releases/3.1.txt
++++ b/docs/releases/3.1.txt
+@@ -794,10 +794,6 @@ Miscellaneous
+ * The ``list`` message for :class:`~django.forms.ModelMultipleChoiceField` is
+   deprecated in favor of ``invalid_list``.
+ 
+-* The passing of URL kwargs directly to the context by
+-  :class:`~django.views.generic.base.TemplateView` is deprecated. Reference
+-  them in the template with ``view.kwargs`` instead.
+-
+ * Passing raw column aliases to :meth:`.QuerySet.order_by` is deprecated. The
+   same result can be achieved by passing aliases in a
+   :class:`~django.db.models.expressions.RawSQL` instead beforehand.
+diff --git a/tests/generic_views/test_base.py b/tests/generic_views/test_base.py
+index d498d23a68..4b221c0283 100755
+--- a/tests/generic_views/test_base.py
++++ b/tests/generic_views/test_base.py
+@@ -2,12 +2,9 @@ import time
+ 
+ from django.core.exceptions import ImproperlyConfigured
+ from django.http import HttpResponse
+-from django.test import (
+-    RequestFactory, SimpleTestCase, ignore_warnings, override_settings,
+-)
++from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+ from django.test.utils import require_jinja2
+ from django.urls import resolve
+-from django.utils.deprecation import RemovedInDjango40Warning
+ from django.views.generic import RedirectView, TemplateView, View
+ 
+ from . import views
+@@ -350,6 +347,25 @@ class TemplateViewTest(SimpleTestCase):
+         view = TemplateView.as_view(template_name='generic_views/using.html', template_engine='jinja2')
+         self.assertEqual(view(request).render().content, b'Jinja2\n')
+ 
++    def test_template_params(self):
++        """
++        A generic template view passes kwargs as context.
++        """
++        response = self.client.get('/template/simple/bar/')
++        self.assertEqual(response.status_code, 200)
++        self.assertEqual(response.context['foo'], 'bar')
++        self.assertIsInstance(response.context['view'], View)
++
++    def test_extra_template_params(self):
++        """
++        A template view can be customized to return extra context.
++        """
++        response = self.client.get('/template/custom/bar/')
++        self.assertEqual(response.status_code, 200)
++        self.assertEqual(response.context['foo'], 'bar')
++        self.assertEqual(response.context['key'], 'value')
++        self.assertIsInstance(response.context['view'], View)
++
+     def test_cached_views(self):
+         """
+         A template view can be cached
+@@ -390,6 +406,18 @@ class TemplateViewTest(SimpleTestCase):
+         self.assertEqual(response.context['title'], 'Title')
+ 
+ 
++@override_settings(ROOT_URLCONF='generic_views.urls')
++class TemplateViewUsingURLKwargsInQuerySetTest(TestCase):
++    def test_context_data_using_url_kwargs(self):
++        """
++        URL kwargs passed to the context can be used as query parameters
++        without an explicit cast to a string.
++        """
++        response = self.client.get('/template/custom_filter/bar/')
++        self.assertEqual(response.status_code, 200)
++        self.assertEqual(response.context['books'], [])
++
++
+ @override_settings(ROOT_URLCONF='generic_views.urls')
+ class RedirectViewTest(SimpleTestCase):
+ 
+@@ -568,38 +596,3 @@ class SingleObjectTemplateResponseMixinTest(SimpleTestCase):
+         )
+         with self.assertRaisesMessage(ImproperlyConfigured, msg):
+             view.get_template_names()
+-
+-
+-@override_settings(ROOT_URLCONF='generic_views.urls')
+-class DeprecationTests(SimpleTestCase):
+-    @ignore_warnings(category=RemovedInDjango40Warning)
+-    def test_template_params(self):
+-        """A generic template view passes kwargs as context."""
+-        response = self.client.get('/template/simple/bar/')
+-        self.assertEqual(response.status_code, 200)
+-        self.assertEqual(response.context['foo'], 'bar')
+-        self.assertIsInstance(response.context['view'], View)
+-
+-    @ignore_warnings(category=RemovedInDjango40Warning)
+-    def test_extra_template_params(self):
+-        """A template view can be customized to return extra context."""
+-        response = self.client.get('/template/custom/bar1/bar2/')
+-        self.assertEqual(response.status_code, 200)
+-        self.assertEqual(response.context['foo1'], 'bar1')
+-        self.assertEqual(response.context['foo2'], 'bar2')
+-        self.assertEqual(response.context['key'], 'value')
+-        self.assertIsInstance(response.context['view'], View)
+-
+-    def test_template_params_warning(self):
+-        response = self.client.get('/template/custom/bar1/bar2/')
+-        self.assertEqual(response.status_code, 200)
+-        msg = (
+-            'TemplateView passing URL kwargs to the context is deprecated. '
+-            'Reference %s in your template through view.kwargs instead.'
+-        )
+-        with self.assertRaisesMessage(RemovedInDjango40Warning, msg % 'foo1'):
+-            str(response.context['foo1'])
+-        with self.assertRaisesMessage(RemovedInDjango40Warning, msg % 'foo2'):
+-            str(response.context['foo2'])
+-        self.assertEqual(response.context['key'], 'value')
+-        self.assertIsInstance(response.context['view'], View)
+diff --git a/tests/generic_views/urls.py b/tests/generic_views/urls.py
+index 9537240ab8..a98ec4fcb5 100755
+--- a/tests/generic_views/urls.py
++++ b/tests/generic_views/urls.py
+@@ -12,9 +12,10 @@ urlpatterns = [
+     path('template/no_template/', TemplateView.as_view()),
+     path('template/login_required/', login_required(TemplateView.as_view())),
+     path('template/simple/<foo>/', TemplateView.as_view(template_name='generic_views/about.html')),
++    path('template/custom/<foo>/', views.CustomTemplateView.as_view(template_name='generic_views/about.html')),
+     path(
+-        'template/custom/<foo1>/<foo2>/',
+-        views.CustomTemplateView.as_view(template_name='generic_views/about.html'),
++        'template/custom_filter/<name>/',
++        views.CustomTemplateViewWithFilter.as_view(template_name='generic_views/about.html'),
+     ),
+     path(
+         'template/content_type/',
+diff --git a/tests/generic_views/views.py b/tests/generic_views/views.py
+index 02717333a6..23f1c0c2cf 100755
+--- a/tests/generic_views/views.py
++++ b/tests/generic_views/views.py
+@@ -17,6 +17,17 @@ class CustomTemplateView(generic.TemplateView):
+         return context
+ 
+ 
++class CustomTemplateViewWithFilter(generic.TemplateView):
++    template_name = 'generic_views/about.html'
++
++    def get_context_data(self, **kwargs):
++        context = super().get_context_data(**kwargs)
++        # Evaluate the queryset so that the URL kwarg is used as a query
++        # parameter.
++        context['books'] = list(Book.objects.filter(name=kwargs.get('name', '')))
++        return context
++
++
+ class ObjectDetail(generic.DetailView):
+     template_name = 'generic_views/detail.html'
+2026-10-04 17:46:55,119 - INFO - Eval script for django__django-13297 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13297/eval.sh; copying to container...
+2026-10-04 17:47:10,055 - INFO - Test runtime: 14.88 seconds
+2026-10-04 17:47:10,056 - INFO - Test output for django__django-13297 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13297/test_output.txt
+2026-10-04 17:47:10,120 - INFO - Git diff after:
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index ea5baca08d..3dd957d8f8 100755
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -1,5 +1,4 @@
+ import logging
+-import warnings
+ from functools import update_wrapper
+ 
+ from django.core.exceptions import ImproperlyConfigured
+@@ -10,8 +9,6 @@ from django.http import (
+ from django.template.response import TemplateResponse
+ from django.urls import reverse
+ from django.utils.decorators import classonlymethod
+-from django.utils.deprecation import RemovedInDjango40Warning
+-from django.utils.functional import SimpleLazyObject
+ 
+ logger = logging.getLogger('django.request')
+ 
+@@ -155,33 +152,14 @@ class TemplateResponseMixin:
+ 
+ 
+ class TemplateView(TemplateResponseMixin, ContextMixin, View):
+-    """Render a template."""
++    """
++    Render a template. Pass keyword arguments from the URLconf to the context.
++    """
+     def get(self, request, *args, **kwargs):
+-        # RemovedInDjango40Warning: when the deprecation ends, replace with:
+-        #   context = self.get_context_data()
+-        context_kwargs = _wrap_url_kwargs_with_deprecation_warning(kwargs)
+-        context = self.get_context_data(**context_kwargs)
++        context = self.get_context_data(**kwargs)
+         return self.render_to_response(context)
+ 
+ 
+-# RemovedInDjango40Warning
+-def _wrap_url_kwargs_with_deprecation_warning(url_kwargs):
+-    context_kwargs = {}
+-    for key, value in url_kwargs.items():
+-        # Bind into function closure.
+-        @SimpleLazyObject
+-        def access_value(key=key, value=value):
+-            warnings.warn(
+-                'TemplateView passing URL kwargs to the context is '
+-                'deprecated. Reference %s in your template through '
+-                'view.kwargs instead.' % key,
+-                RemovedInDjango40Warning, stacklevel=2,
+-            )
+-            return value
+-        context_kwargs[key] = access_value
+-    return context_kwargs
+-
+-
+ class RedirectView(View):
+     """Provide a redirect on any GET request."""
+     permanent = False
+diff --git a/docs/internals/deprecation.txt b/docs/internals/deprecation.txt
+index 1f1364897e..46a1aaaee6 100755
+--- a/docs/internals/deprecation.txt
++++ b/docs/internals/deprecation.txt
+@@ -98,9 +98,6 @@ details on these changes.
+ 
+ * The ``list`` message for ``ModelMultipleChoiceField`` will be removed.
+ 
+-* ``django.views.generic.TemplateView`` will no longer pass URL kwargs directly
+-  to the ``context``.
+-
+ * Support for passing raw column aliases to ``QuerySet.order_by()`` will be
+   removed.
+ 
+diff --git a/docs/ref/class-based-views/base.txt b/docs/ref/class-based-views/base.txt
+index de45ae3a5e..7906c56846 100755
+--- a/docs/ref/class-based-views/base.txt
++++ b/docs/ref/class-based-views/base.txt
+@@ -117,7 +117,8 @@ MRO is an acronym for Method Resolution Order.
+ 
+ .. class:: django.views.generic.base.TemplateView
+ 
+-    Renders a given template.
++    Renders a given template, with the context containing parameters captured
++    in the URL.
+ 
+     **Ancestors (MRO)**
+ 
+@@ -161,17 +162,12 @@ MRO is an acronym for Method Resolution Order.
+ 
+     **Context**
+ 
+-    * Populated (through :class:`~django.views.generic.base.ContextMixin`).
++    * Populated (through :class:`~django.views.generic.base.ContextMixin`) with
++      the keyword arguments captured from the URL pattern that served the view.
+     * You can also add context using the
+       :attr:`~django.views.generic.base.ContextMixin.extra_context` keyword
+       argument for :meth:`~django.views.generic.base.View.as_view`.
+ 
+-    .. deprecated:: 3.1
+-
+-        Starting in Django 4.0, the keyword arguments captured from the URL
+-        pattern won't be passed to the context. Reference them with
+-        ``view.kwargs`` instead.
+-
+ ``RedirectView``
+ ================
+ 
+diff --git a/docs/releases/3.1.1.txt b/docs/releases/3.1.1.txt
+index 6aa091bb82..17ed1eba0b 100755
+--- a/docs/releases/3.1.1.txt
++++ b/docs/releases/3.1.1.txt
+@@ -25,3 +25,7 @@ Bugfixes
+   :meth:`~django.db.models.query.QuerySet.select_for_update()`. When using
+   related fields pointing to a proxy model in the ``of`` argument, the
+   corresponding model was not locked (:ticket:`31866`).
++
++* Reverted a deprecation in Django 3.1 that caused a crash when passing
++  deprecated keyword arguments to a queryset in
++  ``TemplateView.get_context_data()`` (:ticket:`31877`).
+diff --git a/docs/releases/3.1.txt b/docs/releases/3.1.txt
+index f44bef411d..a37fa2b9fb 100755
+--- a/docs/releases/3.1.txt
++++ b/docs/releases/3.1.txt
+@@ -794,10 +794,6 @@ Miscellaneous
+ * The ``list`` message for :class:`~django.forms.ModelMultipleChoiceField` is
+   deprecated in favor of ``invalid_list``.
+ 
+-* The passing of URL kwargs directly to the context by
+-  :class:`~django.views.generic.base.TemplateView` is deprecated. Reference
+-  them in the template with ``view.kwargs`` instead.
+-
+ * Passing raw column aliases to :meth:`.QuerySet.order_by` is deprecated. The
+   same result can be achieved by passing aliases in a
+   :class:`~django.db.models.expressions.RawSQL` instead beforehand.
+diff --git a/tests/generic_views/urls.py b/tests/generic_views/urls.py
+index 9537240ab8..a98ec4fcb5 100755
+--- a/tests/generic_views/urls.py
++++ b/tests/generic_views/urls.py
+@@ -12,9 +12,10 @@ urlpatterns = [
+     path('template/no_template/', TemplateView.as_view()),
+     path('template/login_required/', login_required(TemplateView.as_view())),
+     path('template/simple/<foo>/', TemplateView.as_view(template_name='generic_views/about.html')),
++    path('template/custom/<foo>/', views.CustomTemplateView.as_view(template_name='generic_views/about.html')),
+     path(
+-        'template/custom/<foo1>/<foo2>/',
+-        views.CustomTemplateView.as_view(template_name='generic_views/about.html'),
++        'template/custom_filter/<name>/',
++        views.CustomTemplateViewWithFilter.as_view(template_name='generic_views/about.html'),
+     ),
+     path(
+         'template/content_type/',
+diff --git a/tests/generic_views/views.py b/tests/generic_views/views.py
+index 02717333a6..23f1c0c2cf 100755
+--- a/tests/generic_views/views.py
++++ b/tests/generic_views/views.py
+@@ -17,6 +17,17 @@ class CustomTemplateView(generic.TemplateView):
+         return context
+ 
+ 
++class CustomTemplateViewWithFilter(generic.TemplateView):
++    template_name = 'generic_views/about.html'
++
++    def get_context_data(self, **kwargs):
++        context = super().get_context_data(**kwargs)
++        # Evaluate the queryset so that the URL kwarg is used as a query
++        # parameter.
++        context['books'] = list(Book.objects.filter(name=kwargs.get('name', '')))
++        return context
++
++
+ class ObjectDetail(generic.DetailView):
+     template_name = 'generic_views/detail.html'
+2026-10-04 17:47:10,120 - INFO - Git diff changed after running eval script
+2026-10-04 17:47:10,120 - INFO - Grading answer for django__django-13297...
+2026-10-04 17:47:10,126 - INFO - report: {'django__django-13297': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_template_params_filtering (generic_views.test_base.DeprecationTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_get_context_data_super (generic_views.test_base.GetContextDataTest)', 'test_object_at_custom_name_in_context_data (generic_views.test_base.GetContextDataTest)', 'test_object_in_get_context_data (generic_views.test_base.GetContextDataTest)', 'test_overwrite_queryset (generic_views.test_base.UseMultipleObjectMixinTest)', 'test_use_queryset_from_view (generic_views.test_base.UseMultipleObjectMixinTest)', 'test_template_mixin_without_template (generic_views.test_base.SingleObjectTemplateResponseMixinTest)', 'test_args_kwargs_request_on_self (generic_views.test_base.ViewTest)', 'test_calling_more_than_once (generic_views.test_base.ViewTest)', 'test_class_attributes (generic_views.test_base.ViewTest)', 'test_direct_instantiation (generic_views.test_base.ViewTest)', 'test_dispatch_decoration (generic_views.test_base.ViewTest)', 'test_get_and_head (generic_views.test_base.ViewTest)', 'test_get_and_post (generic_views.test_base.ViewTest)', 'test_get_only (generic_views.test_base.ViewTest)', 'test_head_no_get (generic_views.test_base.ViewTest)', 'test_invalid_keyword_argument (generic_views.test_base.ViewTest)', 'test_no_init_args (generic_views.test_base.ViewTest)', 'test_no_init_kwargs (generic_views.test_base.ViewTest)', 'test_not_calling_parent_setup_error (generic_views.test_base.ViewTest)', 'test_options (generic_views.test_base.ViewTest)', 'test_options_for_get_and_post_view (generic_views.test_base.ViewTest)', 'test_options_for_get_view (generic_views.test_base.ViewTest)', 'test_options_for_post_view (generic_views.test_base.ViewTest)', 'test_overridden_setup (generic_views.test_base.ViewTest)', 'test_pathological_http_method (generic_views.test_base.ViewTest)', 'test_setup_adds_args_kwargs_request (generic_views.test_base.ViewTest)', 'test_setup_get_and_head (generic_views.test_base.ViewTest)', 'Default is a temporary redirect', 'test_direct_instantiation (generic_views.test_base.RedirectViewTest)', 'GET arguments can be included in the redirected URL', 'GET arguments can be URL-encoded when included in the redirected URL', 'Named pattern parameter should reverse to the matching pattern', 'test_named_url_pattern_using_args (generic_views.test_base.RedirectViewTest)', 'Without any configuration, returns HTTP 410 GONE', 'Redirection URLs can be parameterized', 'Permanent redirects are an option', 'regression for #16705', 'Temporary redirects are an option', 'A generic template view passes kwargs as context.', 'test_cached_views (generic_views.test_base.TemplateViewTest)', 'test_content_type (generic_views.test_base.TemplateViewTest)', 'test_extra_context (generic_views.test_base.TemplateViewTest)', 'test_get (generic_views.test_base.TemplateViewTest)', 'test_get_generic_template (generic_views.test_base.TemplateViewTest)', 'test_get_template_attribute (generic_views.test_base.TemplateViewTest)', 'test_head (generic_views.test_base.TemplateViewTest)', 'test_resolve_login_required_view (generic_views.test_base.TemplateViewTest)', 'test_resolve_view (generic_views.test_base.TemplateViewTest)', 'test_template_engine (generic_views.test_base.TemplateViewTest)', 'test_template_name_required (generic_views.test_base.TemplateViewTest)'], 'failure': ['A template view can be customized to return extra context.', 'test_template_params_warning (generic_views.test_base.DeprecationTests)']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13297: resolved: False
+2026-10-04 17:47:10,127 - INFO - Attempting to stop container sweb.eval.django__django-13297.wescode-v3...
+2026-10-04 17:47:25,418 - INFO - Container sweb.eval.django__django-13297.wescode-v3 stopped successfully.
+2026-10-04 17:47:25,418 - INFO - Attempting to remove container sweb.eval.django__django-13297.wescode-v3...
+2026-10-04 17:47:25,450 - INFO - Container sweb.eval.django__django-13297.wescode-v3 removed successfully.

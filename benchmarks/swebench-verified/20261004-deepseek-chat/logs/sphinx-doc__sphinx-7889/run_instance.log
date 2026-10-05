@@ -1,0 +1,118 @@
+2026-10-04 19:28:26,378 - INFO - Creating container for sphinx-doc__sphinx-7889...
+2026-10-04 19:28:26,415 - INFO - Container for sphinx-doc__sphinx-7889 created: f9f4ab75b4c3c9e61ea3b2788a43f3563dd858cfcbfe8eabedb78200d37833b0
+2026-10-04 19:28:26,617 - INFO - Container for sphinx-doc__sphinx-7889 started: f9f4ab75b4c3c9e61ea3b2788a43f3563dd858cfcbfe8eabedb78200d37833b0
+2026-10-04 19:28:26,617 - INFO - Intermediate patch for sphinx-doc__sphinx-7889 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7889/patch.diff, now applying to container...
+2026-10-04 19:28:26,727 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:28:27,002 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:28:27,111 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:28:27,238 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/ext/autodoc/mock.py
+patching file tests/test_ext_autodoc_mock.py
+patch unexpectedly ends in middle of line
+Hunk #3 succeeded at 53 with fuzz 1.
+
+2026-10-04 19:28:27,314 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index e6888146c..32ce16917 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -19,6 +19,7 @@ Features added
+ Bugs fixed
+ ----------
+ 
++* #7886: autodoc: TypeError is raised on mocking generic-typed classes
+ * #7839: autosummary: cannot handle umlauts in function names
+ * #7865: autosummary: Failed to extract summary line when abbreviations found
+ * #7866: autosummary: Failed to extract correct summary line when docstring
+diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py
+index 98a3a3a96..40258a135 100755
+--- a/sphinx/ext/autodoc/mock.py
++++ b/sphinx/ext/autodoc/mock.py
+@@ -52,8 +52,8 @@ class _MockObject:
+     def __mro_entries__(self, bases: Tuple) -> Tuple:
+         return (self.__class__,)
+ 
+-    def __getitem__(self, key: str) -> "_MockObject":
+-        return _make_subclass(key, self.__display_name__, self.__class__)()
++    def __getitem__(self, key: Any) -> "_MockObject":
++        return _make_subclass(str(key), self.__display_name__, self.__class__)()
+ 
+     def __getattr__(self, key: str) -> "_MockObject":
+         return _make_subclass(key, self.__display_name__, self.__class__)()
+diff --git a/tests/test_ext_autodoc_mock.py b/tests/test_ext_autodoc_mock.py
+index 4760493cf..a29170f75 100755
+--- a/tests/test_ext_autodoc_mock.py
++++ b/tests/test_ext_autodoc_mock.py
+@@ -11,6 +11,7 @@
+ import abc
+ import sys
+ from importlib import import_module
++from typing import TypeVar
+ 
+ import pytest
+ 
+@@ -39,6 +40,7 @@ def test_MockObject():
+     assert isinstance(mock.attr1.attr2, _MockObject)
+     assert isinstance(mock.attr1.attr2.meth(), _MockObject)
+ 
++    # subclassing
+     class SubClass(mock.SomeClass):
+         """docstring of SubClass"""
+ 
+@@ -51,6 +53,16 @@ def test_MockObject():
+     assert obj.method() == "string"
+     assert isinstance(obj.other_method(), SubClass)
+ 
++    # parametrized type
++    T = TypeVar('T')
++
++    class SubClass2(mock.SomeClass[T]):
++        """docstring of SubClass"""
++
++    obj2 = SubClass2()
++    assert SubClass2.__doc__ == "docstring of SubClass"
++    assert isinstance(obj2, SubClass2)
++
+ 
+ def test_mock():
+     modname = 'sphinx.unknown'
+2026-10-04 19:28:27,314 - INFO - Eval script for sphinx-doc__sphinx-7889 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7889/eval.sh; copying to container...
+2026-10-04 19:28:31,940 - INFO - Test runtime: 4.57 seconds
+2026-10-04 19:28:31,941 - INFO - Test output for sphinx-doc__sphinx-7889 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-7889/test_output.txt
+2026-10-04 19:28:32,003 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index e6888146c..32ce16917 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -19,6 +19,7 @@ Features added
+ Bugs fixed
+ ----------
+ 
++* #7886: autodoc: TypeError is raised on mocking generic-typed classes
+ * #7839: autosummary: cannot handle umlauts in function names
+ * #7865: autosummary: Failed to extract summary line when abbreviations found
+ * #7866: autosummary: Failed to extract correct summary line when docstring
+diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py
+index 98a3a3a96..40258a135 100755
+--- a/sphinx/ext/autodoc/mock.py
++++ b/sphinx/ext/autodoc/mock.py
+@@ -52,8 +52,8 @@ class _MockObject:
+     def __mro_entries__(self, bases: Tuple) -> Tuple:
+         return (self.__class__,)
+ 
+-    def __getitem__(self, key: str) -> "_MockObject":
+-        return _make_subclass(key, self.__display_name__, self.__class__)()
++    def __getitem__(self, key: Any) -> "_MockObject":
++        return _make_subclass(str(key), self.__display_name__, self.__class__)()
+ 
+     def __getattr__(self, key: str) -> "_MockObject":
+         return _make_subclass(key, self.__display_name__, self.__class__)()
+2026-10-04 19:28:32,003 - INFO - Git diff changed after running eval script
+2026-10-04 19:28:32,003 - INFO - Grading answer for sphinx-doc__sphinx-7889...
+2026-10-04 19:28:32,005 - INFO - report: {'sphinx-doc__sphinx-7889': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_ext_autodoc_mock.py::test_MockObject'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_ext_autodoc_mock.py::test_MockModule', 'tests/test_ext_autodoc_mock.py::test_mock', 'tests/test_ext_autodoc_mock.py::test_mock_does_not_follow_upper_modules', 'tests/test_ext_autodoc_mock.py::test_abc_MockObject', 'tests/test_ext_autodoc_mock.py::test_mock_decorator'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-7889: resolved: True
+2026-10-04 19:28:32,005 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-7889.wescode-v3...
+2026-10-04 19:28:47,137 - INFO - Container sweb.eval.sphinx-doc__sphinx-7889.wescode-v3 stopped successfully.
+2026-10-04 19:28:47,137 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-7889.wescode-v3...
+2026-10-04 19:28:47,160 - INFO - Container sweb.eval.sphinx-doc__sphinx-7889.wescode-v3 removed successfully.

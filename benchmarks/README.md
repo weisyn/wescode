@@ -1,63 +1,56 @@
-# WES Code 评测结果
+# wescode 评测结果
 
-本目录包含 WES Code 在各主流 AI 编程评测上的成绩、数据和复现方法。
+wescode 在主流 AI 编程评测平台上的跑分数据、分析报告和复现指南。
 
-## 评测索引
+## 评测总览
 
-| 评测 | 最新成绩 | 最新 Run | 模型 | 说明 |
-|------|---------|---------|------|------|
-| [SWE-bench Verified](swebench-verified/) | **74.0%**（370/500） | [Run 001](swebench-verified/run-001-20261004/) | DeepSeek Chat | 500 题，Best@1，¥590 |
+| 评测 | 题数 | 语言 | 分数 | 模型 | 日期 | 状态 |
+|------|------|------|------|------|------|------|
+| [SWE-bench Verified](swebench-verified/) | 500 | Python | **79.2%** | DeepSeek Chat | 2026-10-04 | ✅ 完成 |
+| [SWE-bench Multilingual](swebench-multilingual/) | 300 | 9 语言 | — | — | — | ⏳ 计划中 |
+| [Terminal-Bench 2.1](terminal-bench/) | 89 | 多语言 | — | — | — | ⏳ 计划中 |
+| [Aider Polyglot](aider-polyglot/) | 225 | 6 语言 | — | — | — | ⏳ 计划中 |
 
 ## 目录结构
 
 ```
 benchmarks/
-├── README.md                            # 本文件
-├── swebench-verified/                   # SWE-bench Verified（500 题）
-│   ├── README.md                        # 评测说明 + 历次成绩对比
-│   ├── run-001-20261004/                # 第 1 次：74.0%
-│   │   ├── README.md                    # 本次 run 的完整报告
-│   │   ├── metadata.yaml                # SWE-bench 官方提交格式
-│   │   ├── summary.json                 # 机器可读摘要
-│   │   └── all_preds.jsonl              # predictions（大文件，见说明）
-│   ├── run-002-YYYYMMDD/                # 第 2 次：修复 patch 格式后
-│   └── ...
-├── swebench-multilingual/               # （待做）SWE-bench Multilingual
-├── terminal-bench/                      # （待做）Terminal-Bench 2.1
-├── aider-polyglot/                      # （待做）Aider Polyglot
-└── lhtb/                                # （待做）Long-Horizon Terminal-Bench
+├── README.md                              本文件
+├── swebench-verified/                     SWE-bench Verified（500 题 Python）
+│   ├── README.md                          评测说明 + 历次成绩
+│   └── 20261004-deepseek-chat/            第 1 次跑分
+│       ├── README.md                      完整报告
+│       ├── all_preds.jsonl                500 题 predictions
+│       ├── summary.json                   结果 + per-instance 成本
+│       ├── trajs/                         推理轨迹（500 files）
+│       └── submission/                    SWE-bench 提交材料
+├── swebench-multilingual/                 ⏳
+├── terminal-bench/                        ⏳
+└── aider-polyglot/                        ⏳
 ```
 
-## 大文件策略
+## 命名规则
 
-- `all_preds.jsonl`（predictions）和 `logs/`（评分日志）体积较大
-- 开源 repo 中只保留 `summary.json` 和 `README.md`
-- 完整数据通过 [GitHub Releases](https://github.com/weisyn/wescode/releases) 附件发布
-- 也可从源码仓 `backend/results/` 获取原始数据
+每次跑分以 `YYYYMMDD-<model>` 命名，便于追踪同一评测的不同轮次：
+
+```
+swebench-verified/
+├── 20261004-deepseek-chat/      # 第 1 次：DeepSeek Chat Best@1
+├── 20261010-deepseek-chat-3x/   # 第 2 次：DeepSeek Chat 3-rollout（示例）
+└── 20261020-claude-sonnet/      # 第 3 次：换 Claude Sonnet（示例）
+```
 
 ## 复现
 
+每个跑分目录下的 `README.md` 包含完整的复现步骤。通用依赖：
+
 ```bash
-# 1. 构建 wescode
-cd backend && go build -o bin/wescode ./cmd/wescode
-
-# 2. 运行 SWE-bench Verified 评测（需要 LLM API key）
-bin/wescode bench \
-  --dataset swebench-verified \
-  --runs 1 \
-  --predictions ./predictions.jsonl
-
-# 3. 使用官方 harness 评分（需要 Docker）
-pip install swebench
-swebench eval verified \
-  --predictions predictions.jsonl \
-  --run-id wescode-run-001 \
-  -j 2
+cd backend && go build -o bin/wescode ./cmd/wescode/
+bin/wescode bench --dataset <dataset-dir> --runs 1 --predictions predictions.jsonl
 ```
 
-## 评测原则
+## 注意事项
 
-1. **Best@1**：单次运行，不做 multi-rollout
-2. **透明**：公开 predictions + 评分日志 + 复现步骤
-3. **标准**：使用官方评分 harness，不修改评分逻辑
-4. **诚实**：如实报告所有失败原因（patch error / unresolved / empty）
+- **SWE-bench Verified 数据污染声明**：OpenAI [已建议停止使用该基准](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)，推荐 SWE-bench Pro。我们同时规划 Multilingual 评测以交叉验证
+- **LLM 输出随机性**：同一模型每次运行结果有 ±2-3% 波动
+- **费用基于 DeepSeek 2026-10 定价**：Input ¥1/M tokens，Output ¥2/M tokens

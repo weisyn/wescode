@@ -1,0 +1,106 @@
+2026-10-04 19:37:56,502 - INFO - Creating container for sphinx-doc__sphinx-8721...
+2026-10-04 19:37:56,548 - INFO - Container for sphinx-doc__sphinx-8721 created: d6e03f44f0a919fa31858dba244b4423ccd4ac86d9f8c1a79be82c9e4c5dee3c
+2026-10-04 19:37:56,743 - INFO - Container for sphinx-doc__sphinx-8721 started: d6e03f44f0a919fa31858dba244b4423ccd4ac86d9f8c1a79be82c9e4c5dee3c
+2026-10-04 19:37:56,744 - INFO - Intermediate patch for sphinx-doc__sphinx-8721 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8721/patch.diff, now applying to container...
+2026-10-04 19:37:56,863 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:37:57,128 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:37:57,247 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:37:57,372 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/ext/viewcode.py
+patching file tests/test_ext_viewcode.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 49 with fuzz 1.
+
+2026-10-04 19:37:57,452 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index bc9dfa335..f38a0dc60 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -65,6 +65,7 @@ Bugs fixed
+   availability of the same URL twice
+ * #8094: texinfo: image files on the different directory with document are not
+   copied
++* #8720: viewcode: module pages are generated for epub on incremental build
+ * #8671: :confval:`highlight_options` is not working
+ * #8341: C, fix intersphinx lookup types for names in declarations.
+ * C, C++: in general fix intersphinx and role lookup types.
+diff --git a/sphinx/ext/viewcode.py b/sphinx/ext/viewcode.py
+index a7d52a91c..c2bcee4f5 100755
+--- a/sphinx/ext/viewcode.py
++++ b/sphinx/ext/viewcode.py
+@@ -182,6 +182,10 @@ def collect_pages(app: Sphinx) -> Generator[Tuple[str, Dict[str, Any], str], Non
+     env = app.builder.env
+     if not hasattr(env, '_viewcode_modules'):
+         return
++    if app.builder.name == "singlehtml":
++        return
++    if app.builder.name.startswith("epub") and not env.config.viewcode_enable_epub:
++        return
+     highlighter = app.builder.highlighter  # type: ignore
+     urito = app.builder.get_relative_uri
+ 
+diff --git a/tests/test_ext_viewcode.py b/tests/test_ext_viewcode.py
+index 79864095b..21002966b 100755
+--- a/tests/test_ext_viewcode.py
++++ b/tests/test_ext_viewcode.py
+@@ -49,6 +49,21 @@ def test_viewcode(app, status, warning):
+             '<span>    &quot;&quot;&quot;</span></div>\n') in result
+ 
+ 
++@pytest.mark.sphinx('epub', testroot='ext-viewcode')
++def test_viewcode_epub_default(app, status, warning):
++    app.builder.build_all()
++
++    assert not (app.outdir / '_modules/spam/mod1.xhtml').exists()
++
++
++@pytest.mark.sphinx('epub', testroot='ext-viewcode',
++                    confoverrides={'viewcode_enable_epub': True})
++def test_viewcode_epub_enabled(app, status, warning):
++    app.builder.build_all()
++
++    assert (app.outdir / '_modules/spam/mod1.xhtml').exists()
++
++
+ @pytest.mark.sphinx(testroot='ext-viewcode', tags=['test_linkcode'])
+ def test_linkcode(app, status, warning):
+     app.builder.build(['objects'])
+2026-10-04 19:37:57,453 - INFO - Eval script for sphinx-doc__sphinx-8721 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8721/eval.sh; copying to container...
+2026-10-04 19:38:04,430 - INFO - Test runtime: 6.92 seconds
+2026-10-04 19:38:04,430 - INFO - Test output for sphinx-doc__sphinx-8721 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8721/test_output.txt
+2026-10-04 19:38:04,491 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index bc9dfa335..f38a0dc60 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -65,6 +65,7 @@ Bugs fixed
+   availability of the same URL twice
+ * #8094: texinfo: image files on the different directory with document are not
+   copied
++* #8720: viewcode: module pages are generated for epub on incremental build
+ * #8671: :confval:`highlight_options` is not working
+ * #8341: C, fix intersphinx lookup types for names in declarations.
+ * C, C++: in general fix intersphinx and role lookup types.
+diff --git a/sphinx/ext/viewcode.py b/sphinx/ext/viewcode.py
+index a7d52a91c..c2bcee4f5 100755
+--- a/sphinx/ext/viewcode.py
++++ b/sphinx/ext/viewcode.py
+@@ -182,6 +182,10 @@ def collect_pages(app: Sphinx) -> Generator[Tuple[str, Dict[str, Any], str], Non
+     env = app.builder.env
+     if not hasattr(env, '_viewcode_modules'):
+         return
++    if app.builder.name == "singlehtml":
++        return
++    if app.builder.name.startswith("epub") and not env.config.viewcode_enable_epub:
++        return
+     highlighter = app.builder.highlighter  # type: ignore
+     urito = app.builder.get_relative_uri
+2026-10-04 19:38:04,491 - INFO - Git diff changed after running eval script
+2026-10-04 19:38:04,491 - INFO - Grading answer for sphinx-doc__sphinx-8721...
+2026-10-04 19:38:04,499 - INFO - report: {'sphinx-doc__sphinx-8721': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_ext_viewcode.py::test_viewcode_epub_default'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_ext_viewcode.py::test_viewcode_epub_enabled', 'tests/test_ext_viewcode.py::test_linkcode', 'tests/test_ext_viewcode.py::test_local_source_files'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-8721: resolved: True
+2026-10-04 19:38:04,500 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-8721.wescode-v3...
+2026-10-04 19:38:19,634 - INFO - Container sweb.eval.sphinx-doc__sphinx-8721.wescode-v3 stopped successfully.
+2026-10-04 19:38:19,634 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-8721.wescode-v3...
+2026-10-04 19:38:19,659 - INFO - Container sweb.eval.sphinx-doc__sphinx-8721.wescode-v3 removed successfully.

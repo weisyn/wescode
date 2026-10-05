@@ -1,0 +1,136 @@
+2026-10-04 18:13:06,321 - INFO - Creating container for django__django-16136...
+2026-10-04 18:13:06,371 - INFO - Container for django__django-16136 created: 90f116c8ba930e520a884c027910e0594f2391734be5603985ed44f58788f114
+2026-10-04 18:13:06,593 - INFO - Container for django__django-16136 started: 90f116c8ba930e520a884c027910e0594f2391734be5603985ed44f58788f114
+2026-10-04 18:13:06,593 - INFO - Intermediate patch for django__django-16136 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16136/patch.diff, now applying to container...
+2026-10-04 18:13:06,717 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:13:07,978 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:13:08,644 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:13:08,848 - INFO - >>>>> Applied Patch:
+patching file django/views/generic/base.py
+patching file docs/releases/4.1.2.txt
+patching file tests/async/tests.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 119 with fuzz 1.
+
+2026-10-04 18:13:08,908 - INFO - Git diff before:
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index db1842e3e5..3a3afb0c73 100644
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -148,7 +148,16 @@ class View:
+             request.path,
+             extra={"status_code": 405, "request": request},
+         )
+-        return HttpResponseNotAllowed(self._allowed_methods())
++        response = HttpResponseNotAllowed(self._allowed_methods())
++
++        if self.view_is_async:
++
++            async def func():
++                return response
++
++            return func()
++        else:
++            return response
+ 
+     def options(self, request, *args, **kwargs):
+         """Handle responding to requests for the OPTIONS HTTP verb."""
+diff --git a/docs/releases/4.1.2.txt b/docs/releases/4.1.2.txt
+index 57b0b6c6e8..d607c34c92 100644
+--- a/docs/releases/4.1.2.txt
++++ b/docs/releases/4.1.2.txt
+@@ -39,3 +39,7 @@ Bugfixes
+ * Fixed a regression in Django 4.1 that didn't alter a sequence type when
+   altering type of pre-Django 4.1 serial columns on PostgreSQL
+   (:ticket:`34058`).
++
++* Fixed a regression in Django 4.1 that caused a crash for :class:`View`
++  subclasses with asynchronous handlers when handling non-allowed HTTP methods
++  (:ticket:`34062`).
+diff --git a/tests/async/tests.py b/tests/async/tests.py
+index 66eece4b97..559f21b8b1 100644
+--- a/tests/async/tests.py
++++ b/tests/async/tests.py
+@@ -6,8 +6,8 @@ from asgiref.sync import async_to_sync
+ 
+ from django.core.cache import DEFAULT_CACHE_ALIAS, caches
+ from django.core.exceptions import ImproperlyConfigured, SynchronousOnlyOperation
+-from django.http import HttpResponse
+-from django.test import SimpleTestCase
++from django.http import HttpResponse, HttpResponseNotAllowed
++from django.test import RequestFactory, SimpleTestCase
+ from django.utils.asyncio import async_unsafe
+ from django.views.generic.base import View
+ 
+@@ -119,6 +119,25 @@ class ViewTests(SimpleTestCase):
+ 
+                 self.assertIsInstance(response, HttpResponse)
+ 
++    def test_http_method_not_allowed_responds_correctly(self):
++        request_factory = RequestFactory()
++        tests = [
++            (SyncView, False),
++            (AsyncView, True),
++        ]
++        for view_cls, is_coroutine in tests:
++            with self.subTest(view_cls=view_cls, is_coroutine=is_coroutine):
++                instance = view_cls()
++                response = instance.http_method_not_allowed(request_factory.post("/"))
++                self.assertIs(
++                    asyncio.iscoroutine(response),
++                    is_coroutine,
++                )
++                if is_coroutine:
++                    response = asyncio.run(response)
++
++                self.assertIsInstance(response, HttpResponseNotAllowed)
++
+     def test_base_view_class_is_sync(self):
+         """
+         View and by extension any subclasses that don't define handlers are
+2026-10-04 18:13:08,908 - INFO - Eval script for django__django-16136 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16136/eval.sh; copying to container...
+2026-10-04 18:13:16,779 - INFO - Test runtime: 7.81 seconds
+2026-10-04 18:13:16,779 - INFO - Test output for django__django-16136 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-16136/test_output.txt
+2026-10-04 18:13:16,836 - INFO - Git diff after:
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index db1842e3e5..3a3afb0c73 100644
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -148,7 +148,16 @@ class View:
+             request.path,
+             extra={"status_code": 405, "request": request},
+         )
+-        return HttpResponseNotAllowed(self._allowed_methods())
++        response = HttpResponseNotAllowed(self._allowed_methods())
++
++        if self.view_is_async:
++
++            async def func():
++                return response
++
++            return func()
++        else:
++            return response
+ 
+     def options(self, request, *args, **kwargs):
+         """Handle responding to requests for the OPTIONS HTTP verb."""
+diff --git a/docs/releases/4.1.2.txt b/docs/releases/4.1.2.txt
+index 57b0b6c6e8..d607c34c92 100644
+--- a/docs/releases/4.1.2.txt
++++ b/docs/releases/4.1.2.txt
+@@ -39,3 +39,7 @@ Bugfixes
+ * Fixed a regression in Django 4.1 that didn't alter a sequence type when
+   altering type of pre-Django 4.1 serial columns on PostgreSQL
+   (:ticket:`34058`).
++
++* Fixed a regression in Django 4.1 that caused a crash for :class:`View`
++  subclasses with asynchronous handlers when handling non-allowed HTTP methods
++  (:ticket:`34062`).
+2026-10-04 18:13:16,836 - INFO - Git diff changed after running eval script
+2026-10-04 18:13:16,837 - INFO - Grading answer for django__django-16136...
+2026-10-04 18:13:16,837 - INFO - report: {'django__django-16136': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_http_method_not_allowed_responds_correctly (async.tests.ViewTests)', 'test_mixed_views_raise_error (async.tests.ViewTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ["View and by extension any subclasses that don't define handlers are", 'test_options_handler_responds_correctly (async.tests.ViewTests)', 'test_views_are_correctly_marked (async.tests.ViewTests)', 'test_caches_local (async.tests.CacheTest)', 'test_async_unsafe (async.tests.AsyncUnsafeTest)', 'Utility class which turns an awaitable that only works on the thread with', 'test_get_async_connection (async.tests.DatabaseConnectionTest)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-16136: resolved: True
+2026-10-04 18:13:16,837 - INFO - Attempting to stop container sweb.eval.django__django-16136.wescode-v3...
+2026-10-04 18:13:32,132 - INFO - Container sweb.eval.django__django-16136.wescode-v3 stopped successfully.
+2026-10-04 18:13:32,132 - INFO - Attempting to remove container sweb.eval.django__django-16136.wescode-v3...
+2026-10-04 18:13:32,329 - INFO - Container sweb.eval.django__django-16136.wescode-v3 removed successfully.

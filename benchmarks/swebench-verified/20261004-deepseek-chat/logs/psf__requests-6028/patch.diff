@@ -1,0 +1,28 @@
+diff --git a/requests/utils.py b/requests/utils.py
+index 1c2ae4e0..e50c8fd3 100644
+--- a/requests/utils.py
++++ b/requests/utils.py
+@@ -974,6 +974,11 @@ def prepend_scheme_if_needed(url, new_scheme):
+     if not netloc:
+         netloc, path = path, netloc
+ 
++    if auth:
++        # urllib3's parse_url returns the auth separately from netloc, so it
++        # has to be re-attached to avoid dropping proxy credentials (#6028).
++        netloc = '@'.join([auth, netloc])
++
+     if scheme is None:
+         scheme = new_scheme
+     if path is None:
+diff --git a/tests/test_utils.py b/tests/test_utils.py
+index c2186b88..88e75f8c 100644
+--- a/tests/test_utils.py
++++ b/tests/test_utils.py
+@@ -602,6 +602,7 @@ def test_parse_header_links(value, expected):
+         ('example.com/path', 'http://example.com/path'),
+         ('//example.com/path', 'http://example.com/path'),
+         ('example.com:80', 'http://example.com:80'),
++        ('http://user:pass@example.com', 'http://user:pass@example.com'),
+     ))
+ def test_prepend_scheme_if_needed(value, expected):
+     assert prepend_scheme_if_needed(value, 'http') == expected

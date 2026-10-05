@@ -1,0 +1,79 @@
+diff --git a/CHANGES b/CHANGES
+index ed47709e5..99c134b6d 100644
+--- a/CHANGES
++++ b/CHANGES
+@@ -23,6 +23,8 @@ Bugs fixed
+ * #10443: epub: EPUB builder can't detect the mimetype of .webp file
+ * #10456: py domain: ``:meta:`` fields are displayed if docstring contains two
+   or more meta-field
++* #10466: gettext: Duplicated locations are shown in the generated ``.pot``
++  files
+ * #9096: sphinx-build: the value of progress bar for paralle build is wrong
+ * #10110: sphinx-build: exit code is not changed when error is raised on
+   builder-finished event
+diff --git a/sphinx/builders/gettext.py b/sphinx/builders/gettext.py
+index e8bc547b7..86167dec2 100644
+--- a/sphinx/builders/gettext.py
++++ b/sphinx/builders/gettext.py
+@@ -28,6 +28,20 @@ from sphinx.util.template import SphinxRenderer
+ logger = logging.getLogger(__name__)
+ 
+ 
++def _unique(iterable: Iterable, key: Any = None) -> Generator:
++    """Yield the items of *iterable*, discarding duplicates.
++
++    The original ordering is preserved so that the generated catalogs stay
++    stable between builds (sets are not ordered).
++    """
++    seen = set()
++    for item in iterable:
++        marker = item if key is None else key(item)
++        if marker not in seen:
++            seen.add(marker)
++            yield item
++
++
+ class Message:
+     """An entry of translatable message."""
+     def __init__(self, text: str, locations: List[Tuple[str, int]], uuids: List[str]):
+@@ -57,8 +71,11 @@ class Catalog:
+ 
+     def __iter__(self) -> Generator[Message, None, None]:
+         for message in self.messages:
+-            positions = [(source, line) for source, line, uuid in self.metadata[message]]
+-            uuids = [uuid for source, line, uuid in self.metadata[message]]
++            positions = []
++            uuids = []
++            for source, line, uuid in _unique(self.metadata[message], key=lambda x: x[0]):
++                positions.append((source, line))
++                uuids.append(uuid)
+             yield Message(message, positions, uuids)
+ 
+ 
+diff --git a/tests/test_build_gettext.py b/tests/test_build_gettext.py
+index 3c4617e84..65f37725a 100644
+--- a/tests/test_build_gettext.py
++++ b/tests/test_build_gettext.py
+@@ -27,6 +27,22 @@ def test_build_gettext(app):
+     assert 'msgid "something, something else, something more"' in catalog
+ 
+ 
++@pytest.mark.sphinx('gettext', srcdir='root-gettext')
++def test_gettext_duplicate_locations(app):
++    # regression test for #10466: duplicate locations should be removed
++    app.builder.build_all()
++
++    catalog = (app.outdir / 'markup.pot').read_text(encoding='utf8')
++    assert 'msgid "something, something else, something more"' in catalog
++
++    # Collect every '#: ' location comment and assert none is repeated within
++    # the same message block.
++    blocks = re.split(r'\n\n+', catalog)
++    for block in blocks:
++        locations = [line for line in block.splitlines() if line.startswith('#: ')]
++        assert len(locations) == len(set(locations))
++
++
+ @pytest.mark.sphinx('gettext', srcdir='root-gettext')
+ def test_msgfmt(app):
+     app.builder.build_all()

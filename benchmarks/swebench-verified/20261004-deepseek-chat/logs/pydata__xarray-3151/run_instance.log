@@ -1,0 +1,137 @@
+2026-10-04 18:57:12,473 - INFO - Creating container for pydata__xarray-3151...
+2026-10-04 18:57:12,519 - INFO - Container for pydata__xarray-3151 created: 4d5a8c6bea16c7e4a6f252376cb564b95a1e8345b96f2e376bdc485622c33ce4
+2026-10-04 18:57:12,716 - INFO - Container for pydata__xarray-3151 started: 4d5a8c6bea16c7e4a6f252376cb564b95a1e8345b96f2e376bdc485622c33ce4
+2026-10-04 18:57:12,717 - INFO - Intermediate patch for pydata__xarray-3151 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pydata__xarray-3151/patch.diff, now applying to container...
+2026-10-04 18:57:12,835 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:57:12,961 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:57:13,070 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:57:13,174 - INFO - >>>>> Applied Patch:
+patching file doc/whats-new.rst
+patching file xarray/core/combine.py
+patching file xarray/tests/test_combine.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 581 with fuzz 1.
+
+2026-10-04 18:57:13,235 - INFO - Git diff before:
+diff --git a/doc/whats-new.rst b/doc/whats-new.rst
+index a8c53423..b5e4e903 100755
+--- a/doc/whats-new.rst
++++ b/doc/whats-new.rst
+@@ -41,6 +41,9 @@ Bug fixes
+ - XFAIL several tests which are expected to fail on ARM systems
+   due to a ``datetime`` issue in NumPy (:issue:`2334`).
+   By `Graham Inggs <https://github.com/ginggs>`_.
++- Fixed bug in ``combine_by_coords()`` causing a `ValueError` if the input had
++  an unused dimension with coordinates which were not monotonic (:issue`3150`).
++  By `Tom Nicholas <http://github.com/TomNicholas>`_.
+ 
+ .. _whats-new.0.12.3:
+ 
+diff --git a/xarray/core/combine.py b/xarray/core/combine.py
+index 37ae903b..5718698f 100755
+--- a/xarray/core/combine.py
++++ b/xarray/core/combine.py
+@@ -501,14 +501,13 @@ def combine_by_coords(datasets, compat='no_conflicts', data_vars='all',
+                                    fill_value=fill_value)
+ 
+         # Check the overall coordinates are monotonically increasing
+-        for dim in concatenated.dims:
+-            if dim in concatenated:
+-                indexes = concatenated.indexes.get(dim)
+-                if not (indexes.is_monotonic_increasing
+-                        or indexes.is_monotonic_decreasing):
+-                    raise ValueError("Resulting object does not have monotonic"
+-                                     " global indexes along dimension {}"
+-                                     .format(dim))
++        for dim in concat_dims:
++            indexes = concatenated.indexes.get(dim)
++            if not (indexes.is_monotonic_increasing
++                    or indexes.is_monotonic_decreasing):
++                raise ValueError("Resulting object does not have monotonic"
++                                 " global indexes along dimension {}"
++                                 .format(dim))
+         concatenated_grouped_by_data_vars.append(concatenated)
+ 
+     return merge(concatenated_grouped_by_data_vars, compat=compat,
+diff --git a/xarray/tests/test_combine.py b/xarray/tests/test_combine.py
+index 77e2993b..2a71a3a3 100755
+--- a/xarray/tests/test_combine.py
++++ b/xarray/tests/test_combine.py
+@@ -581,6 +581,25 @@ class TestCombineAuto:
+         expected = data
+         assert expected.broadcast_equals(actual)
+ 
++    def test_combine_leaving_bystander_dimensions(self):
++        # Check non-monotonic bystander dimension coord doesn't raise
++        # ValueError on combine (https://github.com/pydata/xarray/issues/3150)
++        ycoord = ['a', 'c', 'b']
++
++        data = np.random.rand(7, 3)
++
++        ds1 = Dataset(data_vars=dict(data=(['x', 'y'], data[:3, :])),
++                      coords=dict(x=[1, 2, 3], y=ycoord))
++
++        ds2 = Dataset(data_vars=dict(data=(['x', 'y'], data[3:, :])),
++                      coords=dict(x=[4, 5, 6, 7], y=ycoord))
++
++        expected = Dataset(data_vars=dict(data=(['x', 'y'], data)),
++                           coords=dict(x=[1, 2, 3, 4, 5, 6, 7], y=ycoord))
++
++        actual = combine_by_coords((ds1, ds2))
++        assert_identical(expected, actual)
++
+     def test_combine_by_coords_previously_failed(self):
+         # In the above scenario, one file is missing, containing the data for
+         # one year's data for one variable.
+2026-10-04 18:57:13,235 - INFO - Eval script for pydata__xarray-3151 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pydata__xarray-3151/eval.sh; copying to container...
+2026-10-04 18:57:20,740 - INFO - Test runtime: 7.44 seconds
+2026-10-04 18:57:20,740 - INFO - Test output for pydata__xarray-3151 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/pydata__xarray-3151/test_output.txt
+2026-10-04 18:57:20,793 - INFO - Git diff after:
+diff --git a/doc/whats-new.rst b/doc/whats-new.rst
+index a8c53423..b5e4e903 100755
+--- a/doc/whats-new.rst
++++ b/doc/whats-new.rst
+@@ -41,6 +41,9 @@ Bug fixes
+ - XFAIL several tests which are expected to fail on ARM systems
+   due to a ``datetime`` issue in NumPy (:issue:`2334`).
+   By `Graham Inggs <https://github.com/ginggs>`_.
++- Fixed bug in ``combine_by_coords()`` causing a `ValueError` if the input had
++  an unused dimension with coordinates which were not monotonic (:issue`3150`).
++  By `Tom Nicholas <http://github.com/TomNicholas>`_.
+ 
+ .. _whats-new.0.12.3:
+ 
+diff --git a/xarray/core/combine.py b/xarray/core/combine.py
+index 37ae903b..5718698f 100755
+--- a/xarray/core/combine.py
++++ b/xarray/core/combine.py
+@@ -501,14 +501,13 @@ def combine_by_coords(datasets, compat='no_conflicts', data_vars='all',
+                                    fill_value=fill_value)
+ 
+         # Check the overall coordinates are monotonically increasing
+-        for dim in concatenated.dims:
+-            if dim in concatenated:
+-                indexes = concatenated.indexes.get(dim)
+-                if not (indexes.is_monotonic_increasing
+-                        or indexes.is_monotonic_decreasing):
+-                    raise ValueError("Resulting object does not have monotonic"
+-                                     " global indexes along dimension {}"
+-                                     .format(dim))
++        for dim in concat_dims:
++            indexes = concatenated.indexes.get(dim)
++            if not (indexes.is_monotonic_increasing
++                    or indexes.is_monotonic_decreasing):
++                raise ValueError("Resulting object does not have monotonic"
++                                 " global indexes along dimension {}"
++                                 .format(dim))
+         concatenated_grouped_by_data_vars.append(concatenated)
+ 
+     return merge(concatenated_grouped_by_data_vars, compat=compat,
+2026-10-04 18:57:20,793 - INFO - Git diff changed after running eval script
+2026-10-04 18:57:20,793 - INFO - Grading answer for pydata__xarray-3151...
+2026-10-04 18:57:20,793 - INFO - report: {'pydata__xarray-3151': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['xarray/tests/test_combine.py::TestCombineAuto::test_combine_leaving_bystander_dimensions'], 'failure': []}, 'PASS_TO_PASS': {'success': ['xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_1d', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_2d', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_3d', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_single_dataset', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_redundant_nesting', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_ignore_empty_list', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_uneven_depth_input', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_uneven_length_input', 'xarray/tests/test_combine.py::TestTileIDsFromNestedList::test_infer_from_datasets', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_1d', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_2d', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_no_dimension_coords', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_coord_not_monotonic', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_coord_monotonically_decreasing', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_no_concatenation_needed', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_2d_plus_bystander_dim', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_string_coords', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_lexicographic_sort_string_coords', 'xarray/tests/test_combine.py::TestTileIDsFromCoords::test_datetime_coords', 'xarray/tests/test_combine.py::TestNewTileIDs::test_new_tile_id[old_id0-new_id0]', 'xarray/tests/test_combine.py::TestNewTileIDs::test_new_tile_id[old_id1-new_id1]', 'xarray/tests/test_combine.py::TestNewTileIDs::test_new_tile_id[old_id2-new_id2]', 'xarray/tests/test_combine.py::TestNewTileIDs::test_new_tile_id[old_id3-new_id3]', 'xarray/tests/test_combine.py::TestNewTileIDs::test_new_tile_id[old_id4-new_id4]', 'xarray/tests/test_combine.py::TestNewTileIDs::test_get_new_tile_ids', 'xarray/tests/test_combine.py::TestCombineND::test_concat_once[dim1]', 'xarray/tests/test_combine.py::TestCombineND::test_concat_once[new_dim]', 'xarray/tests/test_combine.py::TestCombineND::test_concat_only_first_dim', 'xarray/tests/test_combine.py::TestCombineND::test_concat_twice[dim1]', 'xarray/tests/test_combine.py::TestCombineND::test_concat_twice[new_dim]', 'xarray/tests/test_combine.py::TestCheckShapeTileIDs::test_check_depths', 'xarray/tests/test_combine.py::TestCheckShapeTileIDs::test_check_lengths', 'xarray/tests/test_combine.py::TestManualCombine::test_manual_concat', 'xarray/tests/test_combine.py::TestManualCombine::test_empty_input', 'xarray/tests/test_combine.py::TestManualCombine::test_manual_concat_along_new_dim', 'xarray/tests/test_combine.py::TestManualCombine::test_manual_merge', 'xarray/tests/test_combine.py::TestManualCombine::test_concat_multiple_dims', 'xarray/tests/test_combine.py::TestManualCombine::test_concat_name_symmetry', 'xarray/tests/test_combine.py::TestManualCombine::test_concat_one_dim_merge_another', 'xarray/tests/test_combine.py::TestManualCombine::test_auto_combine_2d', 'xarray/tests/test_combine.py::TestManualCombine::test_manual_combine_missing_data_new_dim', 'xarray/tests/test_combine.py::TestManualCombine::test_invalid_hypercube_input', 'xarray/tests/test_combine.py::TestManualCombine::test_merge_one_dim_concat_another', 'xarray/tests/test_combine.py::TestManualCombine::test_combine_concat_over_redundant_nesting', 'xarray/tests/test_combine.py::TestManualCombine::test_manual_combine_but_need_auto_combine', 'xarray/tests/test_combine.py::TestManualCombine::test_combine_nested_fill_value[fill_value0]', 'xarray/tests/test_combine.py::TestManualCombine::test_combine_nested_fill_value[2]', 'xarray/tests/test_combine.py::TestManualCombine::test_combine_nested_fill_value[2.0]', 'xarray/tests/test_combine.py::TestCombineAuto::test_combine_by_coords', 'xarray/tests/test_combine.py::TestCombineAuto::test_infer_order_from_coords', 'xarray/tests/test_combine.py::TestCombineAuto::test_combine_by_coords_previously_failed', 'xarray/tests/test_combine.py::TestCombineAuto::test_combine_by_coords_still_fails', 'xarray/tests/test_combine.py::TestCombineAuto::test_combine_by_coords_no_concat', 'xarray/tests/test_combine.py::TestCombineAuto::test_check_for_impossible_ordering', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine_previously_failed', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine_still_fails', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine_no_concat', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine_order_by_appearance_not_coords', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine_fill_value[fill_value0]', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine_fill_value[2]', 'xarray/tests/test_combine.py::TestAutoCombineOldAPI::test_auto_combine_fill_value[2.0]', 'xarray/tests/test_combine.py::TestAutoCombineDeprecation::test_auto_combine_with_concat_dim', 'xarray/tests/test_combine.py::TestAutoCombineDeprecation::test_auto_combine_with_merge_and_concat', 'xarray/tests/test_combine.py::TestAutoCombineDeprecation::test_auto_combine_with_coords', 'xarray/tests/test_combine.py::TestAutoCombineDeprecation::test_auto_combine_without_coords'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pydata__xarray-3151: resolved: True
+2026-10-04 18:57:20,794 - INFO - Attempting to stop container sweb.eval.pydata__xarray-3151.wescode-v3...
+2026-10-04 18:57:35,933 - INFO - Container sweb.eval.pydata__xarray-3151.wescode-v3 stopped successfully.
+2026-10-04 18:57:35,933 - INFO - Attempting to remove container sweb.eval.pydata__xarray-3151.wescode-v3...
+2026-10-04 18:57:35,956 - INFO - Container sweb.eval.pydata__xarray-3151.wescode-v3 removed successfully.

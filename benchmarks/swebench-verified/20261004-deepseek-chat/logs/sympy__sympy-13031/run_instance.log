@@ -1,0 +1,103 @@
+2026-10-04 19:41:11,394 - INFO - Creating container for sympy__sympy-13031...
+2026-10-04 19:41:11,440 - INFO - Container for sympy__sympy-13031 created: 8eac704e8425aa8df1766e91939a066c05e5d5992f7a59a5264f8d36f56afe2e
+2026-10-04 19:41:11,645 - INFO - Container for sympy__sympy-13031 started: 8eac704e8425aa8df1766e91939a066c05e5d5992f7a59a5264f8d36f56afe2e
+2026-10-04 19:41:11,645 - INFO - Intermediate patch for sympy__sympy-13031 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13031/patch.diff, now applying to container...
+2026-10-04 19:41:11,769 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:41:11,956 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:41:12,068 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:41:12,183 - INFO - >>>>> Applied Patch:
+patching file sympy/matrices/sparse.py
+patching file sympy/matrices/tests/test_sparse.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 26 with fuzz 1.
+
+2026-10-04 19:41:12,254 - INFO - Git diff before:
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index e6f36cdf3..7701cbc17 100755
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -985,8 +985,10 @@ def col_join(self, other):
+         >>> C == A.row_insert(A.rows, Matrix(B))
+         True
+         """
+-        if not self:
+-            return type(self)(other)
++        # A null matrix can always be stacked (see  #10770)
++        if self.rows == 0 and self.cols != other.cols:
++            return self._new(0, other.cols, []).col_join(other)
++
+         A, B = self, other
+         if not A.cols == B.cols:
+             raise ShapeError()
+@@ -1191,8 +1193,10 @@ def row_join(self, other):
+         >>> C == A.col_insert(A.cols, B)
+         True
+         """
+-        if not self:
+-            return type(self)(other)
++        # A null matrix can always be stacked (see  #10770)
++        if self.cols == 0 and self.rows != other.rows:
++            return self._new(other.rows, 0, []).row_join(other)
++
+         A, B = self, other
+         if not A.rows == B.rows:
+             raise ShapeError()
+diff --git a/sympy/matrices/tests/test_sparse.py b/sympy/matrices/tests/test_sparse.py
+index acea94028..2f130d4c9 100755
+--- a/sympy/matrices/tests/test_sparse.py
++++ b/sympy/matrices/tests/test_sparse.py
+@@ -26,6 +26,12 @@ def sparse_zeros(n):
+     assert type(a.row_join(b)) == type(a)
+     assert type(a.col_join(b)) == type(a)
+ 
++    # make sure 0 x n matrices get stacked correctly
++    sparse_matrices = [SparseMatrix.zeros(0, n) for n in range(4)]
++    assert SparseMatrix.hstack(*sparse_matrices) == Matrix(0, 6, [])
++    sparse_matrices = [SparseMatrix.zeros(n, 0) for n in range(4)]
++    assert SparseMatrix.vstack(*sparse_matrices) == Matrix(6, 0, [])
++
+     # test element assignment
+     a = SparseMatrix((
+         (1, 0),
+2026-10-04 19:41:12,255 - INFO - Eval script for sympy__sympy-13031 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13031/eval.sh; copying to container...
+2026-10-04 19:41:17,358 - INFO - Test runtime: 5.05 seconds
+2026-10-04 19:41:17,359 - INFO - Test output for sympy__sympy-13031 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sympy__sympy-13031/test_output.txt
+2026-10-04 19:41:17,408 - INFO - Git diff after:
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index e6f36cdf3..7701cbc17 100755
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -985,8 +985,10 @@ def col_join(self, other):
+         >>> C == A.row_insert(A.rows, Matrix(B))
+         True
+         """
+-        if not self:
+-            return type(self)(other)
++        # A null matrix can always be stacked (see  #10770)
++        if self.rows == 0 and self.cols != other.cols:
++            return self._new(0, other.cols, []).col_join(other)
++
+         A, B = self, other
+         if not A.cols == B.cols:
+             raise ShapeError()
+@@ -1191,8 +1193,10 @@ def row_join(self, other):
+         >>> C == A.col_insert(A.cols, B)
+         True
+         """
+-        if not self:
+-            return type(self)(other)
++        # A null matrix can always be stacked (see  #10770)
++        if self.cols == 0 and self.rows != other.rows:
++            return self._new(other.rows, 0, []).row_join(other)
++
+         A, B = self, other
+         if not A.rows == B.rows:
+             raise ShapeError()
+2026-10-04 19:41:17,408 - INFO - Git diff changed after running eval script
+2026-10-04 19:41:17,408 - INFO - Grading answer for sympy__sympy-13031...
+2026-10-04 19:41:17,409 - INFO - report: {'sympy__sympy-13031': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_sparse_matrix'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_transpose', 'test_trace', 'test_CL_RL', 'test_add', 'test_errors', 'test_len', 'test_sparse_zeros_sparse_eye', 'test_copyin', 'test_sparse_solve'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-13031: resolved: True
+2026-10-04 19:41:17,410 - INFO - Attempting to stop container sweb.eval.sympy__sympy-13031.wescode-v3...
+2026-10-04 19:41:32,546 - INFO - Container sweb.eval.sympy__sympy-13031.wescode-v3 stopped successfully.
+2026-10-04 19:41:32,546 - INFO - Attempting to remove container sweb.eval.sympy__sympy-13031.wescode-v3...
+2026-10-04 19:41:32,574 - INFO - Container sweb.eval.sympy__sympy-13031.wescode-v3 removed successfully.

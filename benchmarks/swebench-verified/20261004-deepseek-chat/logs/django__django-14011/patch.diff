@@ -1,0 +1,119 @@
+diff --git a/django/core/servers/basehttp.py b/django/core/servers/basehttp.py
+index 14dab517c9..904a8ac64a 100644
+--- a/django/core/servers/basehttp.py
++++ b/django/core/servers/basehttp.py
+@@ -16,6 +16,7 @@ from wsgiref import simple_server
+ from django.core.exceptions import ImproperlyConfigured
+ from django.core.handlers.wsgi import LimitedStream
+ from django.core.wsgi import get_wsgi_application
++from django.db import connections
+ from django.utils.module_loading import import_string
+ 
+ __all__ = ('WSGIServer', 'WSGIRequestHandler')
+@@ -81,6 +82,22 @@ class ThreadedWSGIServer(socketserver.ThreadingMixIn, WSGIServer):
+     """A threaded version of the WSGIServer"""
+     daemon_threads = True
+ 
++    def __init__(self, *args, connections_override=None, **kwargs):
++        self.connections_override = connections_override
++        super().__init__(*args, **kwargs)
++
++    def process_request_thread(self, request, client_address):
++        if self.connections_override:
++            # Override this thread's database connections with the ones
++            # provided by the main thread.
++            for alias, conn in self.connections_override.items():
++                connections[alias] = conn
++        super().process_request_thread(request, client_address)
++
++    def close_request(self, request):
++        connections.close_all()
++        super().close_request(request)
++
+ 
+ class ServerHandler(simple_server.ServerHandler):
+     http_version = '1.1'
+diff --git a/django/test/testcases.py b/django/test/testcases.py
+index 92f566b7b0..0928c2e1ae 100644
+--- a/django/test/testcases.py
++++ b/django/test/testcases.py
+@@ -1500,7 +1500,9 @@ class LiveServerThread(threading.Thread):
+         try:
+             # Create the handler for serving static and media files
+             handler = self.static_handler(_MediaFilesHandler(WSGIHandler()))
+-            self.httpd = self._create_server()
++            self.httpd = self._create_server(
++                connections_override=self.connections_override,
++            )
+             # If binding to port zero, assign the port allocated by the OS.
+             if self.port == 0:
+                 self.port = self.httpd.server_address[1]
+@@ -1513,11 +1515,12 @@ class LiveServerThread(threading.Thread):
+         finally:
+             connections.close_all()
+ 
+-    def _create_server(self):
++    def _create_server(self, connections_override=None):
+         return self.server_class(
+             (self.host, self.port),
+             QuietWSGIRequestHandler,
+             allow_reuse_address=False,
++            connections_override=connections_override,
+         )
+ 
+     def terminate(self):
+diff --git a/tests/servers/test_liveserverthread.py b/tests/servers/test_liveserverthread.py
+index 09b6ca08c8..8f2c1f351b 100644
+--- a/tests/servers/test_liveserverthread.py
++++ b/tests/servers/test_liveserverthread.py
+@@ -1,6 +1,9 @@
++from django.core.servers.basehttp import ThreadedWSGIServer
+ from django.db import DEFAULT_DB_ALIAS, connections
+ from django.test import LiveServerTestCase, TransactionTestCase
+ from django.test.testcases import LiveServerThread
++from unittest import mock
++import socketserver
+ 
+ 
+ # Use TransactionTestCase instead of TestCase to run outside of a transaction,
+@@ -45,3 +48,12 @@ class LiveServerThreadTest(TransactionTestCase):
+         thread = MyServerTestCase._create_server_thread(None)
+         server = thread._create_server()
+         self.assertIs(type(server), FakeServer)
++
++    def test_threaded_wsgi_server_closes_connections(self):
++        # ThreadedWSGIServer closes the database connections opened by each
++        # request thread once the request is finished (Refs #32416).
++        server = ThreadedWSGIServer.__new__(ThreadedWSGIServer)
++        with mock.patch.object(connections, 'close_all') as close_all:
++            with mock.patch.object(socketserver.TCPServer, 'close_request'):
++                server.close_request(mock.Mock())
++        close_all.assert_called_once_with()
+diff --git a/tests/servers/tests.py b/tests/servers/tests.py
+index 8b6e372419..38b68fb98b 100644
+--- a/tests/servers/tests.py
++++ b/tests/servers/tests.py
+@@ -41,7 +41,7 @@ class LiveServerBase(LiveServerTestCase):
+ 
+ 
+ class FailingLiveServerThread(LiveServerThread):
+-    def _create_server(self):
++    def _create_server(self, connections_override=None):
+         raise RuntimeError('Error creating server.')
+ 
+ 
+@@ -90,8 +90,12 @@ class LiveServerAddress(LiveServerBase):
+ 
+ 
+ class LiveServerSingleThread(LiveServerThread):
+-    def _create_server(self):
+-        return WSGIServer((self.host, self.port), QuietWSGIRequestHandler, allow_reuse_address=False)
++    def _create_server(self, connections_override=None):
++        return WSGIServer(
++            (self.host, self.port),
++            QuietWSGIRequestHandler,
++            allow_reuse_address=False,
++        )
+ 
+ 
+ class SingleThreadLiveServerTestCase(LiveServerTestCase):

@@ -1,0 +1,96 @@
+2026-10-04 18:02:30,941 - INFO - Creating container for django__django-14792...
+2026-10-04 18:02:30,999 - INFO - Container for django__django-14792 created: 2e7c19b174697158c4b1a816dbed8db98197ed2ccf93cba980aa5949de182eff
+2026-10-04 18:02:31,209 - INFO - Container for django__django-14792 started: 2e7c19b174697158c4b1a816dbed8db98197ed2ccf93cba980aa5949de182eff
+2026-10-04 18:02:31,210 - INFO - Intermediate patch for django__django-14792 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14792/patch.diff, now applying to container...
+2026-10-04 18:02:31,324 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:02:32,562 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:02:33,069 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:02:33,549 - INFO - >>>>> Applied Patch:
+patching file django/utils/timezone.py
+patching file tests/utils_tests/test_timezone.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 260 with fuzz 2.
+
+2026-10-04 18:02:33,612 - INFO - Git diff before:
+diff --git a/django/utils/timezone.py b/django/utils/timezone.py
+index bb2b6b9594..0f5d012c59 100644
+--- a/django/utils/timezone.py
++++ b/django/utils/timezone.py
+@@ -72,8 +72,11 @@ def get_current_timezone_name():
+ 
+ 
+ def _get_timezone_name(timezone):
+-    """Return the name of ``timezone``."""
+-    return str(timezone)
++    """
++    Return the offset for fixed offset timezones, or the name of timezone if
++    not set.
++    """
++    return timezone.tzname(None) or str(timezone)
+ 
+ # Timezone selection functions.
+ 
+diff --git a/tests/utils_tests/test_timezone.py b/tests/utils_tests/test_timezone.py
+index 2e28d3a9a5..0972135dcc 100644
+--- a/tests/utils_tests/test_timezone.py
++++ b/tests/utils_tests/test_timezone.py
+@@ -260,6 +260,31 @@ class TimezoneTests(SimpleTestCase):
+         self.assertEqual(std.utcoffset(), datetime.timedelta(hours=1))
+         self.assertEqual(dst.utcoffset(), datetime.timedelta(hours=2))
+ 
++    def test_get_timezone_name(self):
++        """
++        The _get_timezone_name() helper must return the offset for fixed offset
++        timezones, for usage with Trunc DB functions.
++
++        The datetime.timezone examples show the current behavior.
++        """
++        tests = [
++            # datetime.timezone, fixed offset with and without `name`.
++            (datetime.timezone(datetime.timedelta(hours=10)), 'UTC+10:00'),
++            (datetime.timezone(datetime.timedelta(hours=10), name='Etc/GMT-10'), 'Etc/GMT-10'),
++            # pytz, named and fixed offset.
++            (pytz.timezone('Europe/Madrid'), 'Europe/Madrid'),
++            (pytz.timezone('Etc/GMT-10'), '+10'),
++        ]
++        if HAS_ZONEINFO:
++            tests += [
++                # zoneinfo, named and fixed offset.
++                (zoneinfo.ZoneInfo('Europe/Madrid'), 'Europe/Madrid'),
++                (zoneinfo.ZoneInfo('Etc/GMT-10'), '+10'),
++            ]
++        for tz, expected in tests:
++            with self.subTest(tz=tz, expected=expected):
++                self.assertEqual(timezone._get_timezone_name(tz), expected)
++
+     def test_get_default_timezone(self):
+         self.assertEqual(timezone.get_default_timezone_name(), 'America/Chicago')
+2026-10-04 18:02:33,613 - INFO - Eval script for django__django-14792 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14792/eval.sh; copying to container...
+2026-10-04 18:02:40,567 - INFO - Test runtime: 6.90 seconds
+2026-10-04 18:02:40,567 - INFO - Test output for django__django-14792 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14792/test_output.txt
+2026-10-04 18:02:40,631 - INFO - Git diff after:
+diff --git a/django/utils/timezone.py b/django/utils/timezone.py
+index bb2b6b9594..0f5d012c59 100644
+--- a/django/utils/timezone.py
++++ b/django/utils/timezone.py
+@@ -72,8 +72,11 @@ def get_current_timezone_name():
+ 
+ 
+ def _get_timezone_name(timezone):
+-    """Return the name of ``timezone``."""
+-    return str(timezone)
++    """
++    Return the offset for fixed offset timezones, or the name of timezone if
++    not set.
++    """
++    return timezone.tzname(None) or str(timezone)
+ 
+ # Timezone selection functions.
+2026-10-04 18:02:40,631 - INFO - Git diff changed after running eval script
+2026-10-04 18:02:40,631 - INFO - Grading answer for django__django-14792...
+2026-10-04 18:02:40,632 - INFO - report: {'django__django-14792': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['The _get_timezone_name() helper must return the offset for fixed offset', 'test_is_aware (utils_tests.test_timezone.TimezoneTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_activate_invalid_timezone (utils_tests.test_timezone.TimezoneTests)', 'test_fixedoffset_negative_timedelta (utils_tests.test_timezone.TimezoneTests)', 'test_fixedoffset_timedelta (utils_tests.test_timezone.TimezoneTests)', 'test_get_default_timezone (utils_tests.test_timezone.TimezoneTests)', 'test_get_default_timezone_utc (utils_tests.test_timezone.TimezoneTests)', 'test_is_naive (utils_tests.test_timezone.TimezoneTests)', 'test_localdate (utils_tests.test_timezone.TimezoneTests)', 'test_make_aware (utils_tests.test_timezone.TimezoneTests)', 'test_make_aware2 (utils_tests.test_timezone.TimezoneTests)', 'test_make_aware_no_tz (utils_tests.test_timezone.TimezoneTests)', 'test_make_aware_pytz_ambiguous (utils_tests.test_timezone.TimezoneTests)', 'test_make_aware_pytz_non_existent (utils_tests.test_timezone.TimezoneTests)', 'test_make_aware_zoneinfo_ambiguous (utils_tests.test_timezone.TimezoneTests)', 'test_make_aware_zoneinfo_non_existent (utils_tests.test_timezone.TimezoneTests)', 'test_make_naive (utils_tests.test_timezone.TimezoneTests)', 'test_make_naive_no_tz (utils_tests.test_timezone.TimezoneTests)', 'test_make_naive_pytz (utils_tests.test_timezone.TimezoneTests)', 'test_make_naive_zoneinfo (utils_tests.test_timezone.TimezoneTests)', 'test_now (utils_tests.test_timezone.TimezoneTests)', 'test_override (utils_tests.test_timezone.TimezoneTests)', 'test_override_decorator (utils_tests.test_timezone.TimezoneTests)', 'test_override_fixed_offset (utils_tests.test_timezone.TimezoneTests)', 'test_override_string_tz (utils_tests.test_timezone.TimezoneTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14792: resolved: True
+2026-10-04 18:02:40,632 - INFO - Attempting to stop container sweb.eval.django__django-14792.wescode-v3...
+2026-10-04 18:02:55,935 - INFO - Container sweb.eval.django__django-14792.wescode-v3 stopped successfully.
+2026-10-04 18:02:55,935 - INFO - Attempting to remove container sweb.eval.django__django-14792.wescode-v3...
+2026-10-04 18:02:56,120 - INFO - Container sweb.eval.django__django-14792.wescode-v3 removed successfully.

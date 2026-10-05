@@ -1,0 +1,108 @@
+diff --git a/sympy/utilities/codegen.py b/sympy/utilities/codegen.py
+index f0befb2bd7..0aa6f1a976 100644
+--- a/sympy/utilities/codegen.py
++++ b/sympy/utilities/codegen.py
+@@ -370,6 +370,19 @@ class Argument(Variable):
+     pass
+ 
+ 
++def _get_argument_dimensions(symbol):
++    """Returns the dimensions metadata for an array symbol, or an empty dict.
++
++    Given a symbol which may be an array (MatrixSymbol or the label of an
++    IndexedBase), return the ``dimensions`` metadata needed to declare it as
++    an array argument.  For scalars, an empty dict is returned so that a
++    scalar argument is generated.
++    """
++    if isinstance(symbol, (MatrixSymbol, IndexedBase)):
++        return {'dimensions': [(S.Zero, dim - 1) for dim in symbol.shape]}
++    return {}
++
++
+ class InputArgument(Argument):
+     pass
+ 
+@@ -703,11 +716,8 @@ def routine(self, name, expr, argument_sequence=None, global_vars=None):
+ 
+         for symbol in sorted(symbols, key=str):
+             if symbol in array_symbols:
+-                dims = []
+                 array = array_symbols[symbol]
+-                for dim in array.shape:
+-                    dims.append((S.Zero, dim - 1))
+-                metadata = {'dimensions': dims}
++                metadata = {'dimensions': [(S.Zero, dim - 1) for dim in array.shape]}
+             else:
+                 metadata = {}
+ 
+@@ -739,7 +749,8 @@ def routine(self, name, expr, argument_sequence=None, global_vars=None):
+                 try:
+                     new_args.append(name_arg_dict[symbol])
+                 except KeyError:
+-                    new_args.append(InputArgument(symbol))
++                    new_args.append(InputArgument(symbol,
++                                                  **_get_argument_dimensions(symbol)))
+             arg_list = new_args
+ 
+         return Routine(name, arg_list, return_val, local_vars, global_vars)
+@@ -1402,7 +1413,8 @@ def routine(self, name, expr, argument_sequence, global_vars):
+                 try:
+                     new_args.append(name_arg_dict[symbol])
+                 except KeyError:
+-                    new_args.append(InputArgument(symbol))
++                    new_args.append(InputArgument(symbol,
++                                                  **_get_argument_dimensions(symbol)))
+             arg_list = new_args
+ 
+         return Routine(name, arg_list, return_vals, local_vars, global_vars)
+@@ -1610,7 +1622,8 @@ def routine(self, name, expr, argument_sequence, global_vars):
+                 try:
+                     new_args.append(name_arg_dict[symbol])
+                 except KeyError:
+-                    new_args.append(InputArgument(symbol))
++                    new_args.append(InputArgument(symbol,
++                                                  **_get_argument_dimensions(symbol)))
+             arg_list = new_args
+ 
+         return Routine(name, arg_list, return_vals, local_vars, global_vars)
+@@ -1841,7 +1854,8 @@ def routine(self, name, expr, argument_sequence, global_vars):
+                 try:
+                     new_args.append(name_arg_dict[symbol])
+                 except KeyError:
+-                    new_args.append(InputArgument(symbol))
++                    new_args.append(InputArgument(symbol,
++                                                  **_get_argument_dimensions(symbol)))
+             arg_list = new_args
+ 
+         return Routine(name, arg_list, return_vals, local_vars, global_vars)
+diff --git a/sympy/utilities/tests/test_codegen.py b/sympy/utilities/tests/test_codegen.py
+index 1cd56e12d1..b820289999 100644
+--- a/sympy/utilities/tests/test_codegen.py
++++ b/sympy/utilities/tests/test_codegen.py
+@@ -562,6 +562,26 @@ def test_ccode_matrixsymbol_slice():
+     )
+     assert source == expected
+ 
++def test_ccode_unused_array_arg():
++    # GitHub issue #16792: when an array argument does not appear in the
++    # expression, it must still be declared as an array argument (double *)
++    # and not as a scalar (double).
++    x = MatrixSymbol('x', 2, 1)
++    name_expr = ("test", 1.0)
++    result = codegen(name_expr, "c", "test", header=False, empty=False,
++                     argument_sequence=(x,))
++    source = result[0][1]
++    expected = (
++        '#include "test.h"\n'
++        '#include <math.h>\n'
++        'double test(double *x) {\n'
++        '   double test_result;\n'
++        '   test_result = 1.0;\n'
++        '   return test_result;\n'
++        '}\n'
++    )
++    assert source == expected
++
+ def test_ccode_cse():
+     a, b, c, d = symbols('a b c d')
+     e = MatrixSymbol('e', 3, 1)

@@ -1,0 +1,75 @@
+2026-10-04 19:36:48,712 - INFO - Creating container for sphinx-doc__sphinx-8595...
+2026-10-04 19:36:48,756 - INFO - Container for sphinx-doc__sphinx-8595 created: 52f77815d9b6a11f7ae492b8421ebc4bc6575702190964f87970c898647550d7
+2026-10-04 19:36:48,944 - INFO - Container for sphinx-doc__sphinx-8595 started: 52f77815d9b6a11f7ae492b8421ebc4bc6575702190964f87970c898647550d7
+2026-10-04 19:36:48,944 - INFO - Intermediate patch for sphinx-doc__sphinx-8595 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8595/patch.diff, now applying to container...
+2026-10-04 19:36:49,063 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:36:49,327 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:36:49,451 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:36:49,573 - INFO - >>>>> Applied Patch:
+patching file CHANGES
+patching file sphinx/ext/autodoc/__init__.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1074 with fuzz 1.
+
+2026-10-04 19:36:49,649 - INFO - Git diff before:
+diff --git a/CHANGES b/CHANGES
+index bdf3be3b8..1e62225ef 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -25,6 +25,7 @@ Bugs fixed
+ * #741: autodoc: inherited-members doesn't work for instance attributes on super
+   class
+ * #8592: autodoc: ``:meta public:`` does not effect to variables
++* #8594: autodoc: empty __all__ attribute is ignored
+ 
+ Testing
+ --------
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index d85d79617..c9f90acca 100755
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1074,7 +1074,7 @@ class ModuleDocumenter(Documenter):
+     def get_object_members(self, want_all: bool) -> Tuple[bool, ObjectMembers]:
+         members = self.get_module_members()
+         if want_all:
+-            if not self.__all__:
++            if self.__all__ is None:
+                 # for implicit module members, check __module__ to avoid
+                 # documenting imported objects
+                 return True, list(members.values())
+2026-10-04 19:36:49,650 - INFO - Eval script for sphinx-doc__sphinx-8595 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8595/eval.sh; copying to container...
+2026-10-04 19:36:55,129 - INFO - Test runtime: 5.42 seconds
+2026-10-04 19:36:55,129 - INFO - Test output for sphinx-doc__sphinx-8595 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-8595/test_output.txt
+2026-10-04 19:36:55,186 - INFO - Git diff after:
+diff --git a/CHANGES b/CHANGES
+index bdf3be3b8..1e62225ef 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -25,6 +25,7 @@ Bugs fixed
+ * #741: autodoc: inherited-members doesn't work for instance attributes on super
+   class
+ * #8592: autodoc: ``:meta public:`` does not effect to variables
++* #8594: autodoc: empty __all__ attribute is ignored
+ 
+ Testing
+ --------
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index d85d79617..c9f90acca 100755
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1074,7 +1074,7 @@ class ModuleDocumenter(Documenter):
+     def get_object_members(self, want_all: bool) -> Tuple[bool, ObjectMembers]:
+         members = self.get_module_members()
+         if want_all:
+-            if not self.__all__:
++            if self.__all__ is None:
+                 # for implicit module members, check __module__ to avoid
+                 # documenting imported objects
+                 return True, list(members.values())
+2026-10-04 19:36:55,187 - INFO - Grading answer for sphinx-doc__sphinx-8595...
+2026-10-04 19:36:55,188 - INFO - report: {'sphinx-doc__sphinx-8595': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_ext_autodoc_automodule.py::test_empty_all'], 'failure': []}, 'PASS_TO_PASS': {'success': [], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-8595: resolved: True
+2026-10-04 19:36:55,189 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-8595.wescode-v3...
+2026-10-04 19:37:10,331 - INFO - Container sweb.eval.sphinx-doc__sphinx-8595.wescode-v3 stopped successfully.
+2026-10-04 19:37:10,331 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-8595.wescode-v3...
+2026-10-04 19:37:10,356 - INFO - Container sweb.eval.sphinx-doc__sphinx-8595.wescode-v3 removed successfully.

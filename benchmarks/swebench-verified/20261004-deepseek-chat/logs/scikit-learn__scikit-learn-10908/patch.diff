@@ -1,0 +1,53 @@
+diff --git a/sklearn/feature_extraction/tests/test_text.py b/sklearn/feature_extraction/tests/test_text.py
+index 22fbd3f17..f581cd8e7 100644
+--- a/sklearn/feature_extraction/tests/test_text.py
++++ b/sklearn/feature_extraction/tests/test_text.py
+@@ -19,6 +19,7 @@ from sklearn.pipeline import Pipeline
+ from sklearn.svm import LinearSVC
+ 
+ from sklearn.base import clone
++from sklearn.exceptions import NotFittedError
+ 
+ import numpy as np
+ from numpy.testing import assert_array_almost_equal
+@@ -559,6 +560,26 @@ def test_feature_names():
+         assert_equal(idx, cv.vocabulary_.get(name))
+ 
+ 
++def test_feature_names_with_vocabulary_no_fit():
++    # get_feature_names should work when the vocabulary is provided to the
++    # constructor, even if the vectorizer has not been fitted yet.
++    vocabulary = ['and', 'document', 'first', 'is', 'one', 'second', 'the',
++                  'third', 'this']
++    cv = CountVectorizer(vocabulary=vocabulary)
++    assert_false(hasattr(cv, 'vocabulary_'))
++    assert_array_equal(vocabulary, cv.get_feature_names())
++    assert_equal(vocabulary, sorted(cv.vocabulary_,
++                                    key=cv.vocabulary_.__getitem__))
++
++    # a duplicate term in the provided vocabulary is still detected
++    cv = CountVectorizer(vocabulary=['a', 'a', 'b'])
++    assert_raises(ValueError, cv.get_feature_names)
++
++    # without any vocabulary, an unfitted vectorizer still raises
++    cv = CountVectorizer()
++    assert_raises(NotFittedError, cv.get_feature_names)
++
++
+ def test_vectorizer_max_features():
+     vec_factories = (
+         CountVectorizer,
+diff --git a/sklearn/feature_extraction/text.py b/sklearn/feature_extraction/text.py
+index 9b1ebd632..789e101cc 100644
+--- a/sklearn/feature_extraction/text.py
++++ b/sklearn/feature_extraction/text.py
+@@ -993,6 +993,9 @@ class CountVectorizer(BaseEstimator, VectorizerMixin):
+ 
+     def get_feature_names(self):
+         """Array mapping from feature integer indices to feature name"""
++        if not hasattr(self, 'vocabulary_'):
++            self._validate_vocabulary()
++
+         self._check_vocabulary()
+ 
+         return [t for t, i in sorted(six.iteritems(self.vocabulary_),

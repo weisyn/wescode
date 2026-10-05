@@ -1,0 +1,81 @@
+2026-10-04 18:00:15,627 - INFO - Creating container for django__django-14580...
+2026-10-04 18:00:15,676 - INFO - Container for django__django-14580 created: a75d91e4df41b11baefbfe7cc90db9c1b7c698d3667a5d7861a9548e2ccaa362
+2026-10-04 18:00:15,860 - INFO - Container for django__django-14580 started: a75d91e4df41b11baefbfe7cc90db9c1b7c698d3667a5d7861a9548e2ccaa362
+2026-10-04 18:00:15,860 - INFO - Intermediate patch for django__django-14580 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14580/patch.diff, now applying to container...
+2026-10-04 18:00:15,983 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:00:17,214 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:00:17,459 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:00:17,694 - INFO - >>>>> Applied Patch:
+patching file django/db/migrations/serializer.py
+patching file tests/migrations/test_writer.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 726 with fuzz 1.
+
+2026-10-04 18:00:17,776 - INFO - Git diff before:
+diff --git a/django/db/migrations/serializer.py b/django/db/migrations/serializer.py
+index e19c881cda..6e78462e95 100755
+--- a/django/db/migrations/serializer.py
++++ b/django/db/migrations/serializer.py
+@@ -273,7 +273,7 @@ class TupleSerializer(BaseSequenceSerializer):
+ class TypeSerializer(BaseSerializer):
+     def serialize(self):
+         special_cases = [
+-            (models.Model, "models.Model", []),
++            (models.Model, "models.Model", ['from django.db import models']),
+             (type(None), 'type(None)', []),
+         ]
+         for case, string, imports in special_cases:
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index a590ff4398..2ddaf1649c 100755
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -726,6 +726,24 @@ class WriterTests(SimpleTestCase):
+             result['custom_migration_operations'].more_operations.TestOperation
+         )
+ 
++    def test_serialize_models_import(self):
++        """
++        Migration generated for models with custom bases contains imports of
++        the base classes (#32937).
++        """
++        model = type(
++            "MyModel",
++            (models.Model,),
++            {
++                "Meta": type("Meta", (), {"app_label": "testapp"}),
++                "__module__": "testapp.models",
++            },
++        )
++        self.assertEqual(
++            MigrationWriter.serialize(model.__bases__[0]),
++            ("models.Model", {"from django.db import models"}),
++        )
++
+     def test_sorted_imports(self):
+         """
+         #24155 - Tests ordering of imports.
+2026-10-04 18:00:17,777 - INFO - Eval script for django__django-14580 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14580/eval.sh; copying to container...
+2026-10-04 18:00:27,602 - INFO - Test runtime: 9.77 seconds
+2026-10-04 18:00:27,603 - INFO - Test output for django__django-14580 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-14580/test_output.txt
+2026-10-04 18:00:27,663 - INFO - Git diff after:
+diff --git a/django/db/migrations/serializer.py b/django/db/migrations/serializer.py
+index e19c881cda..6e78462e95 100755
+--- a/django/db/migrations/serializer.py
++++ b/django/db/migrations/serializer.py
+@@ -273,7 +273,7 @@ class TupleSerializer(BaseSequenceSerializer):
+ class TypeSerializer(BaseSerializer):
+     def serialize(self):
+         special_cases = [
+-            (models.Model, "models.Model", []),
++            (models.Model, "models.Model", ['from django.db import models']),
+             (type(None), 'type(None)', []),
+         ]
+         for case, string, imports in special_cases:
+2026-10-04 18:00:27,663 - INFO - Git diff changed after running eval script
+2026-10-04 18:00:27,663 - INFO - Grading answer for django__django-14580...
+2026-10-04 18:00:27,669 - INFO - report: {'django__django-14580': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_serialize_type_model (migrations.test_writer.WriterTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_args_kwargs_signature (migrations.test_writer.OperationWriterTests)', 'test_args_signature (migrations.test_writer.OperationWriterTests)', 'test_empty_signature (migrations.test_writer.OperationWriterTests)', 'test_expand_args_signature (migrations.test_writer.OperationWriterTests)', 'test_kwargs_signature (migrations.test_writer.OperationWriterTests)', 'test_multiline_args_signature (migrations.test_writer.OperationWriterTests)', 'test_nested_args_signature (migrations.test_writer.OperationWriterTests)', 'test_nested_operation_expand_args_signature (migrations.test_writer.OperationWriterTests)', 'test_custom_operation (migrations.test_writer.WriterTests)', 'test_deconstruct_class_arguments (migrations.test_writer.WriterTests)', 'Test comments at top of file.', 'test_migration_path (migrations.test_writer.WriterTests)', "django.db.models shouldn't be imported if unused.", 'test_register_non_serializer (migrations.test_writer.WriterTests)', 'test_register_serializer (migrations.test_writer.WriterTests)', 'test_serialize_builtin_types (migrations.test_writer.WriterTests)', 'test_serialize_builtins (migrations.test_writer.WriterTests)', 'test_serialize_choices (migrations.test_writer.WriterTests)', 'Ticket #22943: Test serialization of class-based validators, including', 'test_serialize_collections (migrations.test_writer.WriterTests)', 'Make sure compiled regex can be serialized.', 'test_serialize_constants (migrations.test_writer.WriterTests)', 'test_serialize_datetime (migrations.test_writer.WriterTests)', 'Ticket #22679: makemigrations generates invalid code for (an empty', 'test_serialize_enums (migrations.test_writer.WriterTests)', 'test_serialize_fields (migrations.test_writer.WriterTests)', 'test_serialize_frozensets (migrations.test_writer.WriterTests)', 'test_serialize_functions (migrations.test_writer.WriterTests)', 'test_serialize_functools_partial (migrations.test_writer.WriterTests)', 'test_serialize_functools_partialmethod (migrations.test_writer.WriterTests)', 'test_serialize_iterators (migrations.test_writer.WriterTests)', 'test_serialize_lazy_objects (migrations.test_writer.WriterTests)', "A reference in a local scope can't be serialized.", 'test_serialize_managers (migrations.test_writer.WriterTests)', 'test_serialize_multiline_strings (migrations.test_writer.WriterTests)', 'test_serialize_nested_class (migrations.test_writer.WriterTests)', 'test_serialize_numbers (migrations.test_writer.WriterTests)', 'test_serialize_path_like (migrations.test_writer.WriterTests)', 'test_serialize_pathlib (migrations.test_writer.WriterTests)', 'test_serialize_range (migrations.test_writer.WriterTests)', 'test_serialize_set (migrations.test_writer.WriterTests)', 'test_serialize_settings (migrations.test_writer.WriterTests)', 'test_serialize_strings (migrations.test_writer.WriterTests)', 'test_serialize_timedelta (migrations.test_writer.WriterTests)', 'test_serialize_type_none (migrations.test_writer.WriterTests)', 'An unbound method used within a class body can be serialized.', 'test_serialize_uuid (migrations.test_writer.WriterTests)', 'Tests serializing a simple migration.', '#24155 - Tests ordering of imports.'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14580: resolved: True
+2026-10-04 18:00:27,670 - INFO - Attempting to stop container sweb.eval.django__django-14580.wescode-v3...
+2026-10-04 18:00:42,979 - INFO - Container sweb.eval.django__django-14580.wescode-v3 stopped successfully.
+2026-10-04 18:00:42,979 - INFO - Attempting to remove container sweb.eval.django__django-14580.wescode-v3...
+2026-10-04 18:00:43,162 - INFO - Container sweb.eval.django__django-14580.wescode-v3 removed successfully.

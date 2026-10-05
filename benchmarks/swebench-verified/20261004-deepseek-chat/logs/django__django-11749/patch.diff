@@ -1,0 +1,89 @@
+diff --git a/django/core/management/__init__.py b/django/core/management/__init__.py
+index 5f2e64761e..78c7870147 100644
+--- a/django/core/management/__init__.py
++++ b/django/core/management/__init__.py
+@@ -2,7 +2,9 @@ import functools
+ import os
+ import pkgutil
+ import sys
+-from argparse import _SubParsersAction
++from argparse import (
++    _AppendConstAction, _CountAction, _StoreConstAction, _SubParsersAction,
++)
+ from collections import defaultdict
+ from difflib import get_close_matches
+ from importlib import import_module
+@@ -130,11 +132,22 @@ def call_command(command_name, *args, **options):
+                 yield opt
+ 
+     parser_actions = list(get_actions(parser))
++    mutually_exclusive_required_options = {
++        opt
++        for group in parser._mutually_exclusive_groups
++        if group.required
++        for opt in group._group_actions
++    }
+     # Any required arguments which are passed in via **options must be passed
+     # to parse_args().
+     parse_args += [
+-        '{}={}'.format(min(opt.option_strings), arg_options[opt.dest])
+-        for opt in parser_actions if opt.required and opt.dest in options
++        min(opt.option_strings)
++        if isinstance(opt, (_AppendConstAction, _CountAction, _StoreConstAction))
++        else '{}={}'.format(min(opt.option_strings), arg_options[opt.dest])
++        for opt in parser_actions if (
++            opt.dest in options and
++            (opt.required or opt in mutually_exclusive_required_options)
++        )
+     ]
+     defaults = parser.parse_args(args=parse_args)
+     defaults = dict(defaults._get_kwargs(), **arg_options)
+diff --git a/tests/user_commands/tests.py b/tests/user_commands/tests.py
+index a53c781ac6..9c33984557 100644
+--- a/tests/user_commands/tests.py
++++ b/tests/user_commands/tests.py
+@@ -209,6 +209,44 @@ class CommandTests(SimpleTestCase):
+         self.assertIn('need_me', out.getvalue())
+         self.assertIn('needme2', out.getvalue())
+ 
++    def test_mutually_exclusive_group_required_options(self):
++        out = StringIO()
++        management.call_command('mutually_exclusive_required', foo_id=1, stdout=out)
++        self.assertIn('foo_id', out.getvalue())
++        management.call_command('mutually_exclusive_required', foo_name='foo', stdout=out)
++        self.assertIn('foo_name', out.getvalue())
++        msg = (
++            'Error: one of the arguments --foo-id --foo-name --append_const '
++            '--const --count --flag_false --flag_true is required'
++        )
++        with self.assertRaisesMessage(CommandError, msg):
++            management.call_command('mutually_exclusive_required', stdout=out)
++
++    def test_mutually_exclusive_group_required_const_options(self):
++        tests = [
++            ('append_const', [42]),
++            ('const', 31),
++            ('count', 1),
++            ('flag_false', False),
++            ('flag_true', True),
++        ]
++        for arg, value in tests:
++            out = StringIO()
++            expected_output = '%s=%s' % (arg, value)
++            with self.subTest(arg=arg):
++                management.call_command(
++                    'mutually_exclusive_required',
++                    '--%s' % arg,
++                    stdout=out,
++                )
++                self.assertIn(expected_output, out.getvalue())
++                out.truncate(0)
++                management.call_command(
++                    'mutually_exclusive_required',
++                    **{arg: value, 'stdout': out},
++                )
++                self.assertIn(expected_output, out.getvalue())
++
+     def test_command_add_arguments_after_common_arguments(self):
+         out = StringIO()
+         management.call_command('common_args', stdout=out)

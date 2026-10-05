@@ -1,0 +1,112 @@
+2026-10-04 17:39:33,486 - INFO - Creating container for django__django-12143...
+2026-10-04 17:39:33,522 - INFO - Container for django__django-12143 created: aae628d9c7f76f2ffd87372ac98d7e1a41dddbc418e5071141f0c7c15b0ee824
+2026-10-04 17:39:33,738 - INFO - Container for django__django-12143 started: aae628d9c7f76f2ffd87372ac98d7e1a41dddbc418e5071141f0c7c15b0ee824
+2026-10-04 17:39:33,739 - INFO - Intermediate patch for django__django-12143 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12143/patch.diff, now applying to container...
+2026-10-04 17:39:33,881 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:39:34,829 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:39:35,428 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:39:35,636 - INFO - >>>>> Applied Patch:
+patching file django/contrib/admin/options.py
+patching file docs/releases/2.2.8.txt
+patching file tests/admin_changelist/tests.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 844 with fuzz 1.
+
+2026-10-04 17:39:35,705 - INFO - Git diff before:
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 137e6faa0f..85896bed7e 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -1631,7 +1631,9 @@ class ModelAdmin(BaseModelAdmin):
+ 
+     def _get_edited_object_pks(self, request, prefix):
+         """Return POST data values of list_editable primary keys."""
+-        pk_pattern = re.compile(r'{}-\d+-{}$'.format(prefix, self.model._meta.pk.name))
++        pk_pattern = re.compile(
++            r'{}-\d+-{}$'.format(re.escape(prefix), self.model._meta.pk.name)
++        )
+         return [value for key, value in request.POST.items() if pk_pattern.match(key)]
+ 
+     def _get_list_editable_queryset(self, request, prefix):
+diff --git a/docs/releases/2.2.8.txt b/docs/releases/2.2.8.txt
+index 0c2b3eabdf..e9bd1ed1cb 100644
+--- a/docs/releases/2.2.8.txt
++++ b/docs/releases/2.2.8.txt
+@@ -10,4 +10,6 @@ Django 2.2.8 fixes several bugs in 2.2.7 and adds compatibility with Python
+ Bugfixes
+ ========
+ 
+-* ...
++* Fixed a data loss possibility in the admin changelist view when a custom
++  :ref:`formset's prefix <formset-prefix>` contains regular expression special
++  characters, e.g. `'$'` (:ticket:`31031`).
+diff --git a/tests/admin_changelist/tests.py b/tests/admin_changelist/tests.py
+index 05490b061a..8cb6f7eff9 100644
+--- a/tests/admin_changelist/tests.py
++++ b/tests/admin_changelist/tests.py
+@@ -844,6 +844,26 @@ class ChangeListTests(TestCase):
+         queryset = m._get_list_editable_queryset(request, prefix='form')
+         self.assertEqual(queryset.count(), 2)
+ 
++    def test_get_list_editable_queryset_with_regex_chars_in_prefix(self):
++        a = Swallow.objects.create(origin='Swallow A', load=4, speed=1)
++        Swallow.objects.create(origin='Swallow B', load=2, speed=2)
++        data = {
++            'form$-TOTAL_FORMS': '2',
++            'form$-INITIAL_FORMS': '2',
++            'form$-MIN_NUM_FORMS': '0',
++            'form$-MAX_NUM_FORMS': '1000',
++            'form$-0-uuid': str(a.pk),
++            'form$-0-load': '10',
++            '_save': 'Save',
++        }
++        superuser = self._create_superuser('superuser')
++        self.client.force_login(superuser)
++        changelist_url = reverse('admin:admin_changelist_swallow_changelist')
++        m = SwallowAdmin(Swallow, custom_site)
++        request = self.factory.post(changelist_url, data=data)
++        queryset = m._get_list_editable_queryset(request, prefix='form$')
++        self.assertEqual(queryset.count(), 1)
++
+     def test_changelist_view_list_editable_changed_objects_uses_filter(self):
+         """list_editable edits use a filtered queryset to limit memory usage."""
+         a = Swallow.objects.create(origin='Swallow A', load=4, speed=1)
+2026-10-04 17:39:35,705 - INFO - Eval script for django__django-12143 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12143/eval.sh; copying to container...
+2026-10-04 17:39:43,191 - INFO - Test runtime: 7.43 seconds
+2026-10-04 17:39:43,192 - INFO - Test output for django__django-12143 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-12143/test_output.txt
+2026-10-04 17:39:43,252 - INFO - Git diff after:
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 137e6faa0f..85896bed7e 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -1631,7 +1631,9 @@ class ModelAdmin(BaseModelAdmin):
+ 
+     def _get_edited_object_pks(self, request, prefix):
+         """Return POST data values of list_editable primary keys."""
+-        pk_pattern = re.compile(r'{}-\d+-{}$'.format(prefix, self.model._meta.pk.name))
++        pk_pattern = re.compile(
++            r'{}-\d+-{}$'.format(re.escape(prefix), self.model._meta.pk.name)
++        )
+         return [value for key, value in request.POST.items() if pk_pattern.match(key)]
+ 
+     def _get_list_editable_queryset(self, request, prefix):
+diff --git a/docs/releases/2.2.8.txt b/docs/releases/2.2.8.txt
+index 0c2b3eabdf..e9bd1ed1cb 100644
+--- a/docs/releases/2.2.8.txt
++++ b/docs/releases/2.2.8.txt
+@@ -10,4 +10,6 @@ Django 2.2.8 fixes several bugs in 2.2.7 and adds compatibility with Python
+ Bugfixes
+ ========
+ 
+-* ...
++* Fixed a data loss possibility in the admin changelist view when a custom
++  :ref:`formset's prefix <formset-prefix>` contains regular expression special
++  characters, e.g. `'$'` (:ticket:`31031`).
+2026-10-04 17:39:43,252 - INFO - Git diff changed after running eval script
+2026-10-04 17:39:43,252 - INFO - Grading answer for django__django-12143...
+2026-10-04 17:39:43,253 - INFO - report: {'django__django-12143': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_get_list_editable_queryset_with_regex_chars_in_prefix (admin_changelist.tests.ChangeListTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_custom_user_pk_not_named_id (admin_changelist.tests.GetAdminLogTests)', 'test_missing_args (admin_changelist.tests.GetAdminLogTests)', '{% get_admin_log %} works without specifying a user.', 'test_non_integer_limit (admin_changelist.tests.GetAdminLogTests)', 'test_without_as (admin_changelist.tests.GetAdminLogTests)', 'test_without_for_user (admin_changelist.tests.GetAdminLogTests)', 'test_builtin_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_changelist_search_form_validation (admin_changelist.tests.ChangeListTests)', 'list_editable edits use a filtered queryset to limit memory usage.', 'test_computed_list_display_localization (admin_changelist.tests.ChangeListTests)', 'test_custom_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_custom_lookup_with_pk_shortcut (admin_changelist.tests.ChangeListTests)', 'test_custom_paginator (admin_changelist.tests.ChangeListTests)', 'test_deterministic_order_for_model_ordered_by_its_manager (admin_changelist.tests.ChangeListTests)', 'test_deterministic_order_for_unordered_model (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_inherited_m2m_in_list_filter (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_m2m_in_list_filter (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_m2m_to_inherited_in_list_filter (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_many_to_many_at_second_level_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_non_unique_related_object_in_list_filter (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_non_unique_related_object_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_through_m2m_at_second_level_in_list_filter (admin_changelist.tests.ChangeListTests)', 'test_distinct_for_through_m2m_in_list_filter (admin_changelist.tests.ChangeListTests)', 'test_dynamic_list_display (admin_changelist.tests.ChangeListTests)', 'test_dynamic_list_display_links (admin_changelist.tests.ChangeListTests)', 'test_dynamic_list_filter (admin_changelist.tests.ChangeListTests)', 'test_dynamic_search_fields (admin_changelist.tests.ChangeListTests)', 'test_get_edited_object_ids (admin_changelist.tests.ChangeListTests)', 'test_get_list_editable_queryset (admin_changelist.tests.ChangeListTests)', 'test_get_select_related_custom_method (admin_changelist.tests.ChangeListTests)', 'test_multiuser_edit (admin_changelist.tests.ChangeListTests)', 'test_no_distinct_for_m2m_in_list_filter_without_params (admin_changelist.tests.ChangeListTests)', "#15185 -- Allow no links from the 'change list' view grid.", 'test_object_tools_displayed_no_add_permission (admin_changelist.tests.ChangeListTests)', 'test_pagination (admin_changelist.tests.ChangeListTests)', 'test_pagination_page_range (admin_changelist.tests.ChangeListTests)', 'test_pk_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_result_list_editable (admin_changelist.tests.ChangeListTests)', 'test_result_list_editable_html (admin_changelist.tests.ChangeListTests)', 'test_result_list_empty_changelist_value (admin_changelist.tests.ChangeListTests)', 'test_result_list_html (admin_changelist.tests.ChangeListTests)', 'test_result_list_set_empty_value_display_in_model_admin (admin_changelist.tests.ChangeListTests)', 'test_result_list_set_empty_value_display_on_admin_site (admin_changelist.tests.ChangeListTests)', 'test_select_related_as_empty_tuple (admin_changelist.tests.ChangeListTests)', 'test_select_related_as_tuple (admin_changelist.tests.ChangeListTests)', 'test_select_related_preserved (admin_changelist.tests.ChangeListTests)', 'test_show_all (admin_changelist.tests.ChangeListTests)', 'test_spanning_relations_with_custom_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_specified_ordering_by_f_expression (admin_changelist.tests.ChangeListTests)', 'test_specified_ordering_by_f_expression_without_asc_desc (admin_changelist.tests.ChangeListTests)', 'test_total_ordering_optimization (admin_changelist.tests.ChangeListTests)', 'test_tuple_list_display (admin_changelist.tests.ChangeListTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12143: resolved: True
+2026-10-04 17:39:43,253 - INFO - Attempting to stop container sweb.eval.django__django-12143.wescode-v3...
+2026-10-04 17:39:58,408 - INFO - Container sweb.eval.django__django-12143.wescode-v3 stopped successfully.
+2026-10-04 17:39:58,408 - INFO - Attempting to remove container sweb.eval.django__django-12143.wescode-v3...
+2026-10-04 17:39:58,591 - INFO - Container sweb.eval.django__django-12143.wescode-v3 removed successfully.

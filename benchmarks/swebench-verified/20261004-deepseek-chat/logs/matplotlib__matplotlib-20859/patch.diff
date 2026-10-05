@@ -1,0 +1,83 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index f1a6711cb..8e18204be 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -2085,6 +2085,51 @@ class SubFigure(FigureBase):
+ 
+     get_axes = axes.fget
+ 
++    def get_tightbbox(self, renderer, bbox_extra_artists=None):
++        """
++        Return a (tight) bounding box of the subfigure in inches.
++
++        This mirrors `.FigureBase.get_tightbbox`, but additionally makes the
++        subfigure's tight bbox cover the artists it owns (e.g. a legend added
++        with `.SubFigure.legend`) so that they are not cropped when saving
++        with ``bbox_inches='tight'``.
++        """
++        if bbox_extra_artists is None:
++            bbox_extra_artists = self.get_default_bbox_extra_artists()
++
++        bb = []
++        for a in bbox_extra_artists:
++            bbox = a.get_tightbbox(renderer)
++            if bbox is not None and (bbox.width != 0 or bbox.height != 0):
++                bb.append(bbox)
++
++        for ax in self.axes:
++            if ax.get_visible():
++                # some axes don't take the bbox_extra_artists kwarg so we
++                # need this conditional....
++                try:
++                    bbox = ax.get_tightbbox(
++                        renderer, bbox_extra_artists=bbox_extra_artists)
++                except TypeError:
++                    bbox = ax.get_tightbbox(renderer)
++                bb.append(bbox)
++
++        for sfig in self.subfigs:
++            if sfig.get_visible():
++                bbox = sfig.get_tightbbox(renderer)
++                if bbox is not None and (bbox.width != 0 or bbox.height != 0):
++                    bb.append(bbox)
++
++        bb = [b for b in bb
++              if (np.isfinite(b.width) and np.isfinite(b.height)
++                  and (b.width != 0 or b.height != 0))]
++        if len(bb) == 0:
++            bb = [self.bbox]
++
++        _bbox = Bbox.union(bb)
++
++        return TransformedBbox(_bbox, Affine2D().scale(1 / self.dpi))
++
+     def draw(self, renderer):
+         # docstring inherited
+         self._cachedRenderer = renderer
+diff --git a/lib/matplotlib/legend.py b/lib/matplotlib/legend.py
+index 44ab02469..a6cff3cf4 100644
+--- a/lib/matplotlib/legend.py
++++ b/lib/matplotlib/legend.py
+@@ -360,7 +360,7 @@ class Legend(Artist):
+         """
+         # local import only to avoid circularity
+         from matplotlib.axes import Axes
+-        from matplotlib.figure import Figure
++        from matplotlib.figure import FigureBase
+ 
+         super().__init__()
+ 
+@@ -434,11 +434,11 @@ class Legend(Artist):
+             self.isaxes = True
+             self.axes = parent
+             self.set_figure(parent.figure)
+-        elif isinstance(parent, Figure):
++        elif isinstance(parent, FigureBase):
+             self.isaxes = False
+             self.set_figure(parent)
+         else:
+-            raise TypeError("Legend needs either Axes or Figure as parent")
++            raise TypeError("Legend needs either Axes or FigureBase as parent")
+         self.parent = parent
+ 
+         self._loc_used_default = loc is None

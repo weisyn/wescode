@@ -1,0 +1,118 @@
+2026-10-04 17:21:23,778 - INFO - Creating container for astropy__astropy-7166...
+2026-10-04 17:21:23,817 - INFO - Container for astropy__astropy-7166 created: 1e64966cc1be3659c2cbf0e931850a581654b401780d31f759df38a8784fdf79
+2026-10-04 17:21:24,020 - INFO - Container for astropy__astropy-7166 started: 1e64966cc1be3659c2cbf0e931850a581654b401780d31f759df38a8784fdf79
+2026-10-04 17:21:24,020 - INFO - Intermediate patch for astropy__astropy-7166 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-7166/patch.diff, now applying to container...
+2026-10-04 17:21:24,127 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:21:24,530 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:21:24,906 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:21:25,283 - INFO - >>>>> Applied Patch:
+patching file CHANGES.rst
+patching file astropy/utils/misc.py
+patching file astropy/utils/tests/test_misc.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 80 with fuzz 1.
+
+2026-10-04 17:21:25,409 - INFO - Git diff before:
+diff --git a/CHANGES.rst b/CHANGES.rst
+index 4b73e1267..40d53570c 100644
+--- a/CHANGES.rst
++++ b/CHANGES.rst
+@@ -149,6 +149,8 @@ astropy.units
+ astropy.utils
+ ^^^^^^^^^^^^^
+ 
++- ``InheritDocstrings`` now also works on class properties. [#7166]
++
+ astropy.visualization
+ ^^^^^^^^^^^^^^^^^^^^^
+ 
+diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py
+index de3fb01d1..4f29128fc 100644
+--- a/astropy/utils/misc.py
++++ b/astropy/utils/misc.py
+@@ -528,9 +528,9 @@ class InheritDocstrings(type):
+                 not key.startswith('_'))
+ 
+         for key, val in dct.items():
+-            if (inspect.isfunction(val) and
+-                is_public_member(key) and
+-                val.__doc__ is None):
++            if ((inspect.isfunction(val) or inspect.isdatadescriptor(val)) and
++                    is_public_member(key) and
++                    val.__doc__ is None):
+                 for base in cls.__mro__[1:]:
+                     super_method = getattr(base, key, None)
+                     if super_method is not None:
+diff --git a/astropy/utils/tests/test_misc.py b/astropy/utils/tests/test_misc.py
+index 4f632e8d1..e6501c949 100644
+--- a/astropy/utils/tests/test_misc.py
++++ b/astropy/utils/tests/test_misc.py
+@@ -80,14 +80,26 @@ def test_inherit_docstrings():
+             "FOO"
+             pass
+ 
++        @property
++        def bar(self):
++            "BAR"
++            pass
++
+     class Subclass(Base):
+         def __call__(self, *args):
+             pass
+ 
++        @property
++        def bar(self):
++            return 42
++
+     if Base.__call__.__doc__ is not None:
+         # TODO: Maybe if __doc__ is None this test should be skipped instead?
+         assert Subclass.__call__.__doc__ == "FOO"
+ 
++    if Base.bar.__doc__ is not None:
++        assert Subclass.bar.__doc__ == "BAR"
++
+ 
+ def test_set_locale():
+     # First, test if the required locales are available
+2026-10-04 17:21:25,410 - INFO - Eval script for astropy__astropy-7166 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-7166/eval.sh; copying to container...
+2026-10-04 17:23:12,455 - INFO - Test runtime: 106.99 seconds
+2026-10-04 17:23:12,456 - INFO - Test output for astropy__astropy-7166 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-7166/test_output.txt
+2026-10-04 17:23:12,518 - INFO - Git diff after:
+diff --git a/CHANGES.rst b/CHANGES.rst
+index 4b73e1267..40d53570c 100644
+--- a/CHANGES.rst
++++ b/CHANGES.rst
+@@ -149,6 +149,8 @@ astropy.units
+ astropy.utils
+ ^^^^^^^^^^^^^
+ 
++- ``InheritDocstrings`` now also works on class properties. [#7166]
++
+ astropy.visualization
+ ^^^^^^^^^^^^^^^^^^^^^
+ 
+diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py
+index de3fb01d1..4f29128fc 100644
+--- a/astropy/utils/misc.py
++++ b/astropy/utils/misc.py
+@@ -528,9 +528,9 @@ class InheritDocstrings(type):
+                 not key.startswith('_'))
+ 
+         for key, val in dct.items():
+-            if (inspect.isfunction(val) and
+-                is_public_member(key) and
+-                val.__doc__ is None):
++            if ((inspect.isfunction(val) or inspect.isdatadescriptor(val)) and
++                    is_public_member(key) and
++                    val.__doc__ is None):
+                 for base in cls.__mro__[1:]:
+                     super_method = getattr(base, key, None)
+                     if super_method is not None:
+2026-10-04 17:23:12,519 - INFO - Git diff changed after running eval script
+2026-10-04 17:23:12,519 - INFO - Grading answer for astropy__astropy-7166...
+2026-10-04 17:23:12,520 - INFO - report: {'astropy__astropy-7166': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/utils/tests/test_misc.py::test_inherit_docstrings'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/utils/tests/test_misc.py::test_isiterable', 'astropy/utils/tests/test_misc.py::test_signal_number_to_name_no_failure', 'astropy/utils/tests/test_misc.py::test_skip_hidden', 'astropy/utils/tests/test_misc.py::test_JsonCustomEncoder', 'astropy/utils/tests/test_misc.py::test_check_broadcast', 'astropy/utils/tests/test_misc.py::test_dtype_bytes_or_chars'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-7166: resolved: True
+2026-10-04 17:23:12,520 - INFO - Attempting to stop container sweb.eval.astropy__astropy-7166.wescode-v3...
+2026-10-04 17:23:27,708 - INFO - Container sweb.eval.astropy__astropy-7166.wescode-v3 stopped successfully.
+2026-10-04 17:23:27,708 - INFO - Attempting to remove container sweb.eval.astropy__astropy-7166.wescode-v3...
+2026-10-04 17:23:27,779 - INFO - Container sweb.eval.astropy__astropy-7166.wescode-v3 removed successfully.

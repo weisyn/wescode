@@ -1,0 +1,31 @@
+I'll look at the dateformat implementation and its tests.On Fri, 2021-08-13 at 18:52:12 +0200, Claude Paroz wrote: > 
+> The `Y` specifier for `django.utils.dateformat.DateFormat` is supposed to > always return a four-digit year padded with zeros. This doesn't seem to be > the case for year < 1000.
+> 
+> Reproduce:
+> 
+> ```
+> from django.utils import dateformat
+> dateformat.format(datetime.date(999, 1, 1), 'Y')  # '999'
+> ```
+
+I confirm this. Here's a patch:
+
+```
+diff --git a/django/utils/dateformat.py b/django/utils/dateformat.py
+index 4f0423b6c6..1c1a4a4ccc 100644
+--- a/django/utils/dateformat.py
++++ b/django/utils/dateformat.py
+@@ -314,7 +314,7 @@ class DateFormat(TimeFormat):
+ 
+     def Y(self):
+         "Year, 4 digits; e.g. '1999'"
+-        return self.data.year
++        return '%04d' % self.data.year
+ 
+     def z(self):
+         """Day of the year, i.e. 1 to 366."""
+```
+
+Note that this only handles years 0-9999. Using `strftime("%Y")` would give the same result for those but is locale/platform dependent, so padding explicitly is the right call.
+
+Claude

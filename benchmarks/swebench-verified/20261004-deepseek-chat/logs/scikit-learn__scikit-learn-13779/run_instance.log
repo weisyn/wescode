@@ -1,0 +1,77 @@
+2026-10-04 19:20:49,842 - INFO - Creating container for scikit-learn__scikit-learn-13779...
+2026-10-04 19:20:49,884 - INFO - Container for scikit-learn__scikit-learn-13779 created: 952e58687e06c3a2f83dc20a200afc97b8c2c4a5c80c8793238c9354b60e0d17
+2026-10-04 19:20:50,074 - INFO - Container for scikit-learn__scikit-learn-13779 started: 952e58687e06c3a2f83dc20a200afc97b8c2c4a5c80c8793238c9354b60e0d17
+2026-10-04 19:20:50,075 - INFO - Intermediate patch for scikit-learn__scikit-learn-13779 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-13779/patch.diff, now applying to container...
+2026-10-04 19:20:50,191 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:20:50,377 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:20:50,488 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:20:50,608 - INFO - >>>>> Applied Patch:
+patching file sklearn/ensemble/tests/test_voting.py
+patching file sklearn/ensemble/voting.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 78 with fuzz 1.
+
+2026-10-04 19:20:50,666 - INFO - Git diff before:
+diff --git a/sklearn/ensemble/tests/test_voting.py b/sklearn/ensemble/tests/test_voting.py
+index 2a19bc9a6..7511e11dd 100755
+--- a/sklearn/ensemble/tests/test_voting.py
++++ b/sklearn/ensemble/tests/test_voting.py
+@@ -432,6 +432,20 @@ def test_set_estimator_none():
+     assert_raise_message(
+         ValueError, msg, eclf2.set_params(lr=None, rf=None, nb=None).fit, X, y)
+ 
++    # Test that setting an estimator to None works when sample_weight is
++    # passed: the None estimators must be skipped when checking for
++    # sample_weight support (gh-13779).
++    eclf1 = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2)],
++                             voting='hard', weights=[1, 1])
++    eclf2 = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2)],
++                             voting='hard', weights=[1, 1])
++    sample_weight = np.ones(X.shape[0])
++    eclf2.set_params(rf=None).fit(X, y, sample_weight=sample_weight)
++    assert len(eclf2.estimators_) == 1
++    assert_array_equal(
++        eclf2.predict(X), clf1.fit(X, y, sample_weight=sample_weight).predict(X)
++    )
++
+     # Test soft voting transform
+     X1 = np.array([[1], [2]])
+     y1 = np.array([1, 2])
+diff --git a/sklearn/ensemble/voting.py b/sklearn/ensemble/voting.py
+index 7afa7180c..d8e14b152 100755
+--- a/sklearn/ensemble/voting.py
++++ b/sklearn/ensemble/voting.py
+@@ -78,6 +78,8 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+ 
+         if sample_weight is not None:
+             for name, step in self.estimators:
++                if step is None:
++                    continue
+                 if not has_fit_parameter(step, 'sample_weight'):
+                     raise ValueError('Underlying estimator \'%s\' does not'
+                                      ' support sample weights.' % name)
+2026-10-04 19:20:50,666 - INFO - Eval script for scikit-learn__scikit-learn-13779 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-13779/eval.sh; copying to container...
+2026-10-04 19:20:57,310 - INFO - Test runtime: 6.58 seconds
+2026-10-04 19:20:57,310 - INFO - Test output for scikit-learn__scikit-learn-13779 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-13779/test_output.txt
+2026-10-04 19:20:57,362 - INFO - Git diff after:
+diff --git a/sklearn/ensemble/voting.py b/sklearn/ensemble/voting.py
+index 7afa7180c..d8e14b152 100755
+--- a/sklearn/ensemble/voting.py
++++ b/sklearn/ensemble/voting.py
+@@ -78,6 +78,8 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+ 
+         if sample_weight is not None:
+             for name, step in self.estimators:
++                if step is None:
++                    continue
+                 if not has_fit_parameter(step, 'sample_weight'):
+                     raise ValueError('Underlying estimator \'%s\' does not'
+                                      ' support sample weights.' % name)
+2026-10-04 19:20:57,363 - INFO - Git diff changed after running eval script
+2026-10-04 19:20:57,363 - INFO - Grading answer for scikit-learn__scikit-learn-13779...
+2026-10-04 19:20:57,364 - INFO - report: {'scikit-learn__scikit-learn-13779': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/ensemble/tests/test_voting.py::test_none_estimator_with_weights[X0-y0-voter0]', 'sklearn/ensemble/tests/test_voting.py::test_none_estimator_with_weights[X1-y1-voter1]'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/ensemble/tests/test_voting.py::test_estimator_init', 'sklearn/ensemble/tests/test_voting.py::test_predictproba_hardvoting', 'sklearn/ensemble/tests/test_voting.py::test_notfitted', 'sklearn/ensemble/tests/test_voting.py::test_majority_label_iris', 'sklearn/ensemble/tests/test_voting.py::test_tie_situation', 'sklearn/ensemble/tests/test_voting.py::test_weights_iris', 'sklearn/ensemble/tests/test_voting.py::test_weights_regressor', 'sklearn/ensemble/tests/test_voting.py::test_predict_on_toy_problem', 'sklearn/ensemble/tests/test_voting.py::test_predict_proba_on_toy_problem', 'sklearn/ensemble/tests/test_voting.py::test_multilabel', 'sklearn/ensemble/tests/test_voting.py::test_gridsearch', 'sklearn/ensemble/tests/test_voting.py::test_parallel_fit', 'sklearn/ensemble/tests/test_voting.py::test_sample_weight', 'sklearn/ensemble/tests/test_voting.py::test_sample_weight_kwargs', 'sklearn/ensemble/tests/test_voting.py::test_set_params', 'sklearn/ensemble/tests/test_voting.py::test_set_estimator_none', 'sklearn/ensemble/tests/test_voting.py::test_estimator_weights_format', 'sklearn/ensemble/tests/test_voting.py::test_transform'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-13779: resolved: True
+2026-10-04 19:20:57,365 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-13779.wescode-v3...
+2026-10-04 19:21:12,491 - INFO - Container sweb.eval.scikit-learn__scikit-learn-13779.wescode-v3 stopped successfully.
+2026-10-04 19:21:12,491 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-13779.wescode-v3...
+2026-10-04 19:21:12,515 - INFO - Container sweb.eval.scikit-learn__scikit-learn-13779.wescode-v3 removed successfully.

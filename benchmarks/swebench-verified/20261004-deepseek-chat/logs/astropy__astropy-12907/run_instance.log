@@ -1,0 +1,90 @@
+2026-10-04 17:08:05,620 - INFO - Creating container for astropy__astropy-12907...
+2026-10-04 17:08:05,679 - INFO - Container for astropy__astropy-12907 created: e0dcb050bf6d02d9120b71d56ac9c3ed77918bc0a0849b042deda19f73eff9e8
+2026-10-04 17:08:05,890 - INFO - Container for astropy__astropy-12907 started: e0dcb050bf6d02d9120b71d56ac9c3ed77918bc0a0849b042deda19f73eff9e8
+2026-10-04 17:08:05,890 - INFO - Intermediate patch for astropy__astropy-12907 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-12907/patch.diff, now applying to container...
+2026-10-04 17:08:06,025 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:08:06,517 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:08:06,932 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:08:07,336 - INFO - >>>>> Applied Patch:
+patching file astropy/modeling/separable.py
+patching file astropy/modeling/tests/test_separable.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 120 with fuzz 1.
+
+2026-10-04 17:08:07,402 - INFO - Git diff before:
+diff --git a/astropy/modeling/separable.py b/astropy/modeling/separable.py
+index a308e2729..45bea3608 100755
+--- a/astropy/modeling/separable.py
++++ b/astropy/modeling/separable.py
+@@ -242,7 +242,7 @@ def _cstack(left, right):
+         cright = _coord_matrix(right, 'right', noutp)
+     else:
+         cright = np.zeros((noutp, right.shape[1]))
+-        cright[-right.shape[0]:, -right.shape[1]:] = 1
++        cright[-right.shape[0]:, -right.shape[1]:] = right
+ 
+     return np.hstack([cleft, cright])
+ 
+diff --git a/astropy/modeling/tests/test_separable.py b/astropy/modeling/tests/test_separable.py
+index 8dfe5c862..f80c78c24 100755
+--- a/astropy/modeling/tests/test_separable.py
++++ b/astropy/modeling/tests/test_separable.py
+@@ -52,6 +52,13 @@ compound_models = {
+     'cm7': (map2 | p2 & sh1,
+             (np.array([False, True]),
+              np.array([[True, False], [False, True]]))
++            ),
++    'cm8': (rot & (sh1 & sh2),
++            (np.array([False, False, True, True]),
++             np.array([[True, True, False, False],
++                       [True, True, False, False],
++                       [False, False, True, False],
++                       [False, False, False, True]]))
+             )
+ }
+ 
+@@ -113,6 +120,20 @@ def test_cstack():
+                     )
+ 
+ 
++def test_cstack_ndarray_keeps_structure():
++    # Regression test for nesting CompoundModels with '&' (gh-12907):
++    # when an operand is the coord_matrix of a nested compound model,
++    # its internal structure must be preserved, not flattened to ones.
++    cm = sh1 & sh2
++    result = _cstack(rot, separability_matrix(cm))
++    assert_allclose(result,
++                    np.array([[1, 1, 0, 0],
++                              [1, 1, 0, 0],
++                              [0, 0, 1, 0],
++                              [0, 0, 0, 1]])
++                    )
++
++
+ def test_arith_oper():
+     # Models as inputs
+     result = _arith_oper(sh1, scl1)
+2026-10-04 17:08:07,402 - INFO - Eval script for astropy__astropy-12907 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-12907/eval.sh; copying to container...
+2026-10-04 17:09:52,395 - INFO - Test runtime: 104.92 seconds
+2026-10-04 17:09:52,396 - INFO - Test output for astropy__astropy-12907 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/astropy__astropy-12907/test_output.txt
+2026-10-04 17:09:52,452 - INFO - Git diff after:
+diff --git a/astropy/modeling/separable.py b/astropy/modeling/separable.py
+index a308e2729..45bea3608 100755
+--- a/astropy/modeling/separable.py
++++ b/astropy/modeling/separable.py
+@@ -242,7 +242,7 @@ def _cstack(left, right):
+         cright = _coord_matrix(right, 'right', noutp)
+     else:
+         cright = np.zeros((noutp, right.shape[1]))
+-        cright[-right.shape[0]:, -right.shape[1]:] = 1
++        cright[-right.shape[0]:, -right.shape[1]:] = right
+ 
+     return np.hstack([cleft, cright])
+2026-10-04 17:09:52,452 - INFO - Git diff changed after running eval script
+2026-10-04 17:09:52,452 - INFO - Grading answer for astropy__astropy-12907...
+2026-10-04 17:09:52,458 - INFO - report: {'astropy__astropy-12907': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/modeling/tests/test_separable.py::test_separable[compound_model6-result6]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model9-result9]'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/modeling/tests/test_separable.py::test_coord_matrix', 'astropy/modeling/tests/test_separable.py::test_cdot', 'astropy/modeling/tests/test_separable.py::test_cstack', 'astropy/modeling/tests/test_separable.py::test_arith_oper', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model0-result0]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model1-result1]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model2-result2]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model3-result3]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model4-result4]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model5-result5]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model7-result7]', 'astropy/modeling/tests/test_separable.py::test_separable[compound_model8-result8]', 'astropy/modeling/tests/test_separable.py::test_custom_model_separable'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-12907: resolved: True
+2026-10-04 17:09:52,458 - INFO - Attempting to stop container sweb.eval.astropy__astropy-12907.wescode-v3...
+2026-10-04 17:10:07,684 - INFO - Container sweb.eval.astropy__astropy-12907.wescode-v3 stopped successfully.
+2026-10-04 17:10:07,685 - INFO - Attempting to remove container sweb.eval.astropy__astropy-12907.wescode-v3...
+2026-10-04 17:10:07,750 - INFO - Container sweb.eval.astropy__astropy-12907.wescode-v3 removed successfully.

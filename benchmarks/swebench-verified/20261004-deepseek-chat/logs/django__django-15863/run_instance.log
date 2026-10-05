@@ -1,0 +1,67 @@
+2026-10-04 18:10:59,256 - INFO - Creating container for django__django-15863...
+2026-10-04 18:10:59,320 - INFO - Container for django__django-15863 created: f4f3be98fc39a6705e8590796e4958e1f35341ea0cf137fdfb789a99c06a653d
+2026-10-04 18:10:59,527 - INFO - Container for django__django-15863 started: f4f3be98fc39a6705e8590796e4958e1f35341ea0cf137fdfb789a99c06a653d
+2026-10-04 18:10:59,527 - INFO - Intermediate patch for django__django-15863 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15863/patch.diff, now applying to container...
+2026-10-04 18:10:59,638 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 18:11:00,926 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 18:11:01,584 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 18:11:01,803 - INFO - >>>>> Applied Patch:
+patching file django/template/defaultfilters.py
+patching file tests/template_tests/filter_tests/test_floatformat.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 56 with fuzz 1.
+
+2026-10-04 18:11:01,872 - INFO - Git diff before:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 7a5b28d159..23c3a08c67 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -151,7 +151,7 @@ def floatformat(text, arg=-1):
+             use_l10n = False
+             arg = arg[:-1] or -1
+     try:
+-        input_val = repr(text)
++        input_val = str(text)
+         d = Decimal(input_val)
+     except InvalidOperation:
+         try:
+diff --git a/tests/template_tests/filter_tests/test_floatformat.py b/tests/template_tests/filter_tests/test_floatformat.py
+index 8dc69b2437..361a888ce3 100644
+--- a/tests/template_tests/filter_tests/test_floatformat.py
++++ b/tests/template_tests/filter_tests/test_floatformat.py
+@@ -56,6 +56,10 @@ class FunctionTests(SimpleTestCase):
+         self.assertEqual(floatformat(0.12345, 2), "0.12")
+         self.assertEqual(floatformat(Decimal("555.555"), 2), "555.56")
+         self.assertEqual(floatformat(Decimal("09.000")), "9")
++        self.assertEqual(
++            floatformat(Decimal("123456.123456789012345678901"), 21),
++            "123456.123456789012345678901",
++        )
+         self.assertEqual(floatformat("foo"), "")
+         self.assertEqual(floatformat(13.1031, "bar"), "13.1031")
+         self.assertEqual(floatformat(18.125, 2), "18.13")
+2026-10-04 18:11:01,873 - INFO - Eval script for django__django-15863 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15863/eval.sh; copying to container...
+2026-10-04 18:11:08,710 - INFO - Test runtime: 6.77 seconds
+2026-10-04 18:11:08,710 - INFO - Test output for django__django-15863 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-15863/test_output.txt
+2026-10-04 18:11:08,773 - INFO - Git diff after:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 7a5b28d159..23c3a08c67 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -151,7 +151,7 @@ def floatformat(text, arg=-1):
+             use_l10n = False
+             arg = arg[:-1] or -1
+     try:
+-        input_val = repr(text)
++        input_val = str(text)
+         d = Decimal(input_val)
+     except InvalidOperation:
+         try:
+2026-10-04 18:11:08,773 - INFO - Git diff changed after running eval script
+2026-10-04 18:11:08,773 - INFO - Grading answer for django__django-15863...
+2026-10-04 18:11:08,773 - INFO - report: {'django__django-15863': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_inputs (template_tests.filter_tests.test_floatformat.FunctionTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_floatformat01 (template_tests.filter_tests.test_floatformat.FloatformatTests)', 'test_floatformat02 (template_tests.filter_tests.test_floatformat.FloatformatTests)', 'test_float_dunder_method (template_tests.filter_tests.test_floatformat.FunctionTests)', 'test_force_grouping (template_tests.filter_tests.test_floatformat.FunctionTests)', 'test_infinity (template_tests.filter_tests.test_floatformat.FunctionTests)', '#15789', 'test_negative_zero_values (template_tests.filter_tests.test_floatformat.FunctionTests)', 'test_unlocalize (template_tests.filter_tests.test_floatformat.FunctionTests)', 'test_zero_values (template_tests.filter_tests.test_floatformat.FunctionTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-15863: resolved: True
+2026-10-04 18:11:08,773 - INFO - Attempting to stop container sweb.eval.django__django-15863.wescode-v3...
+2026-10-04 18:11:24,138 - INFO - Container sweb.eval.django__django-15863.wescode-v3 stopped successfully.
+2026-10-04 18:11:24,138 - INFO - Attempting to remove container sweb.eval.django__django-15863.wescode-v3...
+2026-10-04 18:11:24,330 - INFO - Container sweb.eval.django__django-15863.wescode-v3 removed successfully.

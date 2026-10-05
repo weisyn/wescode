@@ -1,0 +1,97 @@
+2026-10-04 19:20:58,428 - INFO - Creating container for scikit-learn__scikit-learn-14053...
+2026-10-04 19:20:58,471 - INFO - Container for scikit-learn__scikit-learn-14053 created: 58abba744e4a9260bdc80b4598625a11d7810a02e264d71f798f8035198e69ae
+2026-10-04 19:20:58,662 - INFO - Container for scikit-learn__scikit-learn-14053 started: 58abba744e4a9260bdc80b4598625a11d7810a02e264d71f798f8035198e69ae
+2026-10-04 19:20:58,662 - INFO - Intermediate patch for scikit-learn__scikit-learn-14053 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-14053/patch.diff, now applying to container...
+2026-10-04 19:20:58,778 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:20:58,970 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:20:59,087 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:20:59,205 - INFO - >>>>> Applied Patch:
+patching file sklearn/tree/export.py
+patching file sklearn/tree/tests/test_export.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 396 with fuzz 1.
+
+2026-10-04 19:20:59,260 - INFO - Git diff before:
+diff --git a/sklearn/tree/export.py b/sklearn/tree/export.py
+index 1fe11e596..c28ec40e8 100755
+--- a/sklearn/tree/export.py
++++ b/sklearn/tree/export.py
+@@ -890,9 +890,11 @@ def export_text(decision_tree, feature_names=None, max_depth=10,
+         value_fmt = "{}{} value: {}\n"
+ 
+     if feature_names:
+-        feature_names_ = [feature_names[i] for i in tree_.feature]
++        feature_names_ = [feature_names[i] if i != _tree.TREE_UNDEFINED
++                          else None for i in tree_.feature]
+     else:
+-        feature_names_ = ["feature_{}".format(i) for i in tree_.feature]
++        feature_names_ = ["feature_{}".format(i) if i != _tree.TREE_UNDEFINED
++                          else None for i in tree_.feature]
+ 
+     export_text.report = ""
+ 
+diff --git a/sklearn/tree/tests/test_export.py b/sklearn/tree/tests/test_export.py
+index 503431f45..af2e70644 100755
+--- a/sklearn/tree/tests/test_export.py
++++ b/sklearn/tree/tests/test_export.py
+@@ -396,6 +396,31 @@ def test_export_text():
+     assert export_text(reg, decimals=1) == expected_report
+     assert export_text(reg, decimals=1, show_weights=True) == expected_report
+ 
++    # non-regression test for
++    # https://github.com/scikit-learn/scikit-learn/issues/14050
++    # A single feature tree used to raise an IndexError because the leaf
++    # sentinel (-2) was used to index into feature_names.
++    X_single = [[1], [2], [3], [4], [5], [6]]
++    y_single = [-1, -1, -1, 1, 1, 1]
++    clf_single = DecisionTreeClassifier(max_depth=2, random_state=0)
++    clf_single.fit(X_single, y_single)
++
++    expected_report = dedent("""
++    |--- b <= 3.50
++    |   |--- class: -1
++    |--- b >  3.50
++    |   |--- class: 1
++    """).lstrip()
++    assert export_text(clf_single, feature_names=['b']) == expected_report
++
++    expected_report = dedent("""
++    |--- feature_0 <= 3.50
++    |   |--- class: -1
++    |--- feature_0 >  3.50
++    |   |--- class: 1
++    """).lstrip()
++    assert export_text(clf_single) == expected_report
++
+ 
+ def test_plot_tree_entropy(pyplot):
+     # mostly smoke tests
+2026-10-04 19:20:59,260 - INFO - Eval script for scikit-learn__scikit-learn-14053 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-14053/eval.sh; copying to container...
+2026-10-04 19:21:04,157 - INFO - Test runtime: 4.84 seconds
+2026-10-04 19:21:04,157 - INFO - Test output for scikit-learn__scikit-learn-14053 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/scikit-learn__scikit-learn-14053/test_output.txt
+2026-10-04 19:21:04,209 - INFO - Git diff after:
+diff --git a/sklearn/tree/export.py b/sklearn/tree/export.py
+index 1fe11e596..c28ec40e8 100755
+--- a/sklearn/tree/export.py
++++ b/sklearn/tree/export.py
+@@ -890,9 +890,11 @@ def export_text(decision_tree, feature_names=None, max_depth=10,
+         value_fmt = "{}{} value: {}\n"
+ 
+     if feature_names:
+-        feature_names_ = [feature_names[i] for i in tree_.feature]
++        feature_names_ = [feature_names[i] if i != _tree.TREE_UNDEFINED
++                          else None for i in tree_.feature]
+     else:
+-        feature_names_ = ["feature_{}".format(i) for i in tree_.feature]
++        feature_names_ = ["feature_{}".format(i) if i != _tree.TREE_UNDEFINED
++                          else None for i in tree_.feature]
+ 
+     export_text.report = ""
+2026-10-04 19:21:04,209 - INFO - Git diff changed after running eval script
+2026-10-04 19:21:04,209 - INFO - Grading answer for scikit-learn__scikit-learn-14053...
+2026-10-04 19:21:04,211 - INFO - report: {'scikit-learn__scikit-learn-14053': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/tree/tests/test_export.py::test_export_text'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/tree/tests/test_export.py::test_graphviz_toy', 'sklearn/tree/tests/test_export.py::test_graphviz_errors', 'sklearn/tree/tests/test_export.py::test_friedman_mse_in_graphviz', 'sklearn/tree/tests/test_export.py::test_precision', 'sklearn/tree/tests/test_export.py::test_export_text_errors'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-14053: resolved: True
+2026-10-04 19:21:04,211 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-14053.wescode-v3...
+2026-10-04 19:21:19,352 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14053.wescode-v3 stopped successfully.
+2026-10-04 19:21:19,352 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-14053.wescode-v3...
+2026-10-04 19:21:19,378 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14053.wescode-v3 removed successfully.

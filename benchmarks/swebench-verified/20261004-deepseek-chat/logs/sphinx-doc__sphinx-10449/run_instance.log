@@ -1,0 +1,71 @@
+2026-10-04 19:25:02,889 - INFO - Creating container for sphinx-doc__sphinx-10449...
+2026-10-04 19:25:02,931 - INFO - Container for sphinx-doc__sphinx-10449 created: 2616e38dbb6434c5cdc19a124d8fdac648bda47bf65af1778e0f8fced34f8240
+2026-10-04 19:25:03,136 - INFO - Container for sphinx-doc__sphinx-10449 started: 2616e38dbb6434c5cdc19a124d8fdac648bda47bf65af1778e0f8fced34f8240
+2026-10-04 19:25:03,136 - INFO - Intermediate patch for sphinx-doc__sphinx-10449 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-10449/patch.diff, now applying to container...
+2026-10-04 19:25:03,245 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 19:25:03,485 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 19:25:03,606 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 19:25:03,722 - INFO - >>>>> Applied Patch:
+patching file sphinx/ext/autodoc/typehints.py
+patching file tests/test_ext_autodoc_configs.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1041 with fuzz 1.
+
+2026-10-04 19:25:03,789 - INFO - Git diff before:
+diff --git a/sphinx/ext/autodoc/typehints.py b/sphinx/ext/autodoc/typehints.py
+index 06768168e..7c054a85e 100755
+--- a/sphinx/ext/autodoc/typehints.py
++++ b/sphinx/ext/autodoc/typehints.py
+@@ -29,7 +29,10 @@ def record_typehints(app: Sphinx, objtype: str, name: str, obj: Any,
+                 if param.annotation is not param.empty:
+                     annotation[param.name] = typing.stringify(param.annotation, mode)
+             if sig.return_annotation is not sig.empty:
+-                annotation['return'] = typing.stringify(sig.return_annotation, mode)
++                if not (objtype == 'class' and inspect.isclass(obj)):
++                    # a class's return annotation belongs to its constructor and
++                    # should not be shown as a return type for the class itself.
++                    annotation['return'] = typing.stringify(sig.return_annotation, mode)
+     except (TypeError, ValueError):
+         pass
+ 
+diff --git a/tests/test_ext_autodoc_configs.py b/tests/test_ext_autodoc_configs.py
+index fdb82b1b9..c075a8e2d 100755
+--- a/tests/test_ext_autodoc_configs.py
++++ b/tests/test_ext_autodoc_configs.py
+@@ -1041,9 +1041,6 @@ def test_autodoc_typehints_description_with_documented_init(app):
+             '   Parameters:\n'
+             '      **x** (*int*) --\n'
+             '\n'
+-            '   Return type:\n'
+-            '      None\n'
+-            '\n'
+             '   __init__(x)\n'
+             '\n'
+             '      Init docstring.\n'
+2026-10-04 19:25:03,790 - INFO - Eval script for sphinx-doc__sphinx-10449 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-10449/eval.sh; copying to container...
+2026-10-04 19:25:11,381 - INFO - Test runtime: 7.54 seconds
+2026-10-04 19:25:11,382 - INFO - Test output for sphinx-doc__sphinx-10449 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/sphinx-doc__sphinx-10449/test_output.txt
+2026-10-04 19:25:11,436 - INFO - Git diff after:
+diff --git a/sphinx/ext/autodoc/typehints.py b/sphinx/ext/autodoc/typehints.py
+index 06768168e..7c054a85e 100755
+--- a/sphinx/ext/autodoc/typehints.py
++++ b/sphinx/ext/autodoc/typehints.py
+@@ -29,7 +29,10 @@ def record_typehints(app: Sphinx, objtype: str, name: str, obj: Any,
+                 if param.annotation is not param.empty:
+                     annotation[param.name] = typing.stringify(param.annotation, mode)
+             if sig.return_annotation is not sig.empty:
+-                annotation['return'] = typing.stringify(sig.return_annotation, mode)
++                if not (objtype == 'class' and inspect.isclass(obj)):
++                    # a class's return annotation belongs to its constructor and
++                    # should not be shown as a return type for the class itself.
++                    annotation['return'] = typing.stringify(sig.return_annotation, mode)
+     except (TypeError, ValueError):
+         pass
+2026-10-04 19:25:11,436 - INFO - Git diff changed after running eval script
+2026-10-04 19:25:11,436 - INFO - Grading answer for sphinx-doc__sphinx-10449...
+2026-10-04 19:25:11,442 - INFO - report: {'sphinx-doc__sphinx-10449': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_with_documented_init'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_ext_autodoc_configs.py::test_autoclass_content_class', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_init', 'tests/test_ext_autodoc_configs.py::test_autodoc_class_signature_mixed', 'tests/test_ext_autodoc_configs.py::test_autodoc_class_signature_separated_init', 'tests/test_ext_autodoc_configs.py::test_autodoc_class_signature_separated_new', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_both', 'tests/test_ext_autodoc_configs.py::test_autodoc_inherit_docstrings', 'tests/test_ext_autodoc_configs.py::test_autodoc_docstring_signature', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_class', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_init', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_both', 'tests/test_ext_autodoc_configs.py::test_mocked_module_imports', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_signature', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none_for_overload', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_no_undoc', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_no_undoc_doc_rtype', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_with_documented_init_no_undoc', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_with_documented_init_no_undoc_doc_rtype', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_for_invalid_node', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_both', 'tests/test_ext_autodoc_configs.py::test_autodoc_type_aliases', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_and_type_aliases', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified_for_class_alias', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified_for_generic_alias', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified_for_newtype_alias', 'tests/test_ext_autodoc_configs.py::test_autodoc_default_options', 'tests/test_ext_autodoc_configs.py::test_autodoc_default_options_with_values'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-10449: resolved: True
+2026-10-04 19:25:11,442 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-10449.wescode-v3...
+2026-10-04 19:25:26,590 - INFO - Container sweb.eval.sphinx-doc__sphinx-10449.wescode-v3 stopped successfully.
+2026-10-04 19:25:26,590 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-10449.wescode-v3...
+2026-10-04 19:25:26,615 - INFO - Container sweb.eval.sphinx-doc__sphinx-10449.wescode-v3 removed successfully.

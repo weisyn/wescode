@@ -1,0 +1,137 @@
+2026-10-04 17:52:31,846 - INFO - Creating container for django__django-13807...
+2026-10-04 17:52:31,898 - INFO - Container for django__django-13807 created: 55d7fe8fc4a8fd779162d76748c913f9099ff4e659707deb2354956d288a8c77
+2026-10-04 17:52:32,100 - INFO - Container for django__django-13807 started: 55d7fe8fc4a8fd779162d76748c913f9099ff4e659707deb2354956d288a8c77
+2026-10-04 17:52:32,100 - INFO - Intermediate patch for django__django-13807 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13807/patch.diff, now applying to container...
+2026-10-04 17:52:32,216 - INFO - Failed to apply patch to container: git apply --verbose
+2026-10-04 17:52:33,420 - INFO - Failed to apply patch to container: git apply --verbose --3way
+2026-10-04 17:52:33,815 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-10-04 17:52:34,202 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/sqlite3/base.py
+patching file tests/backends/models.py
+patching file tests/backends/tests.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 625 with fuzz 2.
+
+2026-10-04 17:52:34,267 - INFO - Git diff before:
+diff --git a/django/db/backends/sqlite3/base.py b/django/db/backends/sqlite3/base.py
+index 2eeaf98c0d..ab4ea70492 100644
+--- a/django/db/backends/sqlite3/base.py
++++ b/django/db/backends/sqlite3/base.py
+@@ -327,19 +327,24 @@ class DatabaseWrapper(BaseDatabaseWrapper):
+                     violations = cursor.execute('PRAGMA foreign_key_check').fetchall()
+                 else:
+                     violations = chain.from_iterable(
+-                        cursor.execute('PRAGMA foreign_key_check(%s)' % table_name).fetchall()
++                        cursor.execute(
++                            'PRAGMA foreign_key_check(%s)'
++                            % self.ops.quote_name(table_name)
++                        ).fetchall()
+                         for table_name in table_names
+                     )
+                 # See https://www.sqlite.org/pragma.html#pragma_foreign_key_check
+                 for table_name, rowid, referenced_table_name, foreign_key_index in violations:
+                     foreign_key = cursor.execute(
+-                        'PRAGMA foreign_key_list(%s)' % table_name
++                        'PRAGMA foreign_key_list(%s)' % self.ops.quote_name(table_name)
+                     ).fetchall()[foreign_key_index]
+                     column_name, referenced_column_name = foreign_key[3:5]
+                     primary_key_column_name = self.introspection.get_primary_key_column(cursor, table_name)
+                     primary_key_value, bad_value = cursor.execute(
+                         'SELECT %s, %s FROM %s WHERE rowid = %%s' % (
+-                            primary_key_column_name, column_name, table_name
++                            self.ops.quote_name(primary_key_column_name),
++                            self.ops.quote_name(column_name),
++                            self.ops.quote_name(table_name),
+                         ),
+                         (rowid,),
+                     ).fetchone()
+diff --git a/tests/backends/models.py b/tests/backends/models.py
+index 5368e8d903..15c81052ea 100644
+--- a/tests/backends/models.py
++++ b/tests/backends/models.py
+@@ -140,3 +140,11 @@ class Author(models.Model):
+ 
+ class Book(models.Model):
+     author = models.ForeignKey(Author, models.CASCADE, to_field='name')
++
++
++class SQLKeywordsModel(models.Model):
++    id = models.AutoField(primary_key=True, db_column='select')
++    reporter = models.ForeignKey(Reporter, models.CASCADE, db_column='where')
++
++    class Meta:
++        db_table = 'order'
+diff --git a/tests/backends/tests.py b/tests/backends/tests.py
+index ed1847ede5..dd537d1ea3 100644
+--- a/tests/backends/tests.py
++++ b/tests/backends/tests.py
+@@ -20,7 +20,7 @@ from django.test import (
+ 
+ from .models import (
+     Article, Object, ObjectReference, Person, Post, RawData, Reporter,
+-    ReporterProxy, SchoolClass, Square,
++    ReporterProxy, SchoolClass, SQLKeywordsModel, Square,
+     VeryLongModelNameZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ,
+ )
+ 
+@@ -625,6 +625,17 @@ class FkConstraintsTests(TransactionTestCase):
+                     connection.check_constraints()
+             transaction.set_rollback(True)
+ 
++    def test_check_constraints_sql_keywords(self):
++        with transaction.atomic():
++            obj = SQLKeywordsModel.objects.create(reporter=self.r)
++            obj.refresh_from_db()
++            obj.reporter_id = 30
++            with connection.constraint_checks_disabled():
++                obj.save()
++                with self.assertRaises(IntegrityError):
++                    connection.check_constraints(table_names=['order'])
++            transaction.set_rollback(True)
++
+ 
+ class ThreadTests(TransactionTestCase):
+2026-10-04 17:52:34,268 - INFO - Eval script for django__django-13807 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13807/eval.sh; copying to container...
+2026-10-04 17:52:40,867 - INFO - Test runtime: 6.53 seconds
+2026-10-04 17:52:40,868 - INFO - Test output for django__django-13807 written to logs/run_evaluation/wescode-v3/wescode-deepseek-chat/django__django-13807/test_output.txt
+2026-10-04 17:52:40,930 - INFO - Git diff after:
+diff --git a/django/db/backends/sqlite3/base.py b/django/db/backends/sqlite3/base.py
+index 2eeaf98c0d..ab4ea70492 100644
+--- a/django/db/backends/sqlite3/base.py
++++ b/django/db/backends/sqlite3/base.py
+@@ -327,19 +327,24 @@ class DatabaseWrapper(BaseDatabaseWrapper):
+                     violations = cursor.execute('PRAGMA foreign_key_check').fetchall()
+                 else:
+                     violations = chain.from_iterable(
+-                        cursor.execute('PRAGMA foreign_key_check(%s)' % table_name).fetchall()
++                        cursor.execute(
++                            'PRAGMA foreign_key_check(%s)'
++                            % self.ops.quote_name(table_name)
++                        ).fetchall()
+                         for table_name in table_names
+                     )
+                 # See https://www.sqlite.org/pragma.html#pragma_foreign_key_check
+                 for table_name, rowid, referenced_table_name, foreign_key_index in violations:
+                     foreign_key = cursor.execute(
+-                        'PRAGMA foreign_key_list(%s)' % table_name
++                        'PRAGMA foreign_key_list(%s)' % self.ops.quote_name(table_name)
+                     ).fetchall()[foreign_key_index]
+                     column_name, referenced_column_name = foreign_key[3:5]
+                     primary_key_column_name = self.introspection.get_primary_key_column(cursor, table_name)
+                     primary_key_value, bad_value = cursor.execute(
+                         'SELECT %s, %s FROM %s WHERE rowid = %%s' % (
+-                            primary_key_column_name, column_name, table_name
++                            self.ops.quote_name(primary_key_column_name),
++                            self.ops.quote_name(column_name),
++                            self.ops.quote_name(table_name),
+                         ),
+                         (rowid,),
+                     ).fetchone()
+2026-10-04 17:52:40,930 - INFO - Git diff changed after running eval script
+2026-10-04 17:52:40,930 - INFO - Grading answer for django__django-13807...
+2026-10-04 17:52:40,931 - INFO - report: {'django__django-13807': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_check_constraints_sql_keywords (backends.tests.FkConstraintsTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['Sequence names are correct when resetting generic relations (Ref #13941)', 'test_parameter_escaping (backends.tests.EscapingChecks)', 'test_paramless_no_escaping (backends.tests.EscapingChecks)', 'An executemany call with too many/not enough parameters will raise an exception (Refs #12612)', 'test_paramless_no_escaping (backends.tests.EscapingChecksDebug)', 'test_can_reference_existent (backends.tests.DBConstraintTestCase)', 'test_can_reference_non_existent (backends.tests.DBConstraintTestCase)', 'test_many_to_many (backends.tests.DBConstraintTestCase)', 'test_django_date_extract (backends.tests.DateQuotingTest)', 'test_debug_sql (backends.tests.LastExecutedQueryTest)', 'test_last_executed_query (backends.tests.LastExecutedQueryTest)', 'test_last_executed_query_without_previous_query (backends.tests.LastExecutedQueryTest)', 'last_executed_query() returns a string.', "Test creation of model with long name and long pk name doesn't error. Ref #8901", 'test_sequence_name_length_limits_flush (backends.tests.LongNameTest)', 'test_sequence_name_length_limits_m2m (backends.tests.LongNameTest)', 'test_check_constraints (backends.tests.FkConstraintsTests)', 'test_disable_constraint_checks_context_manager (backends.tests.FkConstraintsTests)', 'test_disable_constraint_checks_manually (backends.tests.FkConstraintsTests)', 'test_integrity_checks_on_creation (backends.tests.FkConstraintsTests)', 'test_integrity_checks_on_update (backends.tests.FkConstraintsTests)', 'test_closing_non_shared_connections (backends.tests.ThreadTests)', 'test_connections_thread_local (backends.tests.ThreadTests)', 'test_default_connection_thread_local (backends.tests.ThreadTests)', 'test_pass_connection_between_threads (backends.tests.ThreadTests)', 'test_thread_sharing_count (backends.tests.ThreadTests)', 'test_cached_db_features (backends.tests.BackendTestCase)', 'test_cursor_contextmanager (backends.tests.BackendTestCase)', 'test_cursor_executemany (backends.tests.BackendTestCase)', 'test_cursor_executemany_with_empty_params_list (backends.tests.BackendTestCase)', 'test_cursor_executemany_with_iterator (backends.tests.BackendTestCase)', 'test_database_operations_helper_class (backends.tests.BackendTestCase)', 'test_database_operations_init (backends.tests.BackendTestCase)', 'Creating an existing table returns a DatabaseError', 'test_queries (backends.tests.BackendTestCase)', 'test_timezone_none_use_tz_false (backends.tests.BackendTestCase)', 'test_unicode_fetches (backends.tests.BackendTestCase)', 'test_unicode_password (backends.tests.BackendTestCase)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13807: resolved: True
+2026-10-04 17:52:40,931 - INFO - Attempting to stop container sweb.eval.django__django-13807.wescode-v3...
+2026-10-04 17:52:56,082 - INFO - Container sweb.eval.django__django-13807.wescode-v3 stopped successfully.
+2026-10-04 17:52:56,082 - INFO - Attempting to remove container sweb.eval.django__django-13807.wescode-v3...
+2026-10-04 17:52:56,341 - INFO - Container sweb.eval.django__django-13807.wescode-v3 removed successfully.
