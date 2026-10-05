@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="swebench-79.2-announcement.jpg" alt="SWE-bench Verified 79.2% — #1 Tied" width="100%">
+
 # 🏆 SWE-bench Verified — 79.2%
 
 <br>
