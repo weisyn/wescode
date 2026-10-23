@@ -1,6 +1,8 @@
 # SWE-bench Live · Verified 500 · 2026-10-22
 
-本目录是 [SWE-bench Live](https://swe-bench-live.github.io/)（Microsoft）Verified 500 的一次冻结评测。Princeton SWE-bench Verified 的材料在 [`../../swebench-verified/`](../../swebench-verified/)，instance 集合不同，Resolved 率不可比。
+[Microsoft SWE-bench Live](https://swe-bench-live.github.io/) · wescode / deepseek-flash · Best@1
+
+**355 / 500 = 71.0%**　·　提交时公开榜最高分 40.0%　·　已交审核（[PR #61](https://github.com/SWE-bench-Live/submission/pull/61)）
 
 | 项 | 值 |
 |---|---|

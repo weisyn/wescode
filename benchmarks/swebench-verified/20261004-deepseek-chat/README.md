@@ -1,4 +1,4 @@
-> 本页是 Princeton [SWE-bench Verified](https://www.swebench.com/)（2026-10-04，396/500 = 79.2%）。Microsoft [SWE-bench Live](../../swebench-live/) 是另一基准，材料在 [`../../swebench-live/20261022-deepseek-flash/`](../../swebench-live/20261022-deepseek-flash/)。两套划分 instance 集合不同，Resolved 率不可比。
+> Princeton [SWE-bench Verified](https://www.swebench.com/) · 2026-10-04 · **396 / 500 = 79.2%** · 与当时公开榜最高分相同（未交 experiments；材料在本目录）
 
 <div align="center">
 
@@ -9,50 +9,49 @@
 <br>
 
 [![Score](https://img.shields.io/badge/Resolved-396%20%2F%20500%20(79.2%25)-brightgreen?style=for-the-badge&labelColor=1a1a2e)](https://www.swebench.com/)
-[![Rank](https://img.shields.io/badge/Rank-%231%20Tied-gold?style=for-the-badge&labelColor=1a1a2e)](https://www.swebench.com/)
+[![Rank](https://img.shields.io/badge/Score-equals%20then--%231-gold?style=for-the-badge&labelColor=1a1a2e)](https://www.swebench.com/)
 [![Model](https://img.shields.io/badge/Model-DeepSeek%20Chat-blue?style=for-the-badge&labelColor=1a1a2e)](https://api.deepseek.com)
 [![Cost](https://img.shields.io/badge/Cost-%2439-orange?style=for-the-badge&labelColor=1a1a2e)](.)
 [![Method](https://img.shields.io/badge/Method-Best%401-purple?style=for-the-badge&labelColor=1a1a2e)](.)
 
 <br>
 
-**并列全球第 1 · 国内第 1 · 性价比第 1**
+与当时公开榜最高分相同（未交 experiments；材料在本目录）
 
-用 $39 的中等模型，达到 $630 顶级模型的成绩
+用 $39 的中等模型，达到当时公开榜最高分 79.2%
 
 </div>
 
 ---
 
-## 🥇 排行榜位置
+## 对照公开榜（2026-10-04）
+
+本次 79.20%，与下表最高分相同。未交 [SWE-bench/experiments](https://github.com/SWE-bench/experiments)；公开渠道为本目录。下表为 2026-10-04 公开榜，均已提交。
 
 <table>
 <tr>
 <th>#</th><th>MODEL</th><th>AGENT</th><th>% RESOLVED</th><th>方法</th><th>费用</th>
 </tr>
-<tr style="background:#ffd700">
-<td><b>🥇 1</b></td><td><b>DeepSeek Chat</b></td><td><b>wescode</b></td><td><b>79.20%</b></td><td><b>Best@1</b></td><td><b>$39</b></td>
+<tr>
+<td>1</td><td>Claude 4.5 Opus</td><td>Sonar Foundation Agent</td><td>79.20%</td><td>Best@1</td><td>~$630</td>
 </tr>
 <tr>
-<td>🥇 1</td><td>Claude 4.5 Opus</td><td>Sonar Foundation Agent</td><td>79.20%</td><td>Best@1</td><td>~$630</td>
+<td>1</td><td>Claude 4.5 Opus (medium)</td><td>live-SWE-agent</td><td>79.20%</td><td>Best@1</td><td>~$500</td>
 </tr>
 <tr>
-<td>🥇 1</td><td>Claude 4.5 Opus (medium)</td><td>live-SWE-agent</td><td>79.20%</td><td>Best@1</td><td>~$500</td>
+<td>3</td><td>Doubao-Seed-Code</td><td>TRAE（字节跳动）</td><td>78.80%</td><td>30x rollout</td><td>~$2,000+</td>
 </tr>
 <tr>
-<td>4</td><td>Doubao-Seed-Code</td><td>TRAE（字节跳动）</td><td>78.80%</td><td>30x rollout</td><td>~$2,000+</td>
+<td>4</td><td>Gemini 3 Pro Preview</td><td>live-SWE-agent</td><td>77.40%</td><td>Best@1</td><td>—</td>
 </tr>
 <tr>
-<td>5</td><td>Gemini 3 Pro Preview</td><td>live-SWE-agent</td><td>77.40%</td><td>Best@1</td><td>—</td>
+<td>5</td><td>Claude 4 Sonnet</td><td>EPAM AI/Run Developer</td><td>76.80%</td><td>Best@1</td><td>—</td>
 </tr>
 <tr>
-<td>6</td><td>Claude 4 Sonnet</td><td>EPAM AI/Run Developer</td><td>76.80%</td><td>Best@1</td><td>—</td>
+<td>6</td><td>Multiple</td><td>Atlassian Rovo Dev</td><td>76.80%</td><td>混合模型</td><td>—</td>
 </tr>
 <tr>
-<td>7</td><td>Multiple</td><td>Atlassian Rovo Dev</td><td>76.80%</td><td>混合模型</td><td>—</td>
-</tr>
-<tr>
-<td>8</td><td>Claude 4.5 Opus (high)</td><td>mini-SWE-agent</td><td>76.80%</td><td>Best@1</td><td>—</td>
+<td>7</td><td>Claude 4.5 Opus (high)</td><td>mini-SWE-agent</td><td>76.80%</td><td>Best@1</td><td>—</td>
 </tr>
 </table>
 
@@ -70,13 +69,13 @@
 
 | 产品 | 公司 | 分数 | 方法 | 对比 |
 |------|------|:----:|------|------|
-| 🥇 **wescode** | **weisyn** | **79.2%** | Best@1，DeepSeek Chat | **国内第 1** |
+| **wescode** | **weisyn** | **79.2%** | Best@1，DeepSeek Chat | 未交官方榜；公开于本目录 |
 | 🥈 TRAE | 字节跳动 | 78.8% | 30x rollout，自研 Doubao-Seed-Code | 多次取最优 |
 | — | MiniMax（仅模型） | 75.8% | mini-SWE-agent | 非自有 Agent |
 | — | 智谱（仅模型） | 66.6% | mini-SWE-agent | 非自有 Agent |
 | — | 月之暗面（仅模型） | 63.4% | mini-SWE-agent | 非自有 Agent |
 
-wescode 是国内**唯一以自有 Agent + 第三方中等模型达到全球 Top 3 的产品**。
+wescode 以自有 Agent + 第三方中等模型复现当时公开榜最高分。[2025-11-18 起](https://github.com/SWE-bench/experiments/blob/main/README.md) 仅收学术机构，本次未交 experiments，材料公开于本目录。
 
 ---
 

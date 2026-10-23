@@ -1,35 +1,38 @@
 # SWE-bench Verified
 
-维护方：[Princeton NLP](https://www.swebench.com/)。500 题，12 个 Python 仓库（Django、SymPy、scikit-learn、matplotlib、astropy、pytest、sphinx、xarray、pylint、requests、seaborn、flask）。
+[Princeton NLP](https://www.swebench.com/) 维护。12 个经典 Python 仓库、人工筛选 500 题。[2025-11-18 起](https://github.com/SWE-bench/experiments/blob/main/README.md) 仅收学术机构，商业系统不能再交 [SWE-bench/experiments](https://github.com/SWE-bench/experiments)。
 
-本目录只存放 **Princeton SWE-bench Verified**。Microsoft SWE-bench Live（355/500 = 71.0%）在 [`../swebench-live/`](../swebench-live/)。两套划分都叫 Verified、都是 500 题，instance 集合不同，Resolved 率不可比。
+本次 79.2% 未交该仓。公开渠道：本目录 [`20261004-deepseek-chat/`](20261004-deepseek-chat/)（preds、harness 日志、轨迹）。
 
-自 2025-11-18 起，该榜只收学术机构（[政策](https://github.com/SWE-bench/experiments)）。商业产品的公开提交通道是 [SWE-bench Live](../swebench-live/)。
+## 79.2%　·　396 / 500
 
-OpenAI 已说明不再将本基准作为主要评测：[Why we no longer evaluate SWE-bench Verified](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)。
+与当时公开榜最高分相同。
 
-协议：Agent 产出 patch → Docker 执行仓库原有测试（FAIL_TO_PASS + PASS_TO_PASS）。
+wescode　·　DeepSeek Chat　·　Best@1　·　2026-10-04　·　$38.82
 
----
+对照日期 2026-10-04 [公开榜](https://www.swebench.com/)（下表均已提交 experiments）：
 
-## 已完成
+| 排名 | Agent | 模型 | Resolved | 方法 | 费用 |
+|:---:|------|------|----------|------|------|
+| 1 | Sonar Foundation Agent | Claude 4.5 Opus | 79.20% | Best@1 | ~$630 |
+| 1 | live-SWE-agent | Claude 4.5 Opus (medium) | 79.20% | Best@1 | ~$500 |
+| 3 | TRAE | Doubao-Seed-Code | 78.80% | 30x rollout | ~$2,000+ |
+| 4 | live-SWE-agent | Gemini 3 Pro Preview | 77.40% | Best@1 | — |
+| 5 | EPAM AI/Run Developer | Claude 4 Sonnet | 76.80% | Best@1 | — |
+| 6 | Atlassian Rovo Dev | Multiple | 76.80% | 混合模型 | — |
+| 7 | mini-SWE-agent | Claude 4.5 Opus (high) | 76.80% | Best@1 | — |
 
-| 日期 | 模型 | 协议 | Resolved | 费用 | 同划分对照 | 目录 |
-|------|------|------|----------|------|------------|------|
-| 2026-10-04 | DeepSeek Chat | Best@1 | **396/500 = 79.2%** | $38.82 | 当时公开榜并列 79.2%（Sonar / live-SWE-agent + Claude 4.5 Opus，约 $500–$630） | [`20261004-deepseek-chat/`](20261004-deepseek-chat/) |
+锁榜之后未进 swebench.com、但公开过分数的例子（评测方、harness、日期与上表不同，不并入排名）：
 
-## 同划分对照（2026-10-04）
+| 系统 | 分数 | 链接 | 说明 |
+|------|------|------|------|
+| ESMC + Claude 4.5 Sonnet | 451 / 500 = 90.2% | [experiments PR #374](https://github.com/SWE-bench/experiments/pull/374) | 提交方自报；2025-11-26 开 PR，维护者按政策关闭，未审 |
+| Claude Opus 4.8 + Claude Code | 85.8% | [Vals，2026-09-01](https://www.vals.ai/benchmarks/swebench) | 第三方评测，非 experiments |
+| Composer 2.5 + Cursor CLI | 79.6% | 同上 | 第三方评测。Cursor 官网报的是 [SWE-bench Multilingual 79.8%](https://cursor.com/composer)，不是 Verified |
 
-| # | MODEL | AGENT | % RESOLVED | 方法 | 费用 |
-|---|-------|-------|-----------|------|------|
-| 1 | Claude 4.5 Opus | Sonar Foundation Agent | 79.20% | Best@1 | ~$630 |
-| 1 | Claude 4.5 Opus (medium) | live-SWE-agent | 79.20% | Best@1 | ~$500 |
-| **1** | **DeepSeek Chat** | **wescode** | **79.20%** | **Best@1** | **$39** |
-| 4 | Doubao-Seed-Code | TRAE | 78.80% | 30x rollout | ~$2,000+ |
-| 5 | Gemini 3 Pro Preview | live-SWE-agent | 77.40% | Best@1 | — |
-| 6 | Claude 4 Sonnet | EPAM AI/Run Developer | 76.80% | Best@1 | — |
-| 7 | Multiple | Atlassian Rovo Dev | 76.80% | 混合模型 | — |
-| 8 | Claude 4.5 Opus (high) | mini-SWE-agent | 76.80% | Best@1 | — |
+Vals 同页其余行多数是 Mini-SWE-agent 测模型（最高 Claude Opus 5 **97.0%**），不是各家自有 Agent 交 Princeton 榜。
+
+详细材料：[`20261004-deepseek-chat/`](20261004-deepseek-chat/)
 
 ## 按仓库
 
@@ -48,10 +51,6 @@ OpenAI 已说明不再将本基准作为主要评测：[Why we no longer evaluat
 | seaborn | 2 | 2 | 100% |
 | flask | 1 | 1 | 100% |
 
----
-
-## 每次跑分目录
-
 | 文件 | 说明 |
 |------|------|
 | `all_preds.jsonl` | 500 题 patch |
@@ -59,4 +58,3 @@ OpenAI 已说明不再将本基准作为主要评测：[Why we no longer evaluat
 | `logs/<id>/` | 评分日志 |
 | `trajs/<id>.json` | 推理轨迹 |
 | `sessions.db` | session 库 |
-| `submission/metadata.yaml` | 提交格式 |
