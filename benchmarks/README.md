@@ -68,9 +68,9 @@ predictions、评分日志、推理轨迹全部公开，可复现、可核验。
 
 ```mermaid
 flowchart LR
-  I[真实 GitHub 问题] --> A[wescode 自己改代码]
-  A --> T[项目原有测试打分]
-  T --> P[过了 = 修好]
+  I[真实 GitHub 问题] --> A[wescode 改代码]
+  A --> T[项目原测试打分]
+  T --> P[过了就是修好]
 ```
 
 ---
@@ -78,12 +78,9 @@ flowchart LR
 ## 该跟谁比（不要横比两场）
 
 ```mermaid
-flowchart TB
-  W[wescode]
-  W --> L[考试A 微软公开榜]
-  W --> P[考试B 普林斯顿学术卷]
-  L --> L1["71.0% 只比同场 40%"]
-  P --> P1["79.2% 只比同场并列第一"]
+flowchart LR
+  A["微软公开榜<br/>wescode 71.0%<br/>只比同场 40%"]
+  B["普林斯顿学术卷<br/>wescode 79.2%<br/>只比同场并列第一"]
 ```
 
 | 你可能在想 | 正确读法 |
