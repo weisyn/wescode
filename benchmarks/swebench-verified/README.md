@@ -14,6 +14,8 @@
 |------|------|------|----------|--------|------|------|
 | **2026-10-04** | DeepSeek Chat | Best@1 | **396/500** | **79.2%** | ¥275.59 / $38.82 | [`20261004-deepseek-chat/`](20261004-deepseek-chat/) |
 
+第二次评分不在本目录：那是微软 **SWE-bench Live Verified 500**（355/500 = 71.0%，[PR #61](https://github.com/SWE-bench-Live/submission/pull/61)），归档在 [`../swebench-live/20261022-deepseek-flash/`](../swebench-live/20261022-deepseek-flash/)。两套题不能横比。
+
 ---
 
 ## 排行榜对标（2026-10-04）
@@ -70,7 +72,7 @@ wescode 性价比是 Sonar 的 **16 倍**、TRAE 的 **57 倍**。
 - 附 arXiv 预印本或技术报告
 - 方法开源
 
-**仍可提交的榜单**：SWE-bench Multimodal（对所有人开放）、SWE-bench Pro Public（通过 AgentBeats）、Terminal-Bench 2.1、Aider Polyglot。
+**商业可提交、第三方会公开核验的主路径**是微软 [SWE-bench Live](../swebench-live/)（PR + 维护者抽检；与本目录的 Princeton Verified 不是同一条榜）。Multimodal 仍对所有人开放。
 
 ---
 
