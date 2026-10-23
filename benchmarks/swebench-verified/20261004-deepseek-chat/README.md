@@ -26,7 +26,7 @@
 
 ## 对照公开榜（2026-10-04）
 
-本次 79.20%，与下表最高分相同。未交 [SWE-bench/experiments](https://github.com/SWE-bench/experiments)；公开渠道为本目录。下表为 2026-10-04 公开榜，均已提交。
+本次 79.20%，与下表最高分相同。未交 [SWE-bench/experiments](https://github.com/SWE-bench/experiments)；公开渠道为本目录。下表为 2026-10-04 公开榜已收录的自有 Agent 提交。只对照这一张榜、这一天；不与未审自报、其他评测方、模型评测混排。
 
 <table>
 <tr>
@@ -50,9 +50,6 @@
 <tr>
 <td>6</td><td>Multiple</td><td>Atlassian Rovo Dev</td><td>76.80%</td><td>混合模型</td><td>—</td>
 </tr>
-<tr>
-<td>7</td><td>Claude 4.5 Opus (high)</td><td>mini-SWE-agent</td><td>76.80%</td><td>Best@1</td><td>—</td>
-</tr>
 </table>
 
 ### 💰 性价比对比
@@ -70,10 +67,7 @@
 | 产品 | 公司 | 分数 | 方法 | 对比 |
 |------|------|:----:|------|------|
 | **wescode** | **weisyn** | **79.2%** | Best@1，DeepSeek Chat | 未交官方榜；公开于本目录 |
-| 🥈 TRAE | 字节跳动 | 78.8% | 30x rollout，自研 Doubao-Seed-Code | 多次取最优 |
-| — | MiniMax（仅模型） | 75.8% | mini-SWE-agent | 非自有 Agent |
-| — | 智谱（仅模型） | 66.6% | mini-SWE-agent | 非自有 Agent |
-| — | 月之暗面（仅模型） | 63.4% | mini-SWE-agent | 非自有 Agent |
+| TRAE | 字节跳动 | 78.8% | 30x rollout，自研 Doubao-Seed-Code | 同一张 swebench.com Verified 榜 |
 
 wescode 以自有 Agent + 第三方中等模型复现当时公开榜最高分。[2025-11-18 起](https://github.com/SWE-bench/experiments/blob/main/README.md) 仅收学术机构，本次未交 experiments，材料公开于本目录。
 
@@ -119,16 +113,7 @@ SWE-bench 不是"模型有多聪明"的测试——它测的是"Agent 能不能�
 </tr>
 </table>
 
-**关键证据**：
-
-| 组合 | 分数 | 差距 |
-|------|:----:|:----:|
-| DeepSeek Chat + mini-SWE-agent（简单 Agent） | ~56% | — |
-| DeepSeek Chat + **wescode**（wesgine 引擎） | **79.2%** | **+23pp** |
-| Claude 4.5 Opus + mini-SWE-agent | 76.8% | — |
-| Claude 4.5 Opus + Sonar Foundation Agent | 79.2% | +2.4pp |
-
-**同一模型下，wesgine 引擎提升了 23 个百分点**——这就是"引擎驱动"的含义。
+**关键证据**（同一张 swebench.com Verified 榜、当日已收录的 Agent 提交）：wescode + DeepSeek Chat 与 Sonar + Claude 4.5 Opus 同分 79.2%，费用 $39 vs ~$630。不拿模型评测或其他榜的分数做加减。
 
 ---
 

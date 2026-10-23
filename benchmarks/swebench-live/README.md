@@ -4,7 +4,7 @@
 
 ## Verified 500　·　71.0%
 
-提交时公开榜最高分为 40.0%。已交维护者审核（[PR #61](https://github.com/SWE-bench-Live/submission/pull/61)）。
+提交时公开榜最高分为 40.0%。已交维护者审核（[PR #61](https://github.com/SWE-bench-Live/submission/pull/61)）。本划分是 **Verified 500**，只对照该榜该划分；不与 Lite 300 对照。
 
 wescode　·　deepseek-flash　·　Best@1　·　2026-10-22
 
