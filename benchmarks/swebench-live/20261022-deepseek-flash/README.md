@@ -1,4 +1,14 @@
-# SWE-bench Live Verified 500 — 71.0%（355/500）
+<div align="center">
+
+# 微软 SWE-bench Live · 71.0%
+
+**能交公开榜的那场** · 不是普林斯顿 79.2%
+
+[![Score](https://img.shields.io/badge/修好-355%20%2F%20500%20(71.0%25)-2ea44f?style=for-the-badge)](https://github.com/SWE-bench-Live/submission/pull/61)
+[![Vs](https://img.shields.io/badge/同场当时第一名-40.0%25-lightgrey?style=for-the-badge)](https://swe-bench-live.github.io/)
+[![PR](https://img.shields.io/badge/提交-PR%20%2361-blue?style=for-the-badge)](https://github.com/SWE-bench-Live/submission/pull/61)
+
+</div>
 
 > **这不是** Princeton [SWE-bench Verified](../../swebench-verified/)（那次是 [`../../swebench-verified/20261004-deepseek-chat/`](../../swebench-verified/20261004-deepseek-chat/)，396/500 = 79.2%，学术锁，不能交公开榜）。
 > **这是** 微软 [SWE-bench Live](https://swe-bench-live.github.io/) 的 **Verified 500** 冻结 split。

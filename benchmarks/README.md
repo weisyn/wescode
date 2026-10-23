@@ -1,171 +1,153 @@
-# wescode Benchmarks
+<div align="center">
 
-wescode 在主流 AI 编程 Agent 评测上的跑分数据、分析报告和完整复现材料。
+# wescode 评测
 
-**所有评分数据公开**——predictions、评分日志、推理轨迹均在对应跑分目录内，任何人可以复现和验证。
+**会自己修真实开源 bug 的编程 Agent**
 
-两套 SWE-bench **不是同一批题**，数字不能横比、不能写进同一张「wescode 79%」表。
+predictions、评分日志、推理轨迹全部公开，可复现、可核验。
 
----
-
-## 最新成绩
-
-### 1. SWE-bench Live Verified 500 — 71.0%（355/500）
-
-> **平台**：微软 [SWE-bench Live](https://swe-bench-live.github.io/)（商业可交公开榜）
-> **Agent**: wescode（基于 wesgine v1.0 引擎）
-> **Model**: deepseek-flash
-> **Method**: Best@1 单次运行，非 multi-rollout
-> **Date**: 2026-10-22
-
-```
-Resolved:     ███████████████████████████████████░░░░░░░░░░░░░░░  71.0% (355)
-Unresolved:   ███████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  29.0% (145)
-  failure 99 · empty 8 · incomplete 38
-```
-
-当时 Verified 500 榜首 40.0%（SWE-agent + Claude-4.5-Sonnet）。提交：[PR #61](https://github.com/SWE-bench-Live/submission/pull/61)（维护者审完才上榜）。
-
-→ 详细报告：[`swebench-live/20261022-deepseek-flash/README.md`](swebench-live/20261022-deepseek-flash/README.md)
-
-### 2. Princeton SWE-bench Verified — 79.2%（396/500）
-
-> **平台**：Princeton [SWE-bench](https://www.swebench.com/)（2025-11 起学术锁，**不能**交公开榜）
-> **Agent**: wescode
-> **Model**: DeepSeek Chat（API model ID: `deepseek-chat`）
-> **Method**: Best@1 单次运行，非 multi-rollout
-> **Cost**: ¥275.59 / $38.82（平均 $0.08/题）
-> **Date**: 2026-10-04
-
-```
-Resolved:     ████████████████████████████████████████░░░░░░░░░░  79.2% (396)
-Unresolved:   ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  11.4% ( 57)
-Patch Error:  █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   9.2% ( 46)
-Empty Patch:  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.2% (  1)
-```
-
-**对标当时 SWE-bench 排行榜并列第 1**——与 Claude 4.5 Opus + Sonar Foundation Agent 的 79.20% 持平，费用约为前者的 1/16。这是学术锁之前的内部评分，**不是** Live 榜上的数字。
-
-| # | MODEL | AGENT | % RESOLVED | 费用 |
-|---|-------|-------|-----------|------|
-| 1 | Claude 4.5 Opus | Sonar Foundation Agent | 79.20% | ~$630 |
-| 1 | Claude 4.5 Opus (medium) | live-SWE-agent | 79.20% | ~$500 |
-| **1** | **DeepSeek Chat** | **wescode** | **79.20%** | **$39** |
-| 4 | Doubao-Seed-Code | TRAE（30x rollout） | 78.80% | ~$2,000+ |
-
-→ 详细报告：[`swebench-verified/20261004-deepseek-chat/README.md`](swebench-verified/20261004-deepseek-chat/README.md)
+</div>
 
 ---
 
-## 评测平台
+> [!IMPORTANT]
+> **71.0% 和 79.2% 不是同一次考试的两个分数，也不能互相比。**
+> 两套题都叫 Verified、都是 500 道，但题目不是同一批——像两套都叫「高考」的不同试卷。
+> 71% **不是**从 79.2% 掉下来的。
 
-| 评测 | 题数 | 语言 | 定位 | 分数 | 状态 |
-|------|------|------|------|------|------|
-| [**SWE-bench Live Verified**](swebench-live/) | 500 | 多仓 Python | 微软持续更新 split；可交公开榜 | **71.0%** | ✅ 完成 · [PR #61](https://github.com/SWE-bench-Live/submission/pull/61) |
-| [**SWE-bench Verified**](swebench-verified/) | 500 | Python | Princeton 学术锁；12 个主流仓 | **79.2%** | ✅ 完成（不能交公开榜） |
-| SWE-bench Live Lite | 300 | 多仓 Python | Live 另一套 split | — | ⏳ 须新 rollout |
-| SWE-bench Multilingual | 300 | 9 语言 | 跨语言代码修复 | — | ⏳ 计划中 |
-| SWE-bench Pro | 731 | Python | 企业级难度（Scale AI） | — | ⏳ 计划中 |
-| Terminal-Bench 2.1 | 89 | 多语言 | 容器化终端真实任务 | — | ⏳ 计划中 |
-| Aider Polyglot | 225 | 6 语言 | Exercism 编程题 | — | ⏳ 计划中 |
+<br/>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 能上公开榜 · 看这个对外讲
+
+**微软 [SWE-bench Live](https://swe-bench-live.github.io/)** · Verified 500
+
+<p align="center">
+  <img src="https://img.shields.io/badge/wescode-71.0%25%20(355%2F500)-2ea44f?style=for-the-badge" alt="71.0%"/>
+  <br/>
+  <img src="https://img.shields.io/badge/同场当时第一名-40.0%25-lightgrey?style=for-the-badge" alt="then 40%"/>
+</p>
+
+| | |
+|---|---|
+| 出题方 | 微软，题持续更新 |
+| 这场该跟谁比 | **同场当时第一名 40%**（SWE-agent + Claude 4.5 Sonnet） |
+| 能不能交公开榜 | **能**。[PR #61](https://github.com/SWE-bench-Live/submission/pull/61) 已开，维护者抽检后上榜 |
+| 模型 | deepseek-flash · Best@1 只跑一次 |
+| 详细报告 | [`swebench-live/20261022-deepseek-flash/`](swebench-live/20261022-deepseek-flash/) |
+
+普通人怎么读：**新试卷、公司交得进去、第三方会抽检。** 当时榜上第一才修对 200/500，wescode 修对 355/500。
+
+</td>
+<td width="50%" valign="top">
+
+### 经典学术卷 · 榜已锁，能力对照
+
+**普林斯顿 [SWE-bench Verified](https://www.swebench.com/)** · 500
+
+<p align="center">
+  <img src="https://img.shields.io/badge/wescode-79.2%25%20(396%2F500)-1a1a2e?style=for-the-badge&color=C9A227" alt="79.2%"/>
+  <br/>
+  <img src="https://img.shields.io/badge/同场当时-并列第一-C9A227?style=for-the-badge" alt="tied #1"/>
+</p>
+
+| | |
+|---|---|
+| 出题方 | 普林斯顿，12 个经典 Python 仓 |
+| 这场该跟谁比 | **同场当时并列第一 79.2%**（Sonar / live-SWE-agent + Claude Opus） |
+| 能不能交公开榜 | **不能**（2025-11 起只收学术机构） |
+| 模型 | DeepSeek Chat · Best@1 · **$39**（对照 Claude Opus ~$630） |
+| 详细报告 | [`swebench-verified/20261004-deepseek-chat/`](swebench-verified/20261004-deepseek-chat/) |
+
+普通人怎么读：**老试卷、分数普遍更高、公司已经交不进那张榜。** 用来证明：便宜模型 + wescode，能打平当时最贵的组合。
+
+</td>
+</tr>
+</table>
 
 ---
 
-## wescode Agent 架构
+## 30 秒看懂：评测在考什么
 
-wescode 基于 **wesgine v1.0**（服务端多租户 AI Agent 引擎），以 VS Code 为基座构建。
+给 AI 的不是选择题。是一个真实 GitHub 问题，例如「Django 这个查询在空结果时崩溃了」。
 
+它必须自己读代码、改源码。改完后用**项目原来的测试**打分：
+
+- 这次该修好的测试要过
+- 原来就过的测试不能挂
+
+过了 = 这道题 Resolved。500 道里过了多少，就是那个百分数。
+
+```mermaid
+flowchart LR
+  I["真实 GitHub issue"] --> A["wescode 自己改代码"]
+  A --> T["项目原有测试打分"]
+  T --> P["过 = 修好"]
 ```
-    ┌───────────────────────────────────────┐
-    │         SWE-bench Issue               │
-    │   "Fix bug in django/db/models..."    │
-    └─────────────────┬─────────────────────┘
-                      │
-                      ▼
-    ┌───────────────────────────────────────┐
-    │         wescode bench CLI             │
-    │   git clone → Agent Loop → git diff   │
-    └─────────────────┬─────────────────────┘
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-    ┌──────────┐           ┌──────────┐
-    │ Cognitive │           │ Context  │
-    │ (LLM API)│           │ (压缩/   │
-    │          │           │  缓存)   │
-    └────┬─────┘           └──────────┘
-         │
-         ▼
-    ┌──────────────────────────────────────┐
-    │           Execution Layer            │
-    │  read  write  edit  exec  grep       │
-    │  apply_patch  search_files  ...      │
-    └──────────────────────────────────────┘
-```
-
-### 关键特性
-
-| 特性 | 说明 |
-|------|------|
-| **通用 Agent 引擎** | wesgine 是通用引擎，不针对某一套 SWE-bench 做特化 |
-| **标准工具集** | 17 个 wesgine 内置工具（read/write/edit/exec/grep 等） |
-| **Write Verification Nudge** | 引擎检测「写了文件但没验证」时自动 nudge（ADR-311） |
-| **Patch 采集** | 临时索引捕获新增/修改/删除文件 |
-| **Cell 隔离** | 每个 bench case 在独立的 Cell 中运行 |
-
-Live Verified 本档：解题在宿主机 git worktree，官方 Docker 只用于事后评分。详见该次 [`submission/README.md`](swebench-live/20261022-deepseek-flash/submission/README.md)。
 
 ---
 
-## 目录结构
+## 该跟谁比（不要横比两场）
+
+```mermaid
+flowchart TB
+  W["wescode"]
+  W --> L["考试 A · 微软公开榜<br/>SWE-bench Live"]
+  W --> P["考试 B · 普林斯顿学术卷<br/>SWE-bench Verified"]
+  L --> L1["wescode 71.0%<br/>只跟同场 40% 比"]
+  P --> P1["wescode 79.2%<br/>只跟同场 79.2% 比<br/>榜已锁"]
+```
+
+| 你可能在想 | 正确读法 |
+|---|---|
+| 「从 79.2% 掉到 71%？」 | **不是。** 换了一套完全不同的 500 道题。 |
+| 对外能验、能上榜的是哪个？ | **微软 Live 71.0%** |
+| Live 71% 算好吗？ | 当时同场公开榜第一名是 **40%** |
+| 79.2% 算好吗？ | 当时**并列全球第一**，费用约是对照组合的 1/16；那张榜公司交不进去了 |
+| 还有一个 Lite 71%？ | 那是别人在 **Live Lite 300** 上的分，不是我们这套 Verified 500 |
+
+---
+
+## 价值（给非技术读者）
+
+1. **修的是真 bug，不是聊天答对。** 分数来自开源项目自己的测试，不是出题方打勾。
+2. **能公开核验的那场，远高于当时榜首。** 微软 Live：wescode 71.0%，当时第一名 40.0%。材料（补丁、日志、轨迹）都在本目录。
+3. **经典卷上，便宜模型打平最贵模型。** 普林斯顿：wescode + DeepSeek Chat = 79.2% / $39；当时并列第一的 Claude Opus 组合大约 $500–$630。
+
+wescode 基于通用引擎 [wesgine](https://github.com/weisyn/wesgine)，没有为某一套 SWE-bench 做专用工具。
+
+---
+
+<details>
+<summary><strong>以后还想跑的评测</strong>（和上面两场成绩无关）</summary>
+
+| 评测 | 说明 | 状态 |
+|------|------|------|
+| SWE-bench Live **Lite 300** | 微软另一套题，不是 Verified 500 的子集 | 须新跑，不能从 71% 那次过滤 |
+| SWE-bench Multilingual | 9 种语言 | 计划中 |
+| SWE-bench Pro | 企业级难度 | 计划中 |
+| Terminal-Bench 2.1 | 容器里的终端任务 | 计划中 |
+| Aider Polyglot | 测模型为主，不太测 Agent 产品 | 计划中 |
+
+</details>
+
+<details>
+<summary><strong>目录里有什么 / 怎么复现</strong></summary>
 
 ```
 benchmarks/
-├── README.md                              本文件
-├── .gitignore                             覆盖根目录的 *.log 排除
-│
-├── swebench-live/                         微软 SWE-bench Live（可交公开榜）
-│   ├── README.md                          评测说明 + 历次成绩
-│   └── 20261022-deepseek-flash/           2026-10-22 Verified 500 · 71.0%
-│       ├── README.md                      成绩报告
-│       ├── preds.json                     499 题 predictions（50MB）
-│       ├── results.json                   官方 harness 裁决
-│       ├── trajs/                         499 个推理轨迹
-│       ├── logs/                          491 个评分日志目录（~1.1G）
-│       ├── FAILURE-ANALYSIS.md            未通过题分析
-│       └── submission/README.md           交榜英文 README
-│
-├── swebench-verified/                     Princeton SWE-bench Verified（学术锁）
-│   ├── README.md                          评测说明 + 历次成绩
-│   └── 20261004-deepseek-chat/            2026-10-04 · 79.2%
-│       ├── README.md                      完整报告
-│       ├── all_preds.jsonl                500 题 predictions
-│       ├── summary.json / bench-report.json / run.json
-│       ├── sessions.db                    session 数据库
-│       ├── trajs/                         推理轨迹
-│       ├── logs/                          评分日志
-│       └── submission/metadata.yaml
+├── swebench-live/20261022-deepseek-flash/     微软公开榜 · 71.0%
+│   ├── preds.json · results.json · trajs/ · logs/
+│   └── submission/README.md
+└── swebench-verified/20261004-deepseek-chat/  普林斯顿学术卷 · 79.2%
+    ├── all_preds.jsonl · trajs/ · logs/ · sessions.db
+    └── README.md
 ```
 
-### 命名规则
-
-每次跑分以 `YYYYMMDD-<model>` 命名：
-
-```
-swebench-live/
-└── 20261022-deepseek-flash/       # Live Verified 500
-
-swebench-verified/
-└── 20261004-deepseek-chat/        # Princeton Verified 500
-```
-
----
-
-## 快速复现
-
-Princeton 那次：见 [`swebench-verified/20261004-deepseek-chat/README.md`](swebench-verified/20261004-deepseek-chat/README.md)。
-
-Live 那次（只复现**评分**，preds 已在目录里）：
+Live 只复现评分（preds 已在目录里）：
 
 ```bash
 python -m evaluation.evaluation \
@@ -175,26 +157,16 @@ python -m evaluation.evaluation \
   --workers 1
 ```
 
+普林斯顿那次的完整复现见 [`swebench-verified/20261004-deepseek-chat/README.md`](swebench-verified/20261004-deepseek-chat/README.md)。
+
+</details>
+
 ---
 
 ## 诚实声明
 
-1. **两套 SWE-bench 不能横比**——Princeton Verified 与 Live Verified 题库不同；Live Lite 300 又是第三套。79.2% 和 71.0% 不是同一次考试的两个分数。
-2. **Princeton SWE-bench Verified 存在数据污染风险**——OpenAI [已建议停止使用](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)。该榜自 2025-11 起仅接受学术机构提交。
-3. **Live 本档未勾 PR 模板第 1 条**——解题在宿主机 worktree；6 个 session 经 `exec` 读到数据集 YAML。见该次 README。
-4. **LLM 输出有随机性**——每次运行结果可能有波动。
-5. **所有评分数据公开**——predictions、评分日志、推理轨迹均在本目录内。
-
----
-
-## 引用
-
-```bibtex
-@inproceedings{jimenez2024swebench,
-  title={SWE-bench: Can Language Models Resolve Real-world GitHub Issues?},
-  author={Jimenez, Carlos E and Yang, John and Wettig, Alexander and Yao, Shunyu
-          and Pei, Kexin and Press, Ofir and Narasimhan, Karthik},
-  booktitle={The Twelfth International Conference on Learning Representations},
-  year={2024}
-}
-```
+1. 两套题不能横比；Live Lite 300 是第三套，也还没跑。
+2. 普林斯顿 Verified 有数据污染争议，OpenAI [已建议停用](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)。
+3. Live 提交未勾 PR 模板第 1 条：解题在宿主机 worktree；6 个 session 后来经 `exec` 读到数据集 YAML。见该次 [README](swebench-live/20261022-deepseek-flash/)。
+4. LLM 有随机性，重跑会有波动。
+5. 本目录评分数据全部公开。

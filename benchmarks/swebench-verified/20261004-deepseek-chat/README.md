@@ -1,3 +1,5 @@
+> 本页是**普林斯顿学术卷** 79.2%。能交公开榜的微软 Live 71.0% 在 [`../../swebench-live/20261022-deepseek-flash/`](../../swebench-live/20261022-deepseek-flash/)——两套题不能横比。
+
 <div align="center">
 
 <img src="swebench-79.2-announcement.jpg" alt="SWE-bench Verified 79.2% — #1 Tied" width="100%">
