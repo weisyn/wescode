@@ -1,4 +1,4 @@
-> 本页是**普林斯顿学术卷** 79.2%。能交公开榜的微软 Live 71.0% 在 [`../../swebench-live/20261022-deepseek-flash/`](../../swebench-live/20261022-deepseek-flash/)——两套题不能横比。
+> 本页是 Princeton [SWE-bench Verified](https://www.swebench.com/)（2026-10-04，396/500 = 79.2%）。Microsoft [SWE-bench Live](../../swebench-live/) 是另一基准，材料在 [`../../swebench-live/20261022-deepseek-flash/`](../../swebench-live/20261022-deepseek-flash/)。两套划分 instance 集合不同，Resolved 率不可比。
 
 <div align="center">
 

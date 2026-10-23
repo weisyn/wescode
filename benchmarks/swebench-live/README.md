@@ -1,47 +1,34 @@
-<div align="center">
+# SWE-bench Live
 
-# 微软 SWE-bench Live
+维护方：[Microsoft](https://swe-bench-live.github.io/)。商业产品经 GitHub PR 提交，维护者抽检后上榜。
 
-**能交公开榜的那场考试** · 不是普林斯顿那套 79.2%
+本目录只存放 **SWE-bench Live**。Princeton NLP 的 SWE-bench Verified（396/500 = 79.2%）在 [`../swebench-verified/`](../swebench-verified/)。两套划分都叫 Verified、都是 500 题，instance 集合不同，Resolved 率不可比。
 
-[官网](https://swe-bench-live.github.io/) · 商业产品走 GitHub PR，维护者抽检
-
-</div>
-
-> [!IMPORTANT]
-> 本目录只有 **微软 Live**。普林斯顿学术卷 79.2% 在 [`../swebench-verified/`](../swebench-verified/)。
-> 两套都叫 Verified 500，**题目不是同一批**，71% 不是从 79.2% 掉下来的。
-
-给 Agent 一个真实 GitHub issue → 它自己改代码 → 官方容器里跑项目原有测试 → `success / submitted` = 修好。
+协议：Agent 产出 patch → 官方容器执行仓库原有测试（FAIL_TO_PASS + PASS_TO_PASS）→ 官方口径 `success / submitted`。empty / incomplete / failure 计入 unresolved。
 
 ---
 
-## 这场该跟谁比
+## 已完成
 
-<p align="center">
-  <img src="https://img.shields.io/badge/wescode-71.0%25%20(355%2F500)-2ea44f?style=for-the-badge" alt="71.0%"/>
-  <img src="https://img.shields.io/badge/同场当时第一名-40.0%25-lightgrey?style=for-the-badge" alt="40%"/>
-</p>
+| 日期 | 划分 | 模型 | 协议 | Resolved | 同划分对照 | 目录 |
+|------|------|------|------|----------|------------|------|
+| 2026-10-22 | Verified 500 | deepseek-flash | Best@1 | **355/500 = 71.0%** | 提交时公开榜第一名 200/500 = 40.0%（SWE-agent + Claude-4.5-Sonnet） | [`20261022-deepseek-flash/`](20261022-deepseek-flash/) |
 
-当时 Verified 500 公开榜第一名是 SWE-agent + Claude-4.5-Sonnet **200/500 = 40.0%**。wescode 是 **355/500 = 71.0%**。
+提交：[PR #61](https://github.com/SWE-bench-Live/submission/pull/61)。
 
-提交：[PR #61](https://github.com/SWE-bench-Live/submission/pull/61)（维护者审完才上榜）。
+## 未评测
 
-| 日期 | 试卷 | 模型 | 方式 | 修好 | 该对比的分数 | 目录 |
-|------|------|------|------|------|--------------|------|
-| **2026-10-22** | Verified 500 | deepseek-flash | Best@1 | **355/500 · 71.0%** | 同场当时第一 **40.0%** | [`20261022-deepseek-flash/`](20261022-deepseek-flash/) |
-
-**Lite 300** 是微软另一套题（和 Verified 重叠 174 道），还没跑。必须新跑，不能从本次 preds 里过滤。别人榜上的 Lite 71% 也不是我们这套 Verified 500。
+**Lite 300** 是另一划分（与 Verified 重叠 174 题）。须新 rollout，不能从本次 Verified preds 过滤。公开榜上其他系统的 Lite 分数与本目录 Verified 500 无关。
 
 ---
 
-## 每次跑分目录里有什么
+## 每次跑分目录
 
 | 文件 | 说明 |
 |------|------|
-| `preds.json` | 每道题的补丁 |
-| `results.json` | 官方打分 |
-| `logs/<id>/` | 测试输出 |
-| `trajs/<id>/trajectory.txt` | 推理过程 |
-| `FAILURE-ANALYSIS.md` | 没过的题卡在哪 |
-| `submission/README.md` | 交给微软的英文说明 |
+| `preds.json` | 每道题的 patch |
+| `results.json` | 官方 harness 裁决 |
+| `logs/<id>/` | 容器测试输出 |
+| `trajs/<id>/trajectory.txt` | 推理轨迹 |
+| `FAILURE-ANALYSIS.md` | 未通过题分类 |
+| `submission/README.md` | 交榜英文说明 |

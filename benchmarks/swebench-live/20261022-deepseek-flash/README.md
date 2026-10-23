@@ -1,30 +1,19 @@
-<div align="center">
+# SWE-bench Live · Verified 500 · 2026-10-22
 
-# 微软 SWE-bench Live · 71.0%
-
-**能交公开榜的那场** · 不是普林斯顿 79.2%
-
-[![Score](https://img.shields.io/badge/修好-355%20%2F%20500%20(71.0%25)-2ea44f?style=for-the-badge)](https://github.com/SWE-bench-Live/submission/pull/61)
-[![Vs](https://img.shields.io/badge/同场当时第一名-40.0%25-lightgrey?style=for-the-badge)](https://swe-bench-live.github.io/)
-[![PR](https://img.shields.io/badge/提交-PR%20%2361-blue?style=for-the-badge)](https://github.com/SWE-bench-Live/submission/pull/61)
-
-</div>
-
-> **这不是** Princeton [SWE-bench Verified](../../swebench-verified/)（那次是 [`../../swebench-verified/20261004-deepseek-chat/`](../../swebench-verified/20261004-deepseek-chat/)，396/500 = 79.2%，学术锁，不能交公开榜）。
-> **这是** 微软 [SWE-bench Live](https://swe-bench-live.github.io/) 的 **Verified 500** 冻结 split。
-> **对外唯一分数：355 / 500 = 71.0%**（官方 `success / submitted`；incomplete / empty / failure 全部算 unresolved）。
+本目录是 [SWE-bench Live](https://swe-bench-live.github.io/)（Microsoft）Verified 500 的一次冻结评测。Princeton SWE-bench Verified 的材料在 [`../../swebench-verified/`](../../swebench-verified/)，instance 集合不同，Resolved 率不可比。
 
 | 项 | 值 |
-|----|----|
-| 日期 | 2026-10-22 冻结（`results.json`）；包装 10-23 |
+|---|---|
+| 冻结日期 | 2026-10-22（`results.json`）；包装 2026-10-23 |
 | Agent / 模型 | wescode / `deepseek-flash` |
-| 方式 | Best@1，单次 rollout |
-| submitted | 500 行 / **499** 唯一 id（`conan-io__conan-18153` 官方重复一行） |
+| 协议 | Best@1，单次 rollout |
+| submitted | 500 行 / 499 唯一 id（`conan-io__conan-18153` 官方重复一行） |
 | success / failure / empty / incomplete | **355** / 99 / 8 / 38 |
-| 公开提交 | [PR #61](https://github.com/SWE-bench-Live/submission/pull/61) |
-| 当时 Verified 500 榜首 | SWE-agent + Claude-4.5-Sonnet **200/500 = 40.0%** |
+| Resolved | **355 / 500 = 71.0%**（官方 `success / submitted`；empty / incomplete / failure 计 unresolved） |
+| 同划分对照 | 提交时公开榜第一名：SWE-agent + Claude-4.5-Sonnet，200/500 = 40.0% |
+| 提交 | [PR #61](https://github.com/SWE-bench-Live/submission/pull/61) |
 
-禁止对外说：339/67.8%、355/462、success/(500−incomplete)、把本档和 Princeton 79.2% 写进同一张表。TianxiCode 的 71% 是 **Lite 300**，不是本 split。
+不报告 339/67.8%、355/462，或 `success / (500 − incomplete)`。TianxiCode 等系统公开的 71% 若来自 **Lite 300**，与本 split 无关。
 
 ---
 
@@ -45,18 +34,9 @@
 
 ---
 
-## 和第一次评分的关系
+## 与 Princeton 评测的关系
 
-| | 第一次 | 第二次（本档） |
-|--|--------|----------------|
-| 目录 | `benchmarks/swebench-verified/20261004-deepseek-chat/` | `benchmarks/swebench-live/20261022-deepseek-flash/` |
-| 题库 | Princeton SWE-bench Verified 500 | 微软 SWE-bench Live **Verified 500** |
-| 模型 | DeepSeek Chat | deepseek-flash |
-| 分数 | 396/500 = 79.2% | **355/500 = 71.0%** |
-| 能交公开榜 | 否（2025-11 起学术锁） | 能。PR 已开，维护者审完才上榜 |
-| 主失败形态 | 补丁格式 / 目标测试没过 | 目标测试过了、旧测试回归（84/98） |
-
-两套题不是同一批，**数字不能横比**。
+Princeton SWE-bench Verified（2026-10-04，DeepSeek Chat，396/500）是另一基准，材料在 [`../../swebench-verified/20261004-deepseek-chat/`](../../swebench-verified/20261004-deepseek-chat/)。本档失败形态以 PASS_TO_PASS 回归为主（fill 前 98 道 failure 中 84 道）；不与那次 Resolved 率对照。
 
 ---
 
