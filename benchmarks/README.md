@@ -15,19 +15,14 @@ predictions、评分日志、推理轨迹全部公开，可复现、可核验。
 > 两套题都叫 Verified、都是 500 道，但题目不是同一批——像两套都叫「高考」的不同试卷。
 > 71% **不是**从 79.2% 掉下来的。
 
-<br/>
+### ① 能上公开榜 · 对外讲这场
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### 能上公开榜 · 看这个对外讲
-
-**微软 [SWE-bench Live](https://swe-bench-live.github.io/)** · Verified 500
+> [!TIP]
+> **微软 [SWE-bench Live](https://swe-bench-live.github.io/)** · Verified 500
+> 新试卷、公司交得进去、第三方抽检。当时榜上第一才修对 **200/500**，wescode 修对 **355/500**。
 
 <p align="center">
   <img src="https://img.shields.io/badge/wescode-71.0%25%20(355%2F500)-2ea44f?style=for-the-badge" alt="71.0%"/>
-  <br/>
   <img src="https://img.shields.io/badge/同场当时第一名-40.0%25-lightgrey?style=for-the-badge" alt="then 40%"/>
 </p>
 
@@ -39,18 +34,14 @@ predictions、评分日志、推理轨迹全部公开，可复现、可核验。
 | 模型 | deepseek-flash · Best@1 只跑一次 |
 | 详细报告 | [`swebench-live/20261022-deepseek-flash/`](swebench-live/20261022-deepseek-flash/) |
 
-普通人怎么读：**新试卷、公司交得进去、第三方会抽检。** 当时榜上第一才修对 200/500，wescode 修对 355/500。
+### ② 经典学术卷 · 榜已锁，只作能力对照
 
-</td>
-<td width="50%" valign="top">
-
-### 经典学术卷 · 榜已锁，能力对照
-
-**普林斯顿 [SWE-bench Verified](https://www.swebench.com/)** · 500
+> [!NOTE]
+> **普林斯顿 [SWE-bench Verified](https://www.swebench.com/)** · 500
+> 老试卷、分数普遍更高、公司已经交不进那张榜。用来证明：便宜模型 + wescode，能打平当时最贵的组合。
 
 <p align="center">
-  <img src="https://img.shields.io/badge/wescode-79.2%25%20(396%2F500)-1a1a2e?style=for-the-badge&color=C9A227" alt="79.2%"/>
-  <br/>
+  <img src="https://img.shields.io/badge/wescode-79.2%25%20(396%2F500)-C9A227?style=for-the-badge" alt="79.2%"/>
   <img src="https://img.shields.io/badge/同场当时-并列第一-C9A227?style=for-the-badge" alt="tied #1"/>
 </p>
 
@@ -61,12 +52,6 @@ predictions、评分日志、推理轨迹全部公开，可复现、可核验。
 | 能不能交公开榜 | **不能**（2025-11 起只收学术机构） |
 | 模型 | DeepSeek Chat · Best@1 · **$39**（对照 Claude Opus ~$630） |
 | 详细报告 | [`swebench-verified/20261004-deepseek-chat/`](swebench-verified/20261004-deepseek-chat/) |
-
-普通人怎么读：**老试卷、分数普遍更高、公司已经交不进那张榜。** 用来证明：便宜模型 + wescode，能打平当时最贵的组合。
-
-</td>
-</tr>
-</table>
 
 ---
 
